@@ -17,7 +17,7 @@ internal val DuskDark = EmberbytePalette(
     onWarn = Color(0xFF3B2A00),
     danger = Color(0xFFFFB4AB),
     onDanger = Color(0xFF4D0B0B),
-    track = Color(0xFF4A4360),
+    track = Color(0xFF312F3A),
 )
 
 internal val DuskLight = EmberbytePalette(
@@ -34,7 +34,7 @@ internal val DuskLight = EmberbytePalette(
     onWarn = Color(0xFF3B2A00),
     danger = Color(0xFFFFB4AB),
     onDanger = Color(0xFF4D0B0B),
-    track = Color(0xFFCFC3E6),
+    track = Color(0xFFD4CED9),
 )
 
 internal val EmberDark = EmberbytePalette(
@@ -51,7 +51,7 @@ internal val EmberDark = EmberbytePalette(
     onWarn = Color(0xFF3B2A00),
     danger = Color(0xFFFFB4AB),
     onDanger = Color(0xFF4D0B0B),
-    track = Color(0xFF4D3A30),
+    track = Color(0xFF37302C),
 )
 
 internal val EmberLight = EmberbytePalette(
@@ -68,7 +68,7 @@ internal val EmberLight = EmberbytePalette(
     onWarn = Color(0xFF3B2A00),
     danger = Color(0xFFFFB4AB),
     onDanger = Color(0xFF4D0B0B),
-    track = Color(0xFFE3CDBF),
+    track = Color(0xFFDAD0CC),
 )
 
 internal val MonochromeDark = EmberbytePalette(
@@ -85,7 +85,7 @@ internal val MonochromeDark = EmberbytePalette(
     onWarn = Color(0xFF111111),
     danger = Color(0xFFF5F5F5),
     onDanger = Color(0xFF111111),
-    track = Color(0xFF444444),
+    track = Color(0xFF323232),
 )
 
 internal val MonochromeLight = EmberbytePalette(
@@ -102,7 +102,7 @@ internal val MonochromeLight = EmberbytePalette(
     onWarn = Color(0xFF111111),
     danger = Color(0xFF000000),
     onDanger = Color(0xFFFFFFFF),
-    track = Color(0xFFCFCFCF),
+    track = Color(0xFFD2D2D2),
 )
 
 internal val CatppuccinDark = EmberbytePalette(
@@ -119,7 +119,7 @@ internal val CatppuccinDark = EmberbytePalette(
     onWarn = Color(0xFF3A2A00),
     danger = Color(0xFFF38BA8),
     onDanger = Color(0xFF3A0F1A),
-    track = Color(0xFF585B70),
+    track = Color(0xFF424456),
 )
 
 internal val CatppuccinLight = EmberbytePalette(
@@ -136,7 +136,7 @@ internal val CatppuccinLight = EmberbytePalette(
     onWarn = Color(0xFF000000),
     danger = Color(0xFFD20F39),
     onDanger = Color(0xFFFFFFFF),
-    track = Color(0xFFBFC3CE),
+    track = Color(0xFFCBCDD6),
 )
 
 internal val GruvboxDark = EmberbytePalette(
@@ -153,7 +153,7 @@ internal val GruvboxDark = EmberbytePalette(
     onWarn = Color(0xFF2B1400),
     danger = Color(0xFFFB4934),
     onDanger = Color(0xFF2B0A07),
-    track = Color(0xFF665C54),
+    track = Color(0xFF4D4A42),
 )
 
 internal val GruvboxLight = EmberbytePalette(
@@ -170,7 +170,7 @@ internal val GruvboxLight = EmberbytePalette(
     onWarn = Color(0xFF000000),
     danger = Color(0xFF9D0006),
     onDanger = Color(0xFFFBF1C7),
-    track = Color(0xFFC3B59C),
+    track = Color(0xFFCAC2A2),
 )
 
 internal val NordDark = EmberbytePalette(
@@ -187,7 +187,7 @@ internal val NordDark = EmberbytePalette(
     onWarn = Color(0xFF3A2C08),
     danger = Color(0xFFBF616A),
     onDanger = Color(0xFF000000),
-    track = Color(0xFF4C566A),
+    track = Color(0xFF4D535E),
 )
 
 internal val NordLight = EmberbytePalette(
@@ -204,7 +204,7 @@ internal val NordLight = EmberbytePalette(
     onWarn = Color(0xFF3A2C08),
     danger = Color(0xFFBF616A),
     onDanger = Color(0xFF000000),
-    track = Color(0xFFDBE0E9),
+    track = Color(0xFFCACDD4),
 )
 
 internal val RosepineDark = EmberbytePalette(
@@ -221,7 +221,7 @@ internal val RosepineDark = EmberbytePalette(
     onWarn = Color(0xFF3A2808),
     danger = Color(0xFFEB6F92),
     onDanger = Color(0xFF3A0F1C),
-    track = Color(0xFF403D52),
+    track = Color(0xFF343240),
 )
 
 internal val RosepineLight = EmberbytePalette(
@@ -238,7 +238,7 @@ internal val RosepineLight = EmberbytePalette(
     onWarn = Color(0xFF3A2400),
     danger = Color(0xFFB4637A),
     onDanger = Color(0xFF000000),
-    track = Color(0xFFE8E5E4),
+    track = Color(0xFFDDD7D8),
 )
 
 internal val SolarizedDark = EmberbytePalette(
@@ -255,7 +255,7 @@ internal val SolarizedDark = EmberbytePalette(
     onWarn = Color(0xFF1F1700),
     danger = Color(0xFFDC322F),
     onDanger = Color(0xFFFFFFFF),
-    track = Color(0xFFDEEBEE),
+    track = Color(0xFF234850),
 )
 
 internal val SolarizedLight = EmberbytePalette(
@@ -272,7 +272,7 @@ internal val SolarizedLight = EmberbytePalette(
     onWarn = Color(0xFF000000),
     danger = Color(0xFFDC322F),
     onDanger = Color(0xFFFFFFFF),
-    track = Color(0xFFEDE9DF),
+    track = Color(0xFFCACEC2),
 )
 
 internal val DraculaDark = EmberbytePalette(
@@ -289,7 +289,7 @@ internal val DraculaDark = EmberbytePalette(
     onWarn = Color(0xFF2F3300),
     danger = Color(0xFFFF5555),
     onDanger = Color(0xFF2F0505),
-    track = Color(0xFF000000),
+    track = Color(0xFF474852),
 )
 
 internal val DraculaLight = EmberbytePalette(
@@ -306,7 +306,7 @@ internal val DraculaLight = EmberbytePalette(
     onWarn = Color(0xFFFFFFFF),
     danger = Color(0xFFCB3A2A),
     onDanger = Color(0xFFFFFFFF),
-    track = Color(0xFFD4CCA8),
+    track = Color(0xFFD3D0C3),
 )
 
 internal val TokyonightDark = EmberbytePalette(
@@ -323,7 +323,7 @@ internal val TokyonightDark = EmberbytePalette(
     onWarn = Color(0xFF33220A),
     danger = Color(0xFFF7768E),
     onDanger = Color(0xFF3A0F17),
-    track = Color(0xFF414868),
+    track = Color(0xFF383A4B),
 )
 
 internal val TokyonightLight = EmberbytePalette(
@@ -340,7 +340,7 @@ internal val TokyonightLight = EmberbytePalette(
     onWarn = Color(0xFFFFFFFF),
     danger = Color(0xFFF52A65),
     onDanger = Color(0xFF000000),
-    track = Color(0xFFD2D4E2),
+    track = Color(0xFFBABCC7),
 )
 
 internal val EverforestDark = EmberbytePalette(
@@ -357,7 +357,7 @@ internal val EverforestDark = EmberbytePalette(
     onWarn = Color(0xFF332708),
     danger = Color(0xFFE67E80),
     onDanger = Color(0xFF3A1112),
-    track = Color(0xFF475258),
+    track = Color(0xFF4B4F4F),
 )
 
 internal val EverforestLight = EmberbytePalette(
@@ -374,7 +374,7 @@ internal val EverforestLight = EmberbytePalette(
     onWarn = Color(0xFF404040),
     danger = Color(0xFFF85552),
     onDanger = Color(0xFF000000),
-    track = Color(0xFFF0EFE6),
+    track = Color(0xFFD7D3C6),
 )
 
 internal val KanagawaDark = EmberbytePalette(
@@ -391,7 +391,7 @@ internal val KanagawaDark = EmberbytePalette(
     onWarn = Color(0xFF33260A),
     danger = Color(0xFFE46876),
     onDanger = Color(0xFF3A0F15),
-    track = Color(0xFFF0F0F4),
+    track = Color(0xFF3D3D40),
 )
 
 internal val KanagawaLight = EmberbytePalette(
@@ -408,7 +408,7 @@ internal val KanagawaLight = EmberbytePalette(
     onWarn = Color(0xFFFFFFFF),
     danger = Color(0xFFC84053),
     onDanger = Color(0xFFFFFFFF),
-    track = Color(0xFFCFC7A0),
+    track = Color(0xFFC6C1A2),
 )
 
 internal val GeneratedPalettes: Map<String, Pair<EmberbytePalette, EmberbytePalette>> = mapOf(

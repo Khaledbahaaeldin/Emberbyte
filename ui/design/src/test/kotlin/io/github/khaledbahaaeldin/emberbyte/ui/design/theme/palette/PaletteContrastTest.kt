@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,6 +31,31 @@ class PaletteContrastTest {
                     if (ratio < pair.minRatio) {
                         failures.add("$id/$mode/${pair.name} $ratio (expected >= ${pair.minRatio})")
                     }
+                }
+
+                // Track visibility and side-of-fill rules
+                val lumTrack = palette.track.luminance()
+                val lumPrimary = palette.primary.luminance()
+                if (mode == "light") {
+                    if (lumTrack < lumPrimary) {
+                        failures.add("$id/$mode/track side-of-fill: track lum ($lumTrack) is darker than primary ($lumPrimary)")
+                    }
+                } else {
+                    if (lumTrack > lumPrimary) {
+                        failures.add("$id/$mode/track side-of-fill: track lum ($lumTrack) is lighter than primary ($lumPrimary)")
+                    }
+                }
+                val rTrackSurf = contrastRatio(palette.track, palette.surface)
+                if (rTrackSurf < 1.3) {
+                    failures.add("$id/$mode/track vs surface $rTrackSurf (expected >= 1.3)")
+                }
+                val rTrackBg = contrastRatio(palette.track, palette.background)
+                if (rTrackBg < 1.3) {
+                    failures.add("$id/$mode/track vs background $rTrackBg (expected >= 1.3)")
+                }
+                val rPrimaryTrack = contrastRatio(palette.primary, palette.track)
+                if (rPrimaryTrack < 2.2) {
+                    failures.add("$id/$mode/primary vs track $rPrimaryTrack (expected >= 2.2)")
                 }
             }
         }
