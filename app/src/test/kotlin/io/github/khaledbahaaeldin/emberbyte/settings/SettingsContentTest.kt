@@ -82,9 +82,8 @@ class SettingsContentTest {
         show(onUpdate = { seen += it })
         scrollTo("AMOLED black")
         rule.onNodeWithText("AMOLED black").performClick()
-        rule.onNodeWithText("Dynamic colour").performClick()
         assertTrue(seen[0](Settings()).amoledBlack)
-        assertFalse(seen[1](Settings()).useDynamicColor)
+        assertEquals(1, seen.size)
     }
 
     @Test fun unit_chips_switch_the_unit_system() {

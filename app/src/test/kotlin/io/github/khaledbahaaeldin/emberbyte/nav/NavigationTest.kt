@@ -71,10 +71,10 @@ class NavigationTest {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     EmberbyteTheme(
                         spec = EmberbyteThemeSpec(
-                            presetId = "dusk",
+                            presetId = current.themeId,
                             darkTheme = true,
                             amoled = current.amoledBlack,
-                            wallpaperColors = current.useDynamicColor,
+                            wallpaperColors = current.useWallpaperColors,
                         ),
                     ) {
                         EmberbyteApp(graph, hapticsEnabled = current.hapticsEnabled)

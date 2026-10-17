@@ -30,7 +30,8 @@ class DataStoreRepositoriesTest {
         val repo = DataStoreSettingsRepository(store())
         val changed = Settings(
             liveNotificationEnabled = false, notificationShowsSpeed = false, spikeAlertsEnabled = false,
-            amoledBlack = true, useDynamicColor = false, unitSystem = UnitSystem.BINARY,
+            amoledBlack = true, themeId = "kanagawa", themeMode = ThemeMode.LIGHT,
+            useWallpaperColors = true, unitSystem = UnitSystem.BINARY,
             hapticsEnabled = false,
         )
         val result = repo.update { changed }

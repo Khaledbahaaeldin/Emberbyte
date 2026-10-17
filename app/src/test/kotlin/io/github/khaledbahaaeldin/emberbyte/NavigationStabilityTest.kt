@@ -58,10 +58,10 @@ class NavigationStabilityTest {
             if (current != null) {
                 EmberbyteTheme(
                     spec = EmberbyteThemeSpec(
-                        presetId = "dusk",
+                        presetId = current.themeId,
                         darkTheme = true,
                         amoled = current.amoledBlack,
-                        wallpaperColors = current.useDynamicColor,
+                        wallpaperColors = current.useWallpaperColors,
                     ),
                 ) {
                     EmberbyteApp(graph, hapticsEnabled = current.hapticsEnabled)
@@ -71,7 +71,7 @@ class NavigationStabilityTest {
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("nav_apps").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("nav_apps").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Search apps").fetchSemanticsNodes().isNotEmpty() }
-        runBlocking { graph.settings.update { it.copy(useDynamicColor = false) } }
+        runBlocking { graph.settings.update { it.copy(useWallpaperColors = true) } }
         rule.waitForIdle()
         rule.onNodeWithText("Search apps").assertIsDisplayed()
     }

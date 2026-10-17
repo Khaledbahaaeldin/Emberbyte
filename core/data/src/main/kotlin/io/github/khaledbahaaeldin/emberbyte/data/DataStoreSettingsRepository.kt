@@ -13,6 +13,8 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
@@ -21,10 +23,14 @@ internal object SettingsKeys {
     val NOTIFICATION_SHOWS_SPEED = booleanPreferencesKey("notification_shows_speed")
     val SPIKE_ALERTS = booleanPreferencesKey("spike_alerts_enabled")
     val AMOLED_BLACK = booleanPreferencesKey("amoled_black")
-    val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+    val THEME_ID = stringPreferencesKey("theme_id")
+    val THEME_MODE = stringPreferencesKey("theme_mode")
+    val USE_WALLPAPER_COLORS = booleanPreferencesKey("use_wallpaper_colors")
+    val THEME_MIGRATED = booleanPreferencesKey("theme_migrated")
     val UNIT_SYSTEM = stringPreferencesKey("unit_system")
     val HAPTICS = booleanPreferencesKey("haptics_enabled")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+    val LEGACY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
 }
 
 internal fun Preferences.toSettings(): Settings {
@@ -34,7 +40,10 @@ internal fun Preferences.toSettings(): Settings {
         notificationShowsSpeed = this[SettingsKeys.NOTIFICATION_SHOWS_SPEED] ?: d.notificationShowsSpeed,
         spikeAlertsEnabled = this[SettingsKeys.SPIKE_ALERTS] ?: d.spikeAlertsEnabled,
         amoledBlack = this[SettingsKeys.AMOLED_BLACK] ?: d.amoledBlack,
-        useDynamicColor = this[SettingsKeys.USE_DYNAMIC_COLOR] ?: d.useDynamicColor,
+        themeId = this[SettingsKeys.THEME_ID] ?: d.themeId,
+        themeMode = this[SettingsKeys.THEME_MODE]
+            ?.let { name -> runCatching { ThemeMode.valueOf(name.uppercase()) }.getOrNull() } ?: d.themeMode,
+        useWallpaperColors = this[SettingsKeys.USE_WALLPAPER_COLORS] ?: d.useWallpaperColors,
         unitSystem = this[SettingsKeys.UNIT_SYSTEM]
             ?.let { name -> runCatching { UnitSystem.valueOf(name) }.getOrNull() } ?: d.unitSystem,
         hapticsEnabled = this[SettingsKeys.HAPTICS] ?: d.hapticsEnabled,
@@ -46,7 +55,9 @@ internal fun MutablePreferences.write(settings: Settings) {
     this[SettingsKeys.NOTIFICATION_SHOWS_SPEED] = settings.notificationShowsSpeed
     this[SettingsKeys.SPIKE_ALERTS] = settings.spikeAlertsEnabled
     this[SettingsKeys.AMOLED_BLACK] = settings.amoledBlack
-    this[SettingsKeys.USE_DYNAMIC_COLOR] = settings.useDynamicColor
+    this[SettingsKeys.THEME_ID] = settings.themeId
+    this[SettingsKeys.THEME_MODE] = settings.themeMode.name.lowercase()
+    this[SettingsKeys.USE_WALLPAPER_COLORS] = settings.useWallpaperColors
     this[SettingsKeys.UNIT_SYSTEM] = settings.unitSystem.name
     this[SettingsKeys.HAPTICS] = settings.hapticsEnabled
 }
@@ -56,13 +67,57 @@ private fun Flow<Preferences>.safe(): Flow<Preferences> = catch { error ->
 }
 
 class DataStoreSettingsRepository(private val store: DataStore<Preferences>) : SettingsRepository {
-    override fun observe(): Flow<Settings> = store.data.safe().map { it.toSettings() }
+    private var migrated = false
+
+    override fun observe(): Flow<Settings> = flow {
+        migrateIfNeeded()
+        emitAll(store.data.safe().map { it.toSettings() })
+    }
 
     override suspend fun update(transform: (Settings) -> Settings): Outcome<Unit> = try {
-        store.edit { prefs -> prefs.write(transform(prefs.toSettings())) }
+        store.edit { prefs ->
+            if (prefs[SettingsKeys.THEME_MIGRATED] == null) {
+                migratePreferences(prefs)
+            }
+            prefs.write(transform(prefs.toSettings()))
+        }
+        migrated = true
         Outcome.Success(Unit)
     } catch (error: IOException) {
         Outcome.Failure(EmberbyteError.Storage(error.message ?: "I/O error"))
+    }
+
+    private suspend fun migrateIfNeeded() {
+        if (migrated) return
+        try {
+            store.edit { p ->
+                if (p[SettingsKeys.THEME_MIGRATED] == null) {
+                    migratePreferences(p)
+                }
+            }
+            migrated = true
+        } catch (_: IOException) {
+        }
+    }
+
+    private fun migratePreferences(p: MutablePreferences) {
+        val legacyDynamic = p[SettingsKeys.LEGACY_USE_DYNAMIC_COLOR]
+        if (legacyDynamic == true) {
+            p[SettingsKeys.USE_WALLPAPER_COLORS] = true
+        } else {
+            p[SettingsKeys.THEME_ID] = "dusk"
+            p[SettingsKeys.USE_WALLPAPER_COLORS] = false
+        }
+        if (p[SettingsKeys.THEME_ID] == null) {
+            p[SettingsKeys.THEME_ID] = "dusk"
+        }
+        if (p[SettingsKeys.THEME_MODE] == null) {
+            p[SettingsKeys.THEME_MODE] = ThemeMode.SYSTEM.name.lowercase()
+        }
+        if (p[SettingsKeys.USE_WALLPAPER_COLORS] == null) {
+            p[SettingsKeys.USE_WALLPAPER_COLORS] = false
+        }
+        p[SettingsKeys.THEME_MIGRATED] = true
     }
 }
 

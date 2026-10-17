@@ -220,11 +220,6 @@ internal fun SettingsContent(
         item { TextButton(onClick = onOpenBatterySettings, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)) { Text("Battery settings") } }
         item { SectionTitle("Appearance") }
         item {
-            SwitchRow("Dynamic colour", "Use your wallpaper colours (Android 12 and newer)", settings.useDynamicColor) {
-                onUpdate { s -> s.copy(useDynamicColor = it) }
-            }
-        }
-        item {
             SwitchRow("AMOLED black", "Pure black backgrounds in dark theme", settings.amoledBlack) {
                 onUpdate { s -> s.copy(amoledBlack = it) }
             }

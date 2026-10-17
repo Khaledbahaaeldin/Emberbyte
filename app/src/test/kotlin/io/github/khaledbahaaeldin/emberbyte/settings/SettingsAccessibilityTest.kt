@@ -58,7 +58,7 @@ class SettingsAccessibilityTest {
 
     @Test
     fun switches_in_settings_are_merged_with_their_labels_into_one_clickable_node_with_role_switch() {
-        show(Settings(liveNotificationEnabled = true, useDynamicColor = false))
+        show(Settings(liveNotificationEnabled = true, amoledBlack = false))
 
         // "Live notification" should be a single toggleable node merging the text and the switch
         val liveNode = rule.onNodeWithText("Live notification")
@@ -70,11 +70,11 @@ class SettingsAccessibilityTest {
         val unmergedLiveNodes = rule.onAllNodesWithText("Live notification", useUnmergedTree = true)
         unmergedLiveNodes.assertCountEquals(1)
 
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Dynamic colour"))
-        val dynamicColorNode = rule.onNodeWithText("Dynamic colour")
-        dynamicColorNode.assertIsDisplayed()
-        dynamicColorNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
-        dynamicColorNode.assertIsOff()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("AMOLED black"))
+        val amoledBlackNode = rule.onNodeWithText("AMOLED black")
+        amoledBlackNode.assertIsDisplayed()
+        amoledBlackNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        amoledBlackNode.assertIsOff()
     }
 
     @Test

@@ -15,6 +15,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteSurface
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import androidx.navigation.NavController
+import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
 import kotlinx.coroutines.flow.first
@@ -30,12 +31,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by graph.settingsState.collectAsStateWithLifecycle()
             val current = settings
+            val isDark = when (current?.themeMode ?: ThemeMode.SYSTEM) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
             EmberbyteTheme(
                 spec = EmberbyteThemeSpec(
-                    presetId = "dusk",
-                    darkTheme = isSystemInDarkTheme(),
+                    presetId = current?.themeId ?: "dusk",
+                    darkTheme = isDark,
                     amoled = current?.amoledBlack ?: false,
-                    wallpaperColors = current?.useDynamicColor ?: true,
+                    wallpaperColors = current?.useWallpaperColors ?: false,
                 ),
             ) {
                 EmberbyteSurface {
