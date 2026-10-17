@@ -21,11 +21,14 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.ImageBitmap
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 
 private fun spoken(bytes: Long, units: ByteUnits): String {
     val f = formatBytes(bytes, units)
@@ -38,6 +41,8 @@ fun AppRow(
     units: ByteUnits,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageBitmap? = null,
+    shape: AppShape = shapeFor(model.packageName),
 ) {
     val total = formatBytes(model.totalBytes, units)
     val mobileShare = if (model.totalBytes > 0) model.mobileBytes.toFloat() / model.totalBytes else 0f
@@ -53,19 +58,12 @@ fun AppRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier
-                .size(40.dp)
-                .clearAndSetSemantics { }
-                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                model.label.take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
+        AppIcon(
+            label = model.label,
+            icon = icon,
+            shape = shape,
+            size = 40.dp,
+        )
         Column(Modifier.weight(1f)) {
             Text(model.label, style = MaterialTheme.typography.bodyLarge)
             Row(Modifier.fillMaxWidth().padding(top = 4.dp).height(4.dp)) {

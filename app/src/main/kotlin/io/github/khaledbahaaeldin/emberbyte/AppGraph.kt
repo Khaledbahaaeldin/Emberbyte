@@ -53,6 +53,7 @@ import io.github.khaledbahaaeldin.emberbyte.data.store.UsageStores
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
 import io.github.khaledbahaaeldin.emberbyte.apps.AppsViewModel
 import io.github.khaledbahaaeldin.emberbyte.history.HistoryViewModel
@@ -102,6 +103,7 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
     val restoreStore: RestoreStore = RoomRestoreStore(EmberbyteDatabases.get(appContext))
     val packageResolver: PackageResolver = PackageManagerPackageResolver(appContext)
     val backupService: BackupService = DefaultBackupService(exportService, restoreStore, packageResolver)
+    val appIcons: AppIconProvider = AppIconProvider(appContext)
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

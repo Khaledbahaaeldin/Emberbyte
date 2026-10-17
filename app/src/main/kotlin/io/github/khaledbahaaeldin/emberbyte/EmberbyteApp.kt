@@ -177,6 +177,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
                     onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
+                    iconProvider = graph.appIcons,
                 )
             }
             composable(
@@ -188,6 +189,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     viewModel,
                     onOpenApp = { packageName -> navController.navigate(Routes.appDetail(packageName)) },
                     onPromptAction = actions::onPrompt,
+                    iconProvider = graph.appIcons,
                 )
             }
             composable(

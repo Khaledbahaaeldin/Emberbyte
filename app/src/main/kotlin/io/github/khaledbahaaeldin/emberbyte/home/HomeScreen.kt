@@ -43,7 +43,10 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
+import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 
 @Composable
 fun HomeScreen(
@@ -54,8 +57,25 @@ fun HomeScreen(
     onOpenApp: (String) -> Unit,
     onSetUpPlan: () -> Unit,
     modifier: Modifier = Modifier,
+    iconProvider: AppIconProvider? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val packageNames = state.topApps.map { it.packageName }
+    val iconMap by produceState<Map<String, ImageBitmap>>(
+        initialValue = emptyMap(),
+        packageNames,
+        iconProvider,
+    ) {
+        if (iconProvider == null) return@produceState
+        val loaded = mutableMapOf<String, ImageBitmap>()
+        for (pkg in packageNames) {
+            val bitmap = iconProvider.icon(pkg)
+            if (bitmap != null) {
+                loaded[pkg] = bitmap
+                value = loaded.toMap()
+            }
+        }
+    }
     HomeContent(
         state = state,
         onEvent = viewModel::onEvent,
@@ -65,6 +85,7 @@ fun HomeScreen(
         onOpenApp = onOpenApp,
         onSetUpPlan = onSetUpPlan,
         modifier = modifier,
+        icons = { iconMap[it] },
     )
 }
 
@@ -78,6 +99,7 @@ internal fun HomeContent(
     onOpenApp: (String) -> Unit,
     onSetUpPlan: () -> Unit,
     modifier: Modifier = Modifier,
+    icons: (String) -> ImageBitmap? = { null },
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().statusBarsPadding(),
@@ -227,7 +249,14 @@ internal fun HomeContent(
                 when {
                     state.topAppsLocked -> Text("Allow usage access to see which apps use your data.", style = MaterialTheme.typography.bodyMedium)
                     state.topApps.isEmpty() -> Text("No per-app data yet. It appears within about 5 minutes once usage access is allowed.", style = MaterialTheme.typography.bodyMedium)
-                    else -> state.topApps.forEach { app -> AppRow(app, state.units, onClick = { onOpenApp(app.packageName) }) }
+                    else -> state.topApps.forEach { app ->
+                        AppRow(
+                            app,
+                            state.units,
+                            onClick = { onOpenApp(app.packageName) },
+                            icon = icons(app.packageName),
+                        )
+                    }
                 }
             }
         }

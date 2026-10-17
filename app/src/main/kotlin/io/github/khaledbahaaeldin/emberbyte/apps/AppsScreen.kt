@@ -35,6 +35,10 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
 
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
+import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
+
 private val USAGE_ACCESS_PROMPT = PermissionPromptUi(
     id = "usage_access",
     title = "Allow usage access",
@@ -48,9 +52,33 @@ fun AppsScreen(
     onOpenApp: (String) -> Unit,
     onPromptAction: (String) -> Unit,
     modifier: Modifier = Modifier,
+    iconProvider: AppIconProvider? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    AppsContent(state, viewModel::onEvent, onOpenApp, onPromptAction, modifier)
+    val packageNames = state.apps.map { it.packageName }
+    val iconMap by produceState<Map<String, ImageBitmap>>(
+        initialValue = emptyMap(),
+        packageNames,
+        iconProvider,
+    ) {
+        if (iconProvider == null) return@produceState
+        val loaded = mutableMapOf<String, ImageBitmap>()
+        for (pkg in packageNames) {
+            val bitmap = iconProvider.icon(pkg)
+            if (bitmap != null) {
+                loaded[pkg] = bitmap
+                value = loaded.toMap()
+            }
+        }
+    }
+    AppsContent(
+        state = state,
+        onEvent = viewModel::onEvent,
+        onOpenApp = onOpenApp,
+        onPromptAction = onPromptAction,
+        modifier = modifier,
+        icons = { iconMap[it] },
+    )
 }
 
 @Composable
@@ -60,6 +88,7 @@ internal fun AppsContent(
     onOpenApp: (String) -> Unit,
     onPromptAction: (String) -> Unit,
     modifier: Modifier = Modifier,
+    icons: (String) -> ImageBitmap? = { null },
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().statusBarsPadding(),
@@ -115,7 +144,12 @@ internal fun AppsContent(
             }
         } else {
             items(state.apps, key = { it.packageName }) { app ->
-                AppRow(app, state.units, onClick = { onOpenApp(app.packageName) })
+                AppRow(
+                    app,
+                    state.units,
+                    onClick = { onOpenApp(app.packageName) },
+                    icon = icons(app.packageName),
+                )
             }
         }
     }
