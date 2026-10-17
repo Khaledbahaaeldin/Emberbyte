@@ -4,9 +4,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -65,13 +70,32 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
 @Composable
 fun EmberbyteApp(graph: AppGraph, hapticsEnabled: Boolean = true) {
-    val completed by graph.onboardingCompleted.collectAsStateWithLifecycle()
-    val value = completed
-    // `null` only before the first read. The scaffold is created ONCE with the right start destination and then stays.
-    if (value != null) {
-        AppScaffold(graph, startOnboarding = !value, hapticsEnabled = hapticsEnabled)
-    } else {
-        StartupPlaceholder()
+    val settings by graph.settingsState.collectAsStateWithLifecycle()
+    val isDark = isSystemInDarkTheme()
+    val spec = settings?.let { themeSpecOf(it, isDark) } ?: themeSpecOf(Settings(), isDark)
+
+    val context = LocalContext.current
+    val activity = remember(context) { context.findComponentActivity() }
+    DisposableEffect(spec.darkTheme, activity) {
+        activity?.enableEdgeToEdge(
+            statusBarStyle = if (spec.darkTheme) {
+                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+            },
+        )
+        onDispose {}
+    }
+
+    EmberbyteTheme(spec = spec) {
+        val completed by graph.onboardingCompleted.collectAsStateWithLifecycle()
+        val value = completed
+        // `null` only before the first read. The scaffold is created ONCE with the right start destination and then stays.
+        if (value != null) {
+            AppScaffold(graph, startOnboarding = !value, hapticsEnabled = hapticsEnabled)
+        } else {
+            StartupPlaceholder()
+        }
     }
 }
 

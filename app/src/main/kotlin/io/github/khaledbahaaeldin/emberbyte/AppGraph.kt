@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte
 
 import android.content.Context
+import android.content.res.Configuration
 import android.text.format.DateFormat
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.ViewModelProvider
@@ -51,6 +52,7 @@ import io.github.khaledbahaaeldin.emberbyte.data.store.UsageStore
 import io.github.khaledbahaaeldin.emberbyte.data.store.UsageStores
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
 import io.github.khaledbahaaeldin.emberbyte.apps.AppsViewModel
 import io.github.khaledbahaaeldin.emberbyte.history.HistoryViewModel
@@ -110,6 +112,16 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
     /** Hot cache of the settings. `null` only until the first read; collecting it never restarts the underlying flow. */
     val settingsState: StateFlow<Settings?> =
         settings.observe().map<Settings, Settings?> { it }.stateIn(appScope, SharingStarted.Eagerly, null)
+
+    /** Hot cache of the theme spec derived from settings. `null` only until the first settings read. */
+    val themeSpec: StateFlow<EmberbyteThemeSpec?> =
+        settingsState.map { s ->
+            s?.let {
+                val systemDark = (appContext.resources.configuration.uiMode and
+                    Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                themeSpecOf(it, systemDark)
+            }
+        }.stateIn(appScope, SharingStarted.Eagerly, null)
 
     val sampler = SamplerEngine(
         counters = TrafficStatsCounterSource(appContext, clock),

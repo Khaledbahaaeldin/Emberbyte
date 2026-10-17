@@ -3,19 +3,21 @@ package io.github.khaledbahaaeldin.emberbyte
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.compose.foundation.isSystemInDarkTheme
+import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.placeholder.StartupPlaceholder
 import io.github.khaledbahaaeldin.emberbyte.sampler.ServiceStarter
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteSurface
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import androidx.navigation.NavController
-import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
 import kotlinx.coroutines.flow.first
@@ -31,19 +33,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by graph.settingsState.collectAsStateWithLifecycle()
             val current = settings
-            val isDark = when (current?.themeMode ?: ThemeMode.SYSTEM) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
+            val isDark = isSystemInDarkTheme()
+            val spec = current?.let { themeSpecOf(it, isDark) } ?: themeSpecOf(Settings(), isDark)
+
+            DisposableEffect(spec.darkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = if (spec.darkTheme) {
+                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    } else {
+                        SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+                    },
+                )
+                onDispose {}
             }
-            EmberbyteTheme(
-                spec = EmberbyteThemeSpec(
-                    presetId = current?.themeId ?: "dusk",
-                    darkTheme = isDark,
-                    amoled = current?.amoledBlack ?: false,
-                    wallpaperColors = current?.useWallpaperColors ?: false,
-                ),
-            ) {
+
+            EmberbyteTheme(spec = spec) {
                 EmberbyteSurface {
                     if (current != null) {
                         EmberbyteApp(graph, hapticsEnabled = current.hapticsEnabled)
