@@ -17,6 +17,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -31,7 +32,7 @@ class TilesTest {
 
     @Test fun speedTile_shows_rate_and_network() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SpeedTile(rxBps = 4_200_000L, txBps = 350_000L, network = NetworkKindUi.Wifi, units = ByteUnits.DECIMAL)
             }
         }
@@ -41,7 +42,7 @@ class TilesTest {
 
     @Test fun speedTile_says_no_connection_when_offline() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SpeedTile(rxBps = 0L, txBps = 0L, network = null, units = ByteUnits.DECIMAL)
             }
         }
@@ -51,7 +52,7 @@ class TilesTest {
 
     @Test fun forecastTile_shows_headline_and_detail() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 ForecastTile(ForecastUi(headline = "Thu", detail = "runs out (±1 day)", confidence = "Medium confidence"))
             }
         }
@@ -63,7 +64,7 @@ class TilesTest {
     @Test fun forecastTile_renders_texts_in_one_node_matching_model_text_under_rtl() {
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     ForecastTile(ForecastUi(headline = "Mon", detail = "runs out Mon (±1 day)", confidence = "Medium confidence"))
                 }
             }
@@ -80,7 +81,7 @@ class TilesTest {
             BarUi("Tue", 2_000_000_000L, "Tuesday, 2.00 gigabytes"),
         )
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UsageBarRow(bars, selectedIndex = null, onSelect = { picked = it })
             }
         }
@@ -90,7 +91,7 @@ class TilesTest {
 
     @Test fun appRow_shows_name_and_total() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppRow(AppRowUi("com.yt", "YouTube", 610_000_000L, 0L), ByteUnits.DECIMAL, onClick = {})
             }
         }
@@ -100,7 +101,7 @@ class TilesTest {
 
     @Test fun an_app_row_speaks_its_mobile_and_wifi_split() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppRow(AppRowUi("com.video", "Video", 600_000_000L, 400_000_000L), ByteUnits.DECIMAL, onClick = {})
             }
         }
@@ -110,7 +111,7 @@ class TilesTest {
 
     @Test fun appRow_avatar_letter_is_hidden_from_semantics() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppRow(AppRowUi("com.yt", "YouTube", 610_000_000L, 0L), ByteUnits.DECIMAL, onClick = {})
             }
         }

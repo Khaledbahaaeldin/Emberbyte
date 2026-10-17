@@ -23,6 +23,7 @@ import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorUiState
 import io.github.khaledbahaaeldin.emberbyte.settings.CreateBackupPassphraseDialog
 import io.github.khaledbahaaeldin.emberbyte.settings.RestoreWarningDialog
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,7 +38,7 @@ class DialogFocusAccessibilityTest {
     @Test
     fun settings_create_backup_dialog_moves_focus_in_and_returns_focus_to_trigger_on_dismiss() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 io.github.khaledbahaaeldin.emberbyte.settings.DataSection(
                     uiState = io.github.khaledbahaaeldin.emberbyte.settings.DataUiState(),
                     onExportCsv = {},
@@ -60,7 +61,7 @@ class DialogFocusAccessibilityTest {
     @Config(qualifiers = "w411dp-h3000dp")
     fun settings_restore_backup_dialog_moves_focus_in_and_returns_focus_to_trigger_on_dismiss() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 io.github.khaledbahaaeldin.emberbyte.settings.SettingsContent(
                     settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(),
                     onUpdate = {},
@@ -91,7 +92,7 @@ class DialogFocusAccessibilityTest {
         )
 
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 PlanEditorContent(
                     state = dirtyState,
                     onEvent = {},

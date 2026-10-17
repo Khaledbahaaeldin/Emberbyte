@@ -13,6 +13,7 @@ import io.github.khaledbahaaeldin.emberbyte.plans.CapUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -41,7 +42,7 @@ class AppDetailBudgetContentTest {
         onEvent: (AppDetailEvent) -> Unit = {},
         onBack: () -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             AppDetailContent(state = state, onEvent = onEvent, onBack = onBack)
         }
     }

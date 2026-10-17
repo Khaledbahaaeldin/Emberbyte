@@ -15,6 +15,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.GapUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +37,7 @@ class HomeContentTest {
         onOpenApp: (String) -> Unit = {},
         onSetUpPlan: () -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             HomeContent(
                 state = state,
                 onEvent = onEvent,
@@ -111,7 +112,7 @@ class HomeContentTest {
         val subtitle1 = "3.80 GB left · won't run out this cycle"
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     HomeContent(
                         state = HomeUiState(subtitle = subtitle1),
                         onEvent = {},
@@ -133,7 +134,7 @@ class HomeContentTest {
         val subtitle2 = "No data left"
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     HomeContent(
                         state = HomeUiState(subtitle = subtitle2),
                         onEvent = {},

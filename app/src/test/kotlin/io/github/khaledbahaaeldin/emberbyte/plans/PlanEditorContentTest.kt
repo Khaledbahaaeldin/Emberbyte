@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performTextInput
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -47,7 +48,7 @@ class PlanEditorContentTest {
         onBack: () -> Unit = {},
         onPrompt: (String) -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             PlanEditorContent(state = state, onEvent = onEvent, onBack = onBack, onPrompt = onPrompt)
         }
     }
@@ -255,7 +256,7 @@ class PlanEditorContentTest {
     @Test fun free_window_day_chips_in_320dp_container_wrap_and_keep_min_width() {
         val draft = FreeRuleDraft(label = "Night", days = DayOfWeek.entries.toSet())
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 Box(modifier = Modifier.width(320.dp)) {
                     PlanEditorContent(
                         state = state.copy(form = state.form.copy(freeRules = listOf(draft))),
@@ -281,7 +282,7 @@ class PlanEditorContentTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(LocalDensity.current.density, fontScale = 2f)
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanEditorContent(state = state, onEvent = {}, onBack = {}, onPrompt = {})
                 }
             }

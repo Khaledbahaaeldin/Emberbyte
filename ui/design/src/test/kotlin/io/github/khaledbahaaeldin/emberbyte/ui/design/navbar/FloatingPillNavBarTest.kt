@@ -29,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.getOrNull
@@ -62,7 +63,7 @@ class FloatingPillNavBarTest {
         onSelect: (String) -> Unit = {},
     ) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
                     FloatingPillNavBar(items, selectedId, onSelect, visible)
                 }
@@ -100,7 +101,7 @@ class FloatingPillNavBarTest {
     @Test fun toggling_visible_removes_and_restores_the_bar() {
         var visible by mutableStateOf(true)
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 FloatingPillNavBar(items, "home", {}, visible)
             }
         }
@@ -202,7 +203,7 @@ class FloatingPillNavBarTest {
     ) {
         rule.setContent {
             var currentSelected by remember { mutableStateOf(initialSelectedId) }
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(
                     LocalLayoutDirection provides layoutDirection,
                     LocalReduceMotion provides reduceMotion,
@@ -332,7 +333,7 @@ class FloatingPillNavBarTest {
         var capturedFollow: androidx.compose.animation.core.AnimationSpec<Float>? = null
 
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(LocalReduceMotion provides true) {
                     FloatingPillNavBar(
                         items = items,

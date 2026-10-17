@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -26,7 +27,7 @@ class OnboardingContentTest {
         setUpPlan: () -> Unit = {},
         finish: () -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             OnboardingContent(
                 state = state,
                 onOpenUsageAccess = usage,

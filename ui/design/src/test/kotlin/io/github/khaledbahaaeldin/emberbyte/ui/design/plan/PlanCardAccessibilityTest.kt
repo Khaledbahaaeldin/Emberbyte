@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +40,7 @@ class PlanCardAccessibilityTest {
 
     private fun show(model: PlanCardUi) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 PlanCard(model = model, onClick = {})
             }
         }

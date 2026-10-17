@@ -11,8 +11,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberDarkColors
+import androidx.compose.material3.MaterialTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -30,7 +31,7 @@ class EmberbyteFilterChipTest {
     fun selected_chip_has_selected_semantics_and_shows_check_icon() {
         var clicked = false
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 EmberbyteFilterChip(
                     selected = true,
                     onClick = { clicked = true },
@@ -56,7 +57,7 @@ class EmberbyteFilterChipTest {
     @Test
     fun unselected_chip_has_unselected_semantics() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 EmberbyteFilterChip(
                     selected = false,
                     onClick = {},
@@ -72,10 +73,10 @@ class EmberbyteFilterChipTest {
     @Test
     fun selected_chip_colors_use_primary_not_faint_tint() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 val colors = emberbyteFilterChipColors()
-                assertEquals(EmberDarkColors.primary, colors.selectedContainerColor)
-                assertEquals(EmberDarkColors.onPrimary, colors.selectedLabelColor)
+                assertEquals(MaterialTheme.colorScheme.primary, colors.selectedContainerColor)
+                assertEquals(MaterialTheme.colorScheme.onPrimary, colors.selectedLabelColor)
             }
         }
     }

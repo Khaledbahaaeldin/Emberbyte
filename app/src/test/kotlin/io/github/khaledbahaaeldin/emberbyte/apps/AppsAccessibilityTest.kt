@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +32,7 @@ class AppsAccessibilityTest {
 
     private fun show(state: AppsUiState = sampleAppsState) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppsContent(
                     state = state,
                     onEvent = {},

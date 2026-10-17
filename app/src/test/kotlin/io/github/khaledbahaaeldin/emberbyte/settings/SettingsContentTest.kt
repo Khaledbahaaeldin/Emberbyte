@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performScrollToNode
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,7 +33,7 @@ class SettingsContentTest {
         onOpenBatterySettings: () -> Unit = {},
     ) =
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SettingsContent(
                     settings = settings,
                     onUpdate = onUpdate,

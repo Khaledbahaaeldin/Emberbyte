@@ -19,4 +19,6 @@ data class EmberbytePalette(
     val danger: Color,
     val onDanger: Color,
     val track: Color,
-)
+) {
+    companion object
+}

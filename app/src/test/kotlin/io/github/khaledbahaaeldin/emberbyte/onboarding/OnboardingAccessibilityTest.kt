@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -27,7 +28,7 @@ class OnboardingAccessibilityTest {
 
     private fun show(state: OnboardingUiState = OnboardingUiState()) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 OnboardingContent(
                     state = state,
                     onOpenUsageAccess = {},

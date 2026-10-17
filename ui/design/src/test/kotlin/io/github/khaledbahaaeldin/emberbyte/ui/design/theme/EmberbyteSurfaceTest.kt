@@ -20,7 +20,7 @@ class EmberbyteSurfaceTest {
         var content = Color.Unspecified
         var expected = Color.Unspecified
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 expected = MaterialTheme.colorScheme.onBackground
                 EmberbyteSurface { content = LocalContentColor.current }
             }
@@ -31,7 +31,7 @@ class EmberbyteSurfaceTest {
     @Test fun amoled_black_reaches_the_surface_colour() {
         var background = Color.Unspecified
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false, amoledBlack = true) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default.copy(amoled = true)) {
                 EmberbyteSurface { background = MaterialTheme.colorScheme.background }
             }
         }

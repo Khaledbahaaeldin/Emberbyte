@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -24,7 +25,7 @@ class AppsRtlTest {
         val state = AppsUiState(loaded = true)
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     AppsContent(
                         state = state,
                         onEvent = {},

@@ -8,10 +8,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.compose.foundation.isSystemInDarkTheme
 import io.github.khaledbahaaeldin.emberbyte.placeholder.StartupPlaceholder
 import io.github.khaledbahaaeldin.emberbyte.sampler.ServiceStarter
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteSurface
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import androidx.navigation.NavController
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
@@ -29,8 +31,12 @@ class MainActivity : ComponentActivity() {
             val settings by graph.settingsState.collectAsStateWithLifecycle()
             val current = settings
             EmberbyteTheme(
-                dynamicColor = current?.useDynamicColor ?: true,
-                amoledBlack = current?.amoledBlack ?: false,
+                spec = EmberbyteThemeSpec(
+                    presetId = "dusk",
+                    darkTheme = isSystemInDarkTheme(),
+                    amoled = current?.amoledBlack ?: false,
+                    wallpaperColors = current?.useDynamicColor ?: true,
+                ),
             ) {
                 EmberbyteSurface {
                     if (current != null) {

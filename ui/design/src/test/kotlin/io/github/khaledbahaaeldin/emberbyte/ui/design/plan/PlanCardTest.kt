@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -32,7 +33,7 @@ class PlanCardTest {
         forecastText = "runs out Thu (±1 day)", isEstimated = false, chips = listOf("Boost +2.00 GB"), archived = false,
     )
     private fun show(m: PlanCardUi = model, onClick: () -> Unit = {}) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) { PlanCard(m, onClick) }
+        EmberbyteTheme(EmberbyteThemeSpec.Default) { PlanCard(m, onClick) }
     }
 
     @Test fun shows_the_numbers_the_sim_and_the_chips() {
@@ -79,7 +80,7 @@ class PlanCardTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale = 2f)
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanCard(testModel, onClick = {})
                 }
             }
@@ -107,7 +108,7 @@ class PlanCardTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale = 2f)
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanCard(testModel, onClick = {})
                 }
             }
@@ -124,7 +125,7 @@ class PlanCardTest {
             CompositionLocalProvider(
                 LocalLayoutDirection provides LayoutDirection.Rtl
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanCard(model, onClick = {})
                 }
             }

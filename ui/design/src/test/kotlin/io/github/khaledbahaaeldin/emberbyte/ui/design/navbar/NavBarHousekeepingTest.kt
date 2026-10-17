@@ -22,6 +22,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -50,7 +51,7 @@ class NavBarHousekeepingTest {
     private fun show(selected: String, haptics: CountingHaptics, onSelect: (String) -> Unit) {
         rule.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     FloatingPillNavBar(items, selected, onSelect, visible = true)
                 }
             }
@@ -59,7 +60,7 @@ class NavBarHousekeepingTest {
 
     @Test fun bar_fills_the_width_it_is_given() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 Box(Modifier.width(400.dp)) { FloatingPillNavBar(items, "home", {}, visible = true) }
             }
         }

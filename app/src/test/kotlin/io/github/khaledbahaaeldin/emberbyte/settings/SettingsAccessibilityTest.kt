@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Density
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -41,7 +42,7 @@ class SettingsAccessibilityTest {
 
     private fun show(settings: Settings = Settings(), dataUiState: DataUiState = DataUiState()) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SettingsContent(
                     settings = settings,
                     onUpdate = {},
@@ -87,7 +88,7 @@ class SettingsAccessibilityTest {
     fun data_dialogs_touch_targets_are_at_least_48dp() {
         // Passphrase dialog
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CreateBackupPassphraseDialog(onDismiss = {}, onCreate = {})
             }
         }
@@ -97,7 +98,7 @@ class SettingsAccessibilityTest {
     @Test
     fun restore_dialogs_touch_targets_are_at_least_48dp() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 RestoreWarningDialog(onDismiss = {}, onConfirm = {})
             }
         }
@@ -107,7 +108,7 @@ class SettingsAccessibilityTest {
     @Test
     fun csv_range_dialog_touch_targets_are_at_least_48dp() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CsvRangeDialog(onDismiss = {}, onSelectRange = {})
             }
         }
@@ -122,7 +123,7 @@ class SettingsAccessibilityTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density = 2.625f, fontScale = 2f),
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     CreateBackupPassphraseDialog(
                         onDismiss = { dismissed = true },
                         onCreate = { created = true },

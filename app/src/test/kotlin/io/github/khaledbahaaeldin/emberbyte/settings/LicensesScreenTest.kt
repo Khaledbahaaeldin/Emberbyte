@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -28,7 +29,7 @@ class LicensesScreenTest {
     fun settings_about_section_has_open_source_licences_row_that_navigates() {
         var openedLicenses = false
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SettingsContent(
                     settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(),
                     onUpdate = {},
@@ -53,7 +54,7 @@ class LicensesScreenTest {
     fun licenses_screen_displays_back_button_and_licence_texts() {
         var backed = false
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 LicensesScreen(
                     onBack = { backed = true },
                     noticeContent = "Emberbyte\nBouncy Castle (Argon2id)\nMIT licence",

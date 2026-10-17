@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,7 +22,7 @@ class MorphingNumberTest {
     @Test
     fun exposes_one_node_with_the_plain_language_description() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 MorphingNumber(
                     bytes = 1_240_000_000L,
                     throughputBps = 0L,
@@ -37,7 +38,7 @@ class MorphingNumberTest {
     @Test
     fun digits_are_not_separate_semantics_nodes() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 MorphingNumber(
                     bytes = 213_000_000L,
                     throughputBps = 0L,
@@ -56,7 +57,7 @@ class MorphingNumberTest {
         var capturedLive: Boolean? = null
         var capturedSpec: androidx.compose.animation.core.AnimationSpec<Float>? = null
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 androidx.compose.runtime.CompositionLocalProvider(
                     io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
                 ) {

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,7 +39,7 @@ class NavBarFontScaleTest {
     @Test fun at_200_percent_font_every_item_stays_inside_the_bar() {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 2f, fontScale = 2f)) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     Box(Modifier.width(360.dp)) { FloatingPillNavBar(items, "home", {}, visible = true) }
                 }
             }

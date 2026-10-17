@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +37,7 @@ class AppsContentTest {
         onOpenApp: (String) -> Unit = {},
         onPrompt: (String) -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) { AppsContent(state, onEvent, onOpenApp, onPrompt) }
+        EmberbyteTheme(EmberbyteThemeSpec.Default) { AppsContent(state, onEvent, onOpenApp, onPrompt) }
     }
 
     @Test fun shows_the_rows_and_the_total() {
@@ -96,7 +97,7 @@ class AppsContentTest {
     @Test fun range_chip_renders_its_label_in_one_node_matching_text_under_rtl() {
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     AppsContent(state, onEvent = {}, onOpenApp = {}, onPromptAction = {})
                 }
             }

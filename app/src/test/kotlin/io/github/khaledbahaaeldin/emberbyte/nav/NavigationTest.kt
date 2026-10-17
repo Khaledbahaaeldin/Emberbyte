@@ -16,6 +16,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.github.khaledbahaaeldin.emberbyte.EmberbyteApp
 import io.github.khaledbahaaeldin.emberbyte.EmberbyteApplication
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -68,7 +69,14 @@ class NavigationTest {
             val current = settings
             if (current != null) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    EmberbyteTheme(darkTheme = true, dynamicColor = current.useDynamicColor, amoledBlack = current.amoledBlack) {
+                    EmberbyteTheme(
+                        spec = EmberbyteThemeSpec(
+                            presetId = "dusk",
+                            darkTheme = true,
+                            amoled = current.amoledBlack,
+                            wallpaperColors = current.useDynamicColor,
+                        ),
+                    ) {
                         EmberbyteApp(graph, hapticsEnabled = current.hapticsEnabled)
                     }
                 }

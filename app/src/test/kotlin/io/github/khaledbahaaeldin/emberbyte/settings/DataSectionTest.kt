@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import android.net.Uri
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -41,7 +42,7 @@ class DataSectionTest {
         restoreFileChosen: Boolean = false,
         onDismissRestorePassphrase: () -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             DataSection(
                 uiState = uiState,
                 onExportCsv = onExportCsv,
