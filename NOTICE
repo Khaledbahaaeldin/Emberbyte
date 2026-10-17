@@ -22,6 +22,35 @@ Roboto Flex (variable font)
   SIL Open Font License 1.1 (see licenses/roboto-flex-OFL.txt)
   https://github.com/googlefonts/roboto-flex
 
+Community colour palettes
+  Catppuccin
+    Copyright 2021 Catppuccin (MIT License, see licenses/palettes/catppuccin-LICENSE.txt)
+    https://github.com/catppuccin/catppuccin
+  Gruvbox
+    Copyright 2018 Pavel Pertsev (MIT License, see licenses/palettes/gruvbox-LICENSE.txt)
+    https://github.com/morhetz/gruvbox
+  Nord
+    Copyright 2016-present Sven Greb (MIT License, see licenses/palettes/nord-LICENSE.txt)
+    https://github.com/nordtheme/nord
+  Rosé Pine
+    Copyright 2021 Rosé Pine (MIT License, see licenses/palettes/rosepine-LICENSE.txt)
+    https://github.com/rose-pine/rose-pine-theme
+  Solarized
+    Copyright 2011 Ethan Schoonover (MIT License, see licenses/palettes/solarized-LICENSE.txt)
+    https://github.com/altercation/solarized
+  Dracula
+    Copyright 2020 Zeno Rocha (MIT License, see licenses/palettes/dracula-LICENSE.txt)
+    https://github.com/dracula/dracula-theme
+  Tokyo Night
+    Copyright 2018-present Enkia (MIT License, see licenses/palettes/tokyonight-LICENSE.txt)
+    https://github.com/enkia/tokyo-night-vscode-theme
+  Everforest
+    Copyright 2020 Sainnhe Park (MIT License, see licenses/palettes/everforest-LICENSE.txt)
+    https://github.com/sainnhe/everforest
+  Kanagawa
+    Copyright 2021 Tommaso Chiti (MIT License, see licenses/palettes/kanagawa-LICENSE.txt)
+    https://github.com/rebelot/kanagawa.nvim
+
 Bouncy Castle (Argon2id)
   The Legion of the Bouncy Castle Inc. (MIT licence)
   https://www.bouncycastle.org/

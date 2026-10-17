@@ -36,6 +36,12 @@ encrypted local backups.
 
 ---
 
+## Themes & Typography
+
+Emberbyte features an expressive design foundation powered by variable **Roboto Flex** typography and **12 hand-tuned themes**: three original palettes (*Dusk*, *Ember*, *Monochrome*) and nine popular community themes (*Catppuccin*, *Gruvbox*, *Nord*, *Rosé Pine*, *Solarized*, *Dracula*, *Tokyo Night*, *Everforest*, and *Kanagawa*). Every theme supports light mode, dark mode, and pure-black AMOLED mode with verified WCAG contrast (at least 4.5:1 text, 7:1 hero numbers, 3:1 marks), alongside dynamic wallpaper-derived Material You theming on supported Android versions.
+
+---
+
 ## Privacy Guarantee
 
 Everything stays on your device. Emberbyte operates 100% offline and declares NO `android.permission.INTERNET`. There are no accounts, no telemetry, no tracking, and no external servers. All metrics and configuration are stored locally in Room databases and encrypted archives.
