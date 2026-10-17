@@ -18,9 +18,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import androidx.compose.ui.graphics.ImageBitmap
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -80,3 +87,81 @@ fun AppRow(
         }
     }
 }
+
+@Composable
+fun AppRow(
+    icon: ImageBitmap?,
+    shape: AppShape,
+    label: String,
+    bytes: Long,
+    fraction: Float,
+    mobileBytes: Long,
+    wifiBytes: Long,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    units: ByteUnits = ByteUnits.DECIMAL,
+) {
+    val palette = LocalEmberbytePalette.current
+    val total = formatBytes(bytes, units)
+    val rowDescription = "$label, ${total.value} ${spokenUnit(total.unit)}, Mobile ${spoken(mobileBytes, units)}, Wi-Fi ${spoken(wifiBytes, units)}"
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = rowDescription
+            }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        AppIcon(
+            label = label,
+            icon = icon,
+            shape = shape,
+            size = 40.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = palette.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            NetworkBar(
+                mobileBytes = mobileBytes,
+                wifiBytes = wifiBytes,
+                mobileColor = palette.primary,
+                wifiColor = palette.accent,
+                height = 6.dp,
+                units = units,
+            )
+        }
+        // Value bubble
+        Box(
+            modifier = Modifier
+                .testTag("app_row_bubble")
+                .clip(CircleShape)
+                .background(palette.surface2)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            ForceLtr {
+                Text(
+                    text = "${total.value} ${total.unit}",
+                    style = EmberbyteType.value(12.sp),
+                    color = palette.text,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+

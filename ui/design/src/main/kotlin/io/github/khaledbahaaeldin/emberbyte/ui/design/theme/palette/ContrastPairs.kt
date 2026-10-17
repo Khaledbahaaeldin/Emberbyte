@@ -55,5 +55,7 @@ internal object ContrastPairs {
         register(ContrastPair("accent marks on background", { markColor(it.accent, it.onAccent, it.background) }, { it.background }, 3.0))
         register(ContrastPair("warn marks on background", { markColor(it.warn, it.onWarn, it.background) }, { it.background }, 3.0))
         register(ContrastPair("danger marks on background", { markColor(it.danger, it.onDanger, it.background) }, { it.background }, 3.0))
+        register(ContrastPair("text on surface2 bubble", { it.text }, { it.surface2 }, 4.5))
+        register(ContrastPair("bar color on track", { it.primary }, { it.track }, 2.2))
     }
 }

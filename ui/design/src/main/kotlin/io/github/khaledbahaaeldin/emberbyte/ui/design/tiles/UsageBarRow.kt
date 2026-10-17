@@ -27,9 +27,24 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
 @Composable
 fun UsageBarRow(
@@ -135,3 +150,95 @@ fun UsageBarRow(
         }
     }
 }
+
+@Composable
+fun UsageBarRow(
+    label: String,
+    bytes: Long,
+    fraction: Float,
+    color: Color,
+    valueText: String,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalEmberbytePalette.current
+    val clampedFraction = fraction.coerceIn(0f, 1f)
+    val percent = kotlin.math.round(clampedFraction * 100f).toInt()
+    val formattedBytes = formatBytes(bytes, ByteUnits.DECIMAL)
+    val displayVal = if (formattedBytes.value.contains(".") && formattedBytes.value.endsWith("0")) {
+        formattedBytes.value.trimEnd('0').removeSuffix(".")
+    } else {
+        formattedBytes.value
+    }
+    val spokenBytes = "$displayVal ${spokenUnit(formattedBytes.unit)}"
+    val rowDescription = "$label, $spokenBytes, $percent percent of the total"
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .semantics(mergeDescendants = true) {
+                this.contentDescription = rowDescription
+                this.progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = clampedFraction,
+                    range = 0f..1f,
+                    steps = 0,
+                )
+            }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = palette.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // Flat rounded bar with stub
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(palette.track),
+            ) {
+                val totalWidth = maxWidth
+                val fillWidth = (totalWidth * clampedFraction).coerceAtLeast(4.dp)
+                Box(
+                    modifier = Modifier
+                        .testTag("usage_bar_row_stub")
+                        .width(fillWidth)
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(color),
+                )
+            }
+        }
+
+        // Value bubble in surface2 with EmberbyteType.value and ForceLtr
+        Box(
+            modifier = Modifier
+                .testTag("usage_bar_row_bubble")
+                .clip(CircleShape)
+                .background(palette.surface2)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            ForceLtr {
+                Text(
+                    text = valueText,
+                    style = EmberbyteType.value(12.sp),
+                    color = palette.text,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+
