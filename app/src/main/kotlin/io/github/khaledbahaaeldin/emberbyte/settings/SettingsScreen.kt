@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,6 +54,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenLicenses: () -> Unit = {},
+    onOpenAppearance: () -> Unit = {},
 ) {
     val settings by viewModel.uiState.collectAsStateWithLifecycle()
     val dataUiState by dataViewModel.uiState.collectAsStateWithLifecycle()
@@ -131,6 +134,7 @@ fun SettingsScreen(
         onDismissRestorePassphrase = {
             pendingState.pendingRestoreUri = null
         },
+        onOpenAppearance = onOpenAppearance,
         modifier = modifier,
     )
 }
@@ -181,6 +185,7 @@ internal fun SettingsContent(
     onClearDataMessage: () -> Unit = {},
     restoreFileChosen: Boolean = false,
     onDismissRestorePassphrase: () -> Unit = {},
+    onOpenAppearance: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -220,13 +225,15 @@ internal fun SettingsContent(
         item { TextButton(onClick = onOpenBatterySettings, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)) { Text("Battery settings") } }
         item { SectionTitle("Appearance") }
         item {
-            SwitchRow("AMOLED black", "Pure black backgrounds in dark theme", settings.amoledBlack) {
-                onUpdate { s -> s.copy(amoledBlack = it) }
-            }
+            AppearanceEntryRow(
+                themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
+                    ?: settings.themeId.replaceFirstChar { it.uppercase() },
+                onClick = onOpenAppearance,
+            )
         }
         item {
-            SwitchRow("Haptics", "A light tick when the navigation pill snaps", settings.hapticsEnabled) {
-                onUpdate { s -> s.copy(hapticsEnabled = it) }
+            SwitchRow("AMOLED black", "Pure black backgrounds in dark theme", settings.amoledBlack) {
+                onUpdate { s -> s.copy(amoledBlack = it) }
             }
         }
         item { SectionTitle("Units") }
@@ -311,6 +318,26 @@ private fun SwitchRow(
             enabled = enabled,
             modifier = Modifier.clearAndSetSemantics {},
         )
+    }
+}
+
+@Composable
+private fun AppearanceEntryRow(
+    themeName: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Appearance", style = MaterialTheme.typography.bodyLarge)
+            Text(themeName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -31,6 +32,7 @@ class SettingsContentTest {
         onUpdate: ((Settings) -> Settings) -> Unit = {},
         onBack: () -> Unit = {},
         onOpenBatterySettings: () -> Unit = {},
+        onOpenAppearance: () -> Unit = {},
     ) =
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
@@ -41,6 +43,7 @@ class SettingsContentTest {
                     versionName = "0.2.0",
                     onOpenSource = {},
                     onOpenBatterySettings = onOpenBatterySettings,
+                    onOpenAppearance = onOpenAppearance,
                     dataUiState = DataUiState(),
                     onExportCsv = {},
                     onExportJson = {},
@@ -108,6 +111,15 @@ class SettingsContentTest {
         show(onOpenBatterySettings = { opened = true })
         scrollTo("Battery settings")
         rule.onNodeWithText("Battery settings").performClick()
+        assertTrue(opened)
+    }
+
+    @Test fun appearance_row_shows_current_theme_name_and_opens_appearance() {
+        var opened = false
+        show(settings = Settings(themeId = "gruvbox"), onOpenAppearance = { opened = true })
+        scrollTo("Appearance")
+        rule.onNodeWithText("Gruvbox").assertIsDisplayed()
+        rule.onNode(hasText("Appearance") and hasClickAction()).performClick()
         assertTrue(opened)
     }
 }

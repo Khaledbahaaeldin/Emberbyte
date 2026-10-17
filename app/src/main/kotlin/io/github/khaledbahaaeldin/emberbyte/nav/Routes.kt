@@ -6,6 +6,7 @@ object Routes {
     const val ONBOARDING = "onboarding"
     const val HISTORY = "history"
     const val SETTINGS = "settings"
+    const val APPEARANCE = "settings/appearance"
     const val LICENSES = "licenses"
     const val APP_DETAIL = "apps/{packageName}"
     const val PLAN_EDITOR = "plans/{planId}"

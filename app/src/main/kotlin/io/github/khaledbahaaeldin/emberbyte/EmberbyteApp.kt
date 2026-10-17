@@ -56,6 +56,8 @@ import io.github.khaledbahaaeldin.emberbyte.plans.PlansScreen
 import io.github.khaledbahaaeldin.emberbyte.onboarding.OnboardingViewModel
 import io.github.khaledbahaaeldin.emberbyte.placeholder.StartupPlaceholder
 import io.github.khaledbahaaeldin.emberbyte.sampler.ServiceStarter
+import io.github.khaledbahaaeldin.emberbyte.settings.AppearanceScreen
+import io.github.khaledbahaaeldin.emberbyte.settings.AppearanceViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.ContentResolverStreamOpener
 import io.github.khaledbahaaeldin.emberbyte.settings.DataViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.LicensesScreen
@@ -237,6 +239,14 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     dataViewModel,
                     onBack = { navController.popBackStack() },
                     onOpenLicenses = { navController.navigate(Routes.LICENSES) },
+                    onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
+                )
+            }
+            composable(Routes.APPEARANCE) {
+                val viewModel: AppearanceViewModel = viewModel(factory = graph.appearanceViewModelFactory())
+                AppearanceScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.LICENSES) {

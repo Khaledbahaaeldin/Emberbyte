@@ -61,6 +61,7 @@ import io.github.khaledbahaaeldin.emberbyte.home.HomeViewModel
 import io.github.khaledbahaaeldin.emberbyte.onboarding.OnboardingViewModel
 import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorViewModel
 import io.github.khaledbahaaeldin.emberbyte.plans.PlansViewModel
+import io.github.khaledbahaaeldin.emberbyte.settings.AppearanceViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.DataViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.SettingsViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.StreamOpener
@@ -193,6 +194,10 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
 
     fun settingsViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
         initializer { SettingsViewModel(settings) }
+    }
+
+    fun appearanceViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
+        initializer { AppearanceViewModel(settings) }
     }
 
     fun dataViewModelFactory(opener: StreamOpener): ViewModelProvider.Factory = viewModelFactory {
