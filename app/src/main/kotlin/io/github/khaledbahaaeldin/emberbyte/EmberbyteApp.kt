@@ -201,7 +201,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 val packageName = entry.arguments?.getString("packageName").orEmpty()
                 val viewModel: AppDetailViewModel =
                     viewModel(key = "app-$packageName", factory = graph.appDetailViewModelFactory(packageName))
-                AppDetailScreen(viewModel, onBack = { navController.popBackStack() })
+                AppDetailScreen(viewModel, onBack = { navController.popBackStack() }, iconProvider = graph.appIcons)
             }
             composable(
                 Destination.Plans.route,

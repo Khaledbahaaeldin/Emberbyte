@@ -56,6 +56,7 @@ fun UsageBarRow(
     openAtEnd: Boolean = true,
     summaryDescription: String? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
 ) {
     val max = (points.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
     val summary = summaryDescription ?: run {
@@ -120,18 +121,20 @@ fun UsageBarRow(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom,
                 ) {
+                    val resolvedColor = barColor?.invoke(index, isSelected)
+                        ?: if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primaryContainer
                     Box(
                         Modifier
                             .widthIn(max = 24.dp)
                             .fillMaxWidth()
                             .height((8 + 56 * (bar.bytes.toFloat() / max)).dp)
                             .background(
-                                color = if (isSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.primaryContainer,
+                                color = resolvedColor,
                                 shape = MaterialTheme.shapes.small,
                             )
                             .then(
-                                if (!isSelected) {
+                                if (!isSelected && barColor == null) {
                                     Modifier.border(1.dp, MaterialTheme.colorScheme.outline, shape = MaterialTheme.shapes.small)
                                 } else {
                                     Modifier
