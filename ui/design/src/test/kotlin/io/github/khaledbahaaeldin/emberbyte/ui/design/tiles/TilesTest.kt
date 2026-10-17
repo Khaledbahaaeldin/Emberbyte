@@ -18,6 +18,14 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.material3.Text
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -117,5 +125,61 @@ class TilesTest {
         }
         // "Y" is the avatar initial; clearAndSetSemantics ensures it is decorative and not present in semantics
         rule.onNodeWithText("Y").assertDoesNotExist()
+    }
+
+    @Test fun bento_tile_corner_shape_has_one_small_corner() {
+        val shape = bentoTileShape(Corner.TopStart) as CornerBasedShape
+        val density = Density(1f)
+        val size = Size(100f, 100f)
+        val outline = shape.createOutline(size, LayoutDirection.Ltr, density) as Outline.Rounded
+        assertEquals(8f, outline.roundRect.topLeftCornerRadius.x, 0.01f)
+        assertEquals(24f, outline.roundRect.topRightCornerRadius.x, 0.01f)
+        assertEquals(24f, outline.roundRect.bottomRightCornerRadius.x, 0.01f)
+        assertEquals(24f, outline.roundRect.bottomLeftCornerRadius.x, 0.01f)
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                BentoTile(
+                    title = "Test Corner",
+                    corner = Corner.TopStart,
+                ) {
+                    Text("Content")
+                }
+            }
+        }
+        rule.onNodeWithText("Test Corner").assertIsDisplayed()
+    }
+
+    @Test fun forecast_tile_uses_the_accent_container() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                ForecastTile(ForecastUi(headline = "Thu", detail = "runs out (±1 day)", confidence = "Medium confidence"))
+            }
+        }
+        rule.onNodeWithTag("bento_tile_accent").assertExists()
+    }
+
+    @Test fun tile_containers_meet_contrast_requirements() {
+        for (themeId in listOf("dusk", "ember", "monochrome", "catppuccin", "gruvbox", "nord", "rosepine", "solarized", "dracula", "tokyonight", "everforest", "kanagawa")) {
+            val (dark, light) = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.GeneratedPalettes[themeId]!!
+            for (palette in listOf(dark, light)) {
+                org.junit.Assert.assertTrue(
+                    "$themeId onAccent / accent",
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.contrastRatio(palette.onAccent, palette.accent) >= 4.5,
+                )
+                org.junit.Assert.assertTrue(
+                    "$themeId onWarn / warn",
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.contrastRatio(palette.onWarn, palette.warn) >= 4.5,
+                )
+                org.junit.Assert.assertTrue(
+                    "$themeId onDanger / danger",
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.contrastRatio(palette.onDanger, palette.danger) >= 4.5,
+                )
+                org.junit.Assert.assertTrue(
+                    "$themeId text on surface2",
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.contrastRatio(palette.text, palette.surface2) >= 4.5,
+                )
+            }
+        }
     }
 }

@@ -13,6 +13,8 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
 @Composable
 fun SpeedTile(
@@ -21,7 +23,9 @@ fun SpeedTile(
     network: NetworkKindUi?,
     units: ByteUnits,
     modifier: Modifier = Modifier,
+    corner: Corner? = Corner.BottomStart,
 ) {
+    val palette = LocalEmberbytePalette.current
     val networkLabel = when (network) {
         NetworkKindUi.Wifi -> "Wi-Fi"
         NetworkKindUi.Mobile -> "Mobile"
@@ -29,16 +33,21 @@ fun SpeedTile(
     }
     val down = formatBytes(rxBps, units)
     val up = formatBytes(txBps, units)
-    BentoTile(title = "Live · $networkLabel", modifier = modifier.fillMaxHeight()) {
+    BentoTile(
+        title = "Live · $networkLabel",
+        modifier = modifier.fillMaxHeight(),
+        container = TileContainer.Standard,
+        corner = corner,
+    ) {
         if (network == null) {
-            Text("No connection", style = MaterialTheme.typography.headlineSmall)
+            Text("No connection", style = MaterialTheme.typography.headlineSmall, color = palette.text)
         } else {
             ForceLtr {
-                Text("↓ ${down.value} ${down.unit}/s", style = MaterialTheme.typography.headlineSmall)
+                Text("↓ ${down.value} ${down.unit}/s", style = MaterialTheme.typography.headlineSmall, color = palette.text)
                 Text(
                     "↑ ${up.value} ${up.unit}/s",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = palette.muted,
                 )
             }
         }
@@ -46,14 +55,26 @@ fun SpeedTile(
 }
 
 @Composable
-fun ForecastTile(model: ForecastUi, modifier: Modifier = Modifier) {
-    BentoTile(title = "Forecast", modifier = modifier.fillMaxHeight(), container = TileContainer.Tertiary) {
+fun ForecastTile(
+    model: ForecastUi,
+    modifier: Modifier = Modifier,
+    corner: Corner? = Corner.TopStart,
+    container: TileContainer = TileContainer.Accent,
+) {
+    val palette = LocalEmberbytePalette.current
+    BentoTile(
+        title = "Forecast",
+        modifier = modifier.fillMaxHeight(),
+        container = container,
+        corner = corner,
+    ) {
         ForceLtr {
-            Text(model.headline, style = MaterialTheme.typography.headlineLarge)
-            Text(model.detail, style = MaterialTheme.typography.bodyMedium)
+            Text(model.headline, style = MaterialTheme.typography.headlineLarge, color = palette.onAccent)
+            Text(model.detail, style = MaterialTheme.typography.bodyMedium, color = palette.onAccent.copy(alpha = 0.85f))
             Text(
                 model.confidence,
                 style = MaterialTheme.typography.labelMedium,
+                color = palette.onAccent.copy(alpha = 0.75f),
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
@@ -62,11 +83,12 @@ fun ForecastTile(model: ForecastUi, modifier: Modifier = Modifier) {
 
 @Composable
 fun EstimatedBadge(modifier: Modifier = Modifier) {
+    val palette = LocalEmberbytePalette.current
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = palette.warn,
+        contentColor = palette.onWarn,
     ) {
         Text(
             "Estimated",
