@@ -290,4 +290,26 @@ class CompactNavBarTest {
             plusBounds.left >= barBounds.right,
         )
     }
+
+    @Test
+    fun tabs_are_ordered_right_to_left_in_rtl() {
+        show(selectedId = "home", layoutDirection = LayoutDirection.Rtl)
+
+        val homeBounds = rule.onNodeWithTag("nav_home").getBoundsInRoot()
+        val appsBounds = rule.onNodeWithTag("nav_apps").getBoundsInRoot()
+        val plansBounds = rule.onNodeWithTag("nav_plans").getBoundsInRoot()
+
+        // In RTL: item 0 (Home) starts at the right, item 1 (Apps) in the middle, item 2 (Plans) on the left.
+        // Therefore: plansBounds.left < appsBounds.left < homeBounds.left
+        assertTrue(
+            "Plans (left=${plansBounds.left}) must be to the left of Apps (left=${appsBounds.left}) in RTL",
+            plansBounds.left < appsBounds.left
+        )
+        assertTrue(
+            "Apps (left=${appsBounds.left}) must be to the left of Home (left=${homeBounds.left}) in RTL",
+            appsBounds.left < homeBounds.left
+        )
+    }
 }
+
+
