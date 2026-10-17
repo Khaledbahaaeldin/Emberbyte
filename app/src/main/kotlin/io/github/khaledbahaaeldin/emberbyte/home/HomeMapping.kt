@@ -21,6 +21,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.SpikeEvent
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.sampler.spikeText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastKind
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
@@ -162,6 +163,17 @@ internal fun buildHomeUiState(
         subtitle = null
     }
 
+    val planLine = planState?.let {
+        val rem = formatBytes(it.remainingBytes.coerceAtLeast(0L), byteUnits)
+        val cap = formatBytes(it.effectiveCapBytes, byteUnits)
+        "${rem.value} ${rem.unit} left of ${cap.value} ${cap.unit}"
+    }
+    val planFraction = planState?.let {
+        if (it.effectiveCapBytes > 0L) {
+            (it.remainingBytes.toFloat() / it.effectiveCapBytes.toFloat()).coerceIn(0f, 1f)
+        } else 0f
+    } ?: 0f
+
     return HomeUiState(
         heroLabel = heroLabel,
         heroBytes = heroBytes,
@@ -191,6 +203,8 @@ internal fun buildHomeUiState(
         units = byteUnits,
         planChips = if (planChips.size >= 2) planChips else emptyList(),
         spike = spike,
+        planLine = planLine,
+        planFraction = planFraction,
     )
 }
 

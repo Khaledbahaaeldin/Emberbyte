@@ -177,6 +177,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
                     onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
+                    onNavigateToApps = { navController.navigate(Destination.Apps.route) },
                     iconProvider = graph.appIcons,
                 )
             }

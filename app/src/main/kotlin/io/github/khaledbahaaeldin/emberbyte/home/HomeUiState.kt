@@ -40,6 +40,9 @@ data class HomeUiState(
     val units: ByteUnits = ByteUnits.DECIMAL,
     val planChips: List<PlanChipUi> = emptyList(),
     val spike: SpikeTileUi? = null,
+    val planLine: String? = null,
+    val planFraction: Float = 0f,
+    val isLoading: Boolean = false,
 )
 
 sealed interface HomeEvent {
