@@ -51,7 +51,7 @@ class MigrationTest {
         val name = "migration-test.db"
         context.deleteDatabase(name)
         createVersion1(name)
-        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
         assertEquals(1, room.usageDao().minuteRows(0L, Long.MAX_VALUE).size)
         val id = room.planDao().putPlan(PlanEntity(name = "Main", subscriptionId = null, capBytes = 1, cycleJson = "{}", rolloverJson = "{}", archived = false))
         assertEquals(1L, id)
@@ -66,13 +66,108 @@ class MigrationTest {
         context.deleteDatabase(name)
         createVersion1(name)
         val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
         assertEquals(1, room.usageDao().minuteRows(0L, Long.MAX_VALUE).size)
         val planId = room.planDao().putPlan(PlanEntity(name = "Main", subscriptionId = null, capBytes = 1, cycleJson = "{}", rolloverJson = "{}", archived = false))
         assertEquals(1L, planId)
         val budgetId = room.insightDao().putBudget(AppBudgetEntity(packageName = "com.video", limitBytes = 5, period = "DAILY", planId = null, warnAtPercent = 80, enabled = true))
         assertEquals(1L, budgetId)
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    private fun createVersion3(name: String) {
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            SupportSQLiteOpenHelper.Configuration.builder(context).name(name).callback(
+                object : SupportSQLiteOpenHelper.Callback(3) {
+                    override fun onCreate(db: SupportSQLiteDatabase) { SchemaFile.statements(3).forEach(db::execSQL) }
+                    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                },
+            ).build(),
+        )
+        helper.writableDatabase.use { db ->
+            db.execSQL("INSERT INTO plan (name, subscriptionId, capBytes, cycleJson, rolloverJson, archived) VALUES ('Main', NULL, 5000, '{}', '{}', 0)")
+            db.execSQL("INSERT INTO plan (name, subscriptionId, capBytes, cycleJson, rolloverJson, archived) VALUES ('Work', 3, 10000, '{}', '{}', 0)")
+            db.execSQL("INSERT INTO plan (name, subscriptionId, capBytes, cycleJson, rolloverJson, archived) VALUES ('Archived', 1, 2000, '{}', '{}', 1)")
+
+            db.execSQL("INSERT INTO total_minute (minuteStart, network, subscriptionId, rxBytes, txBytes) VALUES (1000, 0, 3, 11, 22)")
+            db.execSQL("INSERT INTO usage_hourly (hourStart, uid, network, subscriptionId, rxBytes, txBytes) VALUES (1000, 1001, 0, 3, 11, 22)")
+            db.execSQL("INSERT INTO app_meta (uid, packageName, label, updatedAt) VALUES (1001, 'com.example', 'Example', 500)")
+            db.execSQL("INSERT INTO coverage_gap (fromAt, toAt, reason) VALUES (100, 200, 'reboot')")
+            db.execSQL("INSERT INTO counter_checkpoint (source, at, rxBytes, txBytes, bootId) VALUES ('wlan0', 100, 10, 20, 'boot1')")
+            db.execSQL("INSERT INTO add_on (planId, label, bytes, validFrom, validUntil) VALUES (1, 'Extra', 100, 0, 1000)")
+            db.execSQL("INSERT INTO free_rule (planId, label, daysMask, startMinute, endMinute, packageName) VALUES (1, 'FreeNight', 127, 0, 360, NULL)")
+            db.execSQL("INSERT INTO alert_rule (planId, thresholdPercent, enabled) VALUES (1, 80, 1)")
+            db.execSQL("INSERT INTO alert_fired (planId, windowStart, percent) VALUES (1, 1000, 80)")
+            db.execSQL("INSERT INTO app_budget (packageName, limitBytes, period, planId, warnAtPercent, enabled) VALUES ('com.video', 5, 'DAILY', 1, 80, 1)")
+            db.execSQL("INSERT INTO spike_event (packageName, windowStart, detectedAt, windowMinutes, bytes, baselineBytes, multiple, dismissed) VALUES ('com.video', 1, 2, 120, 3, 4, 5.0, 0)")
+            db.execSQL("INSERT INTO budget_state (budgetId, periodStart, state) VALUES (1, 1000, 'OK')")
+            db.execSQL("INSERT INTO spike_notice (packageName, notifiedAt) VALUES ('com.video', 1000)")
+        }
+        helper.close()
+    }
+
+    @Test fun migration_3_to_4_keeps_every_plan_row_and_defaults_to_phone_and_unpinned(): Unit = runBlocking {
+        val name = "migration-3-4-plans.db"
+        context.deleteDatabase(name)
+        createVersion3(name)
+        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .build()
+        val plan1 = room.planDao().plan(1)!!
+        assertEquals("Main", plan1.name)
+        assertEquals(null, plan1.subscriptionId)
+        assertEquals(5000L, plan1.capBytes)
+        assertEquals(false, plan1.archived)
+        assertEquals("phone", plan1.firstCycleMode)
+        assertEquals(null, plan1.firstCycleBytes)
+        assertEquals(null, plan1.firstCycleAt)
+        assertEquals(null, plan1.firstCycleStart)
+        assertEquals(false, plan1.pinned)
+
+        val plan2 = room.planDao().plan(2)!!
+        assertEquals("Work", plan2.name)
+        assertEquals(3, plan2.subscriptionId)
+        assertEquals(10000L, plan2.capBytes)
+        assertEquals(false, plan2.archived)
+        assertEquals("phone", plan2.firstCycleMode)
+        assertEquals(false, plan2.pinned)
+
+        val plan3 = room.planDao().plan(3)!!
+        assertEquals("Archived", plan3.name)
+        assertEquals(1, plan3.subscriptionId)
+        assertEquals(2000L, plan3.capBytes)
+        assertEquals(true, plan3.archived)
+        assertEquals("phone", plan3.firstCycleMode)
+        assertEquals(false, plan3.pinned)
+
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    @Test fun migration_3_to_4_keeps_all_other_tables_row_counts(): Unit = runBlocking {
+        val name = "migration-3-4-tables.db"
+        context.deleteDatabase(name)
+        createVersion3(name)
+        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .build()
+        assertEquals(1, room.usageDao().minuteRows(0L, Long.MAX_VALUE).size)
+        assertEquals(1, room.usageDao().hourlyRows(0L, Long.MAX_VALUE).size)
+        assertEquals(80, room.planDao().firedPercent(1, 1000L))
+        room.close()
+        context.deleteDatabase(name)
+    }
+
+    @Test fun schema_4_validates_after_migration(): Unit = runBlocking {
+        val name = "migration-3-4-schema.db"
+        context.deleteDatabase(name)
+        createVersion3(name)
+        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .build()
+        assertEquals(4, room.openHelper.writableDatabase.version)
         room.close()
         context.deleteDatabase(name)
     }
@@ -97,3 +192,4 @@ class MigrationTest {
         room.close()
     }
 }
+

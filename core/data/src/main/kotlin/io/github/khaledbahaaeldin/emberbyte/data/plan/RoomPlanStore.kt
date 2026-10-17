@@ -12,9 +12,76 @@ import androidx.room.withTransaction
 
 internal fun maskOf(days: Set<DayOfWeek>): Int = days.fold(0) { mask, day -> mask or (1 shl (day.value - 1)) }
 internal fun daysOf(mask: Int): Set<DayOfWeek> = DayOfWeek.entries.filter { mask and (1 shl (it.value - 1)) != 0 }.toSet()
-internal fun Plan.toEntity() = PlanEntity(id, name, subscriptionId, capBytes, PlanJson.cycleToJson(cycle), PlanJson.rolloverToJson(rollover), archived)
+internal fun Plan.toEntity(): PlanEntity {
+    val mode: String
+    val bytes: Long?
+    val at: Long?
+    val start: Long?
+    when (val fc = firstCycle) {
+        is FirstCycle.PhoneRecord -> {
+            mode = "phone"
+            bytes = null
+            at = null
+            start = null
+        }
+        is FirstCycle.Entered -> {
+            mode = "entered"
+            bytes = fc.usedBytes
+            at = fc.enteredAt.toEpochMilli()
+            start = fc.cycleStart.toEpochMilli()
+        }
+        is FirstCycle.StartsNextCycle -> {
+            mode = "later"
+            bytes = null
+            at = null
+            start = fc.startsAt.toEpochMilli()
+        }
+    }
+    return PlanEntity(
+        id = id,
+        name = name,
+        subscriptionId = subscriptionId,
+        capBytes = capBytes,
+        cycleJson = PlanJson.cycleToJson(cycle),
+        rolloverJson = PlanJson.rolloverToJson(rollover),
+        archived = archived,
+        firstCycleMode = mode,
+        firstCycleBytes = bytes,
+        firstCycleAt = at,
+        firstCycleStart = start,
+        pinned = pinned,
+    )
+}
+
 internal fun PlanEntity.toDomainOrNull(): Plan? = runCatching {
-    Plan(id, name, subscriptionId, capBytes, PlanJson.cycleFromJson(cycleJson), PlanJson.rolloverFromJson(rolloverJson), archived)
+    val fc = when (firstCycleMode) {
+        "entered" -> if (firstCycleBytes != null && firstCycleAt != null && firstCycleStart != null) {
+            FirstCycle.Entered(
+                usedBytes = firstCycleBytes,
+                enteredAt = Instant.ofEpochMilli(firstCycleAt),
+                cycleStart = Instant.ofEpochMilli(firstCycleStart),
+            )
+        } else {
+            FirstCycle.PhoneRecord
+        }
+        "later" -> if (firstCycleStart != null) {
+            FirstCycle.StartsNextCycle(startsAt = Instant.ofEpochMilli(firstCycleStart))
+        } else {
+            FirstCycle.PhoneRecord
+        }
+        else -> FirstCycle.PhoneRecord
+    }
+    Plan(
+        id = id,
+        name = name,
+        subscriptionId = subscriptionId,
+        capBytes = capBytes,
+        cycle = PlanJson.cycleFromJson(cycleJson),
+        rollover = PlanJson.rolloverFromJson(rolloverJson),
+        archived = archived,
+        firstCycle = fc,
+        pinned = pinned,
+    )
 }.getOrNull()
 internal fun AddOn.toEntity() = AddOnEntity(id, planId, label, bytes, validFrom.toEpochMilli(), validUntil.toEpochMilli())
 internal fun AddOnEntity.toDomain() = AddOn(id, planId, label, bytes, Instant.ofEpochMilli(validFrom), Instant.ofEpochMilli(validUntil))
