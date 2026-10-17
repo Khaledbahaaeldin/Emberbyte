@@ -44,8 +44,16 @@ FAKE_PACKAGES = [
 ]
 
 
-def generate_backup_payload(days: int = 7, scenario: str = "basic", packages: list[str] | None = None) -> dict:
-    pkg_list = packages if packages is not None else FAKE_PACKAGES
+def generate_backup_payload(
+    days: int = 7,
+    scenario: str = "basic",
+    packages: list[str] | None = None,
+    pseudo_uid: bool = False,
+    end_time_str: str = "2026-10-17T00:00:00Z",
+) -> dict:
+    pkg_list = list(packages) if packages is not None else list(FAKE_PACKAGES)
+    if pseudo_uid and "uid:10001" not in pkg_list:
+        pkg_list.append("uid:10001")
     # 1 plan: cap 20 GB (21474836480 bytes), monthly on day 1
     plan = {
         "id": 1,
@@ -87,7 +95,7 @@ def generate_backup_payload(days: int = 7, scenario: str = "basic", packages: li
     }
 
     # Hourly usage across N days
-    end_time = datetime(2026, 10, 17, 0, 0, 0, tzinfo=timezone.utc)
+    end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
     start_time = end_time - timedelta(days=days)
     total_hours = days * 24
 
@@ -109,7 +117,7 @@ def generate_backup_payload(days: int = 7, scenario: str = "basic", packages: li
 
     return {
         "contractVersion": 1,
-        "exportedAt": "2026-10-17T00:00:00Z",
+        "exportedAt": end_time_str,
         "plans": [plan],
         "appBudgets": [budget],
         "usageHourly": usage_hourly,
@@ -188,6 +196,8 @@ def main() -> int:
     parser.add_argument("--days", type=int, default=7, help="Number of days of usage history (default: 7)")
     parser.add_argument("--scenario", choices=["basic", "midcycle"], default="basic", help="Scenario to generate")
     parser.add_argument("--packages", help="Comma-separated package names")
+    parser.add_argument("--pseudo-uid", action="store_true", help="Include a pseudo-uid row (e.g. uid:10001)")
+    parser.add_argument("--end-time", default="2026-10-17T00:00:00Z", help="End time ISO-8601 (default: 2026-10-17T00:00:00Z)")
     parser.add_argument("--selftest", action="store_true", help="Run self-test verifying decryption")
 
     args = parser.parse_args()
@@ -196,7 +206,13 @@ def main() -> int:
         parser.error("--out FILE is required unless --selftest is specified")
 
     pkgs = [p.strip() for p in args.packages.split(",") if p.strip()] if args.packages else None
-    payload = generate_backup_payload(days=args.days, scenario=args.scenario, packages=pkgs)
+    payload = generate_backup_payload(
+        days=args.days,
+        scenario=args.scenario,
+        packages=pkgs,
+        pseudo_uid=args.pseudo_uid,
+        end_time_str=args.end_time,
+    )
     row_count = len(payload["usageHourly"])
     print(f"rows={row_count}")
 
