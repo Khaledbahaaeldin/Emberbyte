@@ -62,9 +62,8 @@ import io.github.khaledbahaaeldin.emberbyte.settings.LicensesScreen
 import io.github.khaledbahaaeldin.emberbyte.settings.SettingsScreen
 import io.github.khaledbahaaeldin.emberbyte.settings.SettingsViewModel
 import io.github.khaledbahaaeldin.emberbyte.ui.design.layout.contentWidth
-import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.FloatingPillNavBar
-import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.glassSource
-import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.rememberGlassSource
+import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.CompactNavBar
+import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.PlusButton
 import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.rememberNavBarVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
@@ -128,7 +127,6 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     }
 
     val visibility = rememberNavBarVisibility()
-    val glass = rememberGlassSource()
     val actions = rememberPermissionActions(graph)
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -144,7 +142,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
         NavHost(
             navController = navController,
             startDestination = if (startOnboarding) Routes.ONBOARDING else Destination.Home.route,
-            modifier = Modifier.contentWidth().fillMaxHeight().glassSource(glass),
+            modifier = Modifier.contentWidth().fillMaxHeight(),
             enterTransition = { tabEnterTransition(motion, reduceMotion) },
             exitTransition = { tabExitTransition(motion, reduceMotion) },
             popEnterTransition = { tabEnterTransition(motion, reduceMotion) },
@@ -246,7 +244,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             }
         }
         if (route != Routes.ONBOARDING) {
-            FloatingPillNavBar(
+            CompactNavBar(
                 items = items,
                 selectedId = selected.id,
                 onSelect = { id ->
@@ -258,12 +256,19 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 },
                 visible = visibility.visible,
                 hapticsEnabled = hapticsEnabled,
-                glass = glass,
+                trailing = if (route == Destination.Plans.route) {
+                    {
+                        PlusButton(
+                            onClick = { navController.navigate(Routes.planEditor(0)) },
+                            contentDescription = "New plan",
+                        )
+                    }
+                } else null,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .contentWidth()
                     .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                    .padding(bottom = 12.dp),
             )
         }
     }

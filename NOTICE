@@ -26,10 +26,6 @@ Bouncy Castle (Argon2id)
   The Legion of the Bouncy Castle Inc. (MIT licence)
   https://www.bouncycastle.org/
 
-Haze (backdrop blur)
-  Chris Banes (Apache License 2.0)
-  https://github.com/chrisbanes/haze
-
 Okio
   com.squareup.okio:okio
   Copyright 2013 Square, Inc. (Apache License 2.0)

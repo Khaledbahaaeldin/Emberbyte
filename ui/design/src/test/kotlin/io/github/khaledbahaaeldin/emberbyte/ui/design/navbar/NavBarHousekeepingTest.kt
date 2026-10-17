@@ -52,7 +52,7 @@ class NavBarHousekeepingTest {
         rule.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                    FloatingPillNavBar(items, selected, onSelect, visible = true)
+                    CompactNavBar(items, selected, onSelect, visible = true)
                 }
             }
         }
@@ -61,10 +61,10 @@ class NavBarHousekeepingTest {
     @Test fun bar_fills_the_width_it_is_given() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                Box(Modifier.width(400.dp)) { FloatingPillNavBar(items, "home", {}, visible = true) }
+                Box(Modifier.width(400.dp)) { CompactNavBar(items, "home", {}, visible = true) }
             }
         }
-        rule.onNodeWithTag("pill_nav_bar").assertWidthIsEqualTo(400.dp)
+        rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo((68 * items.size + 20).dp)
     }
 
     @Test fun tapping_the_selected_item_does_nothing() {
@@ -89,11 +89,11 @@ class NavBarHousekeepingTest {
         val haptics = CountingHaptics()
         show("home", haptics) {}
         val home = rule.onNodeWithTag("nav_home").getBoundsInRoot()
-        val bar = rule.onNodeWithTag("pill_nav_bar").getBoundsInRoot()
+        val bar = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
         val density = 1f
         val startX = (home.left - bar.left).value * density + 4f
         val endX = (home.right - bar.left).value * density - 4f
-        rule.onNodeWithTag("pill_nav_bar").performTouchInput {
+        rule.onNodeWithTag("compact_nav_bar").performTouchInput {
             swipe(start = Offset(startX, centerY), end = Offset(endX, centerY), durationMillis = 300)
         }
         rule.waitForIdle()

@@ -23,8 +23,6 @@ dependencies {
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.material.icons.extended)
-    implementation(libs.haze)
-    implementation(libs.haze.blur)
 
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.junit)

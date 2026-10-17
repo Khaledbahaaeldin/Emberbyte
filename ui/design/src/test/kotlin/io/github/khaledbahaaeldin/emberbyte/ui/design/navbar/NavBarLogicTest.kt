@@ -68,11 +68,4 @@ class NavBarLogicTest {
         assertEquals(10f, dragResistance(20f), 0.001f)
         assertEquals(-10f, dragResistance(-20f), 0.001f)
     }
-
-    @Test fun glass_tint_is_translucent_only_when_blur_is_live() {
-        assertEquals(0.6f, glassTintAlpha(hasGlass = true, sdkInt = 31), 0.001f)
-        assertEquals(0.6f, glassTintAlpha(hasGlass = true, sdkInt = 36), 0.001f)
-        assertEquals(0.92f, glassTintAlpha(hasGlass = true, sdkInt = 30), 0.001f)
-        assertEquals(0.92f, glassTintAlpha(hasGlass = false, sdkInt = 34), 0.001f)
-    }
 }

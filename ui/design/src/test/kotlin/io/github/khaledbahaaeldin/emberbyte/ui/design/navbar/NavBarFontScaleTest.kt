@@ -40,11 +40,11 @@ class NavBarFontScaleTest {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 2f, fontScale = 2f)) {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                    Box(Modifier.width(360.dp)) { FloatingPillNavBar(items, "home", {}, visible = true) }
+                    Box(Modifier.width(360.dp)) { CompactNavBar(items, "home", {}, visible = true) }
                 }
             }
         }
-        val bar = rule.onNodeWithTag("pill_nav_bar").getBoundsInRoot()
+        val bar = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
         for (item in items) {
             val bounds = rule.onNodeWithTag("nav_${item.id}").getBoundsInRoot()
             assertTrue("${item.id} right=${bounds.right} bar=${bar.right}", bounds.right <= bar.right)
