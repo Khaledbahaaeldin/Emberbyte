@@ -14,6 +14,8 @@ data class Plan(
     val cycle: Cycle,
     val rollover: Rollover,
     val archived: Boolean = false,
+    val firstCycle: FirstCycle = FirstCycle.PhoneRecord,
+    val pinned: Boolean = false,
 )
 
 sealed interface Cycle {
@@ -64,6 +66,9 @@ data class PlanState(
     val daysLeft: Int,
     val fractionUsed: Float,
     val isApproximate: Boolean,
+    val isDormant: Boolean = false,
+    val startsAt: Instant? = null,
+    val enteredBytes: Long? = null,
 )
 
 data class AlertRule(val id: Long, val planId: Long, val thresholdPercent: Int, val enabled: Boolean)
