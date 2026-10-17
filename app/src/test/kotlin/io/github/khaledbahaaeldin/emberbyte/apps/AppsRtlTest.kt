@@ -22,7 +22,12 @@ class AppsRtlTest {
 
     @Test
     fun apps_range_chips_are_ordered_from_right_to_left_in_rtl() {
-        val state = AppsUiState(loaded = true)
+        val state = AppsUiState(
+            range = AppsRange.LAST_7_DAYS,
+            network = AppsNetwork.WIFI,
+            sort = io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort.NAME,
+            loaded = true,
+        )
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
@@ -36,19 +41,19 @@ class AppsRtlTest {
             }
         }
 
-        val todayBounds = rule.onNodeWithText("Today").getBoundsInRoot()
         val sevenDaysBounds = rule.onNodeWithText("7 days").getBoundsInRoot()
-        val monthBounds = rule.onNodeWithText("This month").getBoundsInRoot()
+        val wifiBounds = rule.onNodeWithText("Wi-Fi").getBoundsInRoot()
+        val nameBounds = rule.onNodeWithText("Name").getBoundsInRoot()
 
-        // In RTL layout direction, the first item "Today" should be on the right (higher X),
-        // followed by "7 days" to its left, and "This month" furthest to the left.
+        // In RTL layout direction, the first item "7 days" should be on the right (higher X),
+        // followed by "Wi-Fi" to its left, and "Name" furthest to the left.
         assertTrue(
-            "In RTL, Today (${todayBounds.left}) must be to the right of 7 days (${sevenDaysBounds.left})",
-            todayBounds.left > sevenDaysBounds.left,
+            "In RTL, 7 days (${sevenDaysBounds.left}) must be to the right of Wi-Fi (${wifiBounds.left})",
+            sevenDaysBounds.left > wifiBounds.left,
         )
         assertTrue(
-            "In RTL, 7 days (${sevenDaysBounds.left}) must be to the right of This month (${monthBounds.left})",
-            sevenDaysBounds.left > monthBounds.left,
+            "In RTL, Wi-Fi (${wifiBounds.left}) must be to the right of Name (${nameBounds.left})",
+            wifiBounds.left > nameBounds.left,
         )
     }
 }

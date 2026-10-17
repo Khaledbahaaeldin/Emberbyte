@@ -3,6 +3,7 @@ package io.github.khaledbahaaeldin.emberbyte.apps
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
@@ -45,15 +46,17 @@ class AppsAccessibilityTest {
 
     @Test
     fun apps_icon_and_filter_buttons_have_content_descriptions() {
-        show()
-        // Filter chips and sort menu have clear text labels/names
-        rule.onNodeWithText("Today").assertIsDisplayed()
-        rule.onNodeWithText("7 days").assertIsDisplayed()
-        rule.onNodeWithText("This month").assertIsDisplayed()
-        rule.onNodeWithText("All").assertIsDisplayed()
-        rule.onNodeWithText("Mobile").assertIsDisplayed()
-        rule.onNodeWithText("Wi-Fi").assertIsDisplayed()
-        rule.onNodeWithText("Sort: Most data").assertIsDisplayed()
+        show(sampleAppsState.copy(range = AppsRange.LAST_7_DAYS, network = AppsNetwork.WIFI))
+        // Screen headline, search field, and Filters button have clear text labels/names
+        rule.onNodeWithText("Apps").assertIsDisplayed()
+        rule.onNodeWithText("Search apps").assertIsDisplayed()
+        rule.onNodeWithText("Filters").assertIsDisplayed()
+        // Removable filter chips have accessible remove descriptions
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Remove Wi-Fi filter").assertIsDisplayed()
+        // App items have clear text
+        rule.onNodeWithText("Video").assertIsDisplayed()
+        rule.onNodeWithText("Chat").assertIsDisplayed()
     }
 
     @Test

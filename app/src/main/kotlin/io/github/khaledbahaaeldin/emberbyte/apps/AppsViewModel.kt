@@ -28,16 +28,20 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-enum class AppsRange { TODAY, LAST_7_DAYS, THIS_MONTH }
+enum class AppsRange { TODAY, LAST_7_DAYS, LAST_30_DAYS, THIS_MONTH, CYCLE }
 
 enum class AppsNetwork { ALL, MOBILE, WIFI }
+
+enum class AppFilterKind { RANGE, NETWORK, SORT, SYSTEM_APPS }
 
 data class AppsUiState(
     val range: AppsRange = AppsRange.TODAY,
     val network: AppsNetwork = AppsNetwork.ALL,
     val sort: AppSort = AppSort.BYTES_DESC,
+    val showSystemApps: Boolean = false,
     val query: String = "",
     val apps: List<AppRowUi> = emptyList(),
+    val featured: AppRowUi? = null,
     val totalBytes: Long = 0L,
     val units: ByteUnits = ByteUnits.DECIMAL,
     val needsUsageAccess: Boolean = false,
@@ -48,7 +52,16 @@ sealed interface AppsEvent {
     data class SetRange(val range: AppsRange) : AppsEvent
     data class SetNetwork(val network: AppsNetwork) : AppsEvent
     data class SetSort(val sort: AppSort) : AppsEvent
+    data class SetShowSystemApps(val show: Boolean) : AppsEvent
     data class SetQuery(val query: String) : AppsEvent
+    data class RemoveFilter(val filter: AppFilterKind) : AppsEvent
+    data object ResetFilters : AppsEvent
+    data class ApplyFilters(
+        val range: AppsRange,
+        val network: AppsNetwork,
+        val sort: AppSort,
+        val showSystemApps: Boolean,
+    ) : AppsEvent
 }
 
 /** The range ends at the end of [today] so rows written later in the day are included. */
@@ -57,7 +70,8 @@ internal fun rangeFor(range: AppsRange, today: LocalDate, zone: ZoneId): DateRan
     val start = when (range) {
         AppsRange.TODAY -> today
         AppsRange.LAST_7_DAYS -> today.minusDays(6)
-        AppsRange.THIS_MONTH -> today.withDayOfMonth(1)
+        AppsRange.LAST_30_DAYS -> today.minusDays(29)
+        AppsRange.THIS_MONTH, AppsRange.CYCLE -> today.withDayOfMonth(1)
     }.atStartOfDay(zone).toInstant()
     return DateRange(start, end)
 }
@@ -78,19 +92,25 @@ internal fun buildAppsUiState(
     query: String,
     units: ByteUnits,
     needsUsageAccess: Boolean,
+    showSystemApps: Boolean = false,
 ): AppsUiState {
     val text = query.trim()
+    val filtered = if (showSystemApps) apps else apps.filter { !it.packageName.startsWith("uid:") }
     val shown = if (text.isEmpty()) {
-        apps
+        filtered
     } else {
-        apps.filter { it.label.contains(text, ignoreCase = true) || it.packageName.contains(text, ignoreCase = true) }
+        filtered.filter { it.label.contains(text, ignoreCase = true) || it.packageName.contains(text, ignoreCase = true) }
     }
+    val rows = shown.map { AppRowUi(it.packageName, it.label, it.mobileBytes, it.wifiBytes) }
+    val featuredRow = if (text.isEmpty() && rows.isNotEmpty()) rows.first() else null
     return AppsUiState(
         range = range,
         network = network,
         sort = sort,
+        showSystemApps = showSystemApps,
         query = query,
-        apps = shown.map { AppRowUi(it.packageName, it.label, it.mobileBytes, it.wifiBytes) },
+        apps = rows,
+        featured = featuredRow,
         totalBytes = shown.sumOf { it.totalBytes },
         units = units,
         needsUsageAccess = needsUsageAccess,
@@ -102,6 +122,7 @@ private data class Selection(
     val range: AppsRange = AppsRange.TODAY,
     val network: AppsNetwork = AppsNetwork.ALL,
     val sort: AppSort = AppSort.BYTES_DESC,
+    val showSystemApps: Boolean = false,
 )
 
 /** @param dates tests MUST pass a finite flow (for example `flowOf(date)`). */
@@ -121,9 +142,22 @@ class AppsViewModel(
             usage.observeApps(rangeFor(sel.range, date, clock.zone), filterFor(sel.network), sel.sort)
         }
 
+    val featured: StateFlow<AppUsage?> = combine(apps, query) { list, text ->
+        if (text.trim().isEmpty() && list.isNotEmpty()) list.first() else null
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     val uiState: StateFlow<AppsUiState> =
         combine(apps, selection, query, settings.observe(), permissions.observe()) { list, sel, text, s, perm ->
-            buildAppsUiState(list, sel.range, sel.network, sel.sort, text, s.unitSystem.toByteUnits(), !perm.usageAccess)
+            buildAppsUiState(
+                list,
+                sel.range,
+                sel.network,
+                sel.sort,
+                text,
+                s.unitSystem.toByteUnits(),
+                !perm.usageAccess,
+                sel.showSystemApps,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppsUiState())
 
     fun onEvent(event: AppsEvent) {
@@ -131,7 +165,25 @@ class AppsViewModel(
             is AppsEvent.SetRange -> selection.update { it.copy(range = event.range) }
             is AppsEvent.SetNetwork -> selection.update { it.copy(network = event.network) }
             is AppsEvent.SetSort -> selection.update { it.copy(sort = event.sort) }
+            is AppsEvent.SetShowSystemApps -> selection.update { it.copy(showSystemApps = event.show) }
             is AppsEvent.SetQuery -> query.value = event.query
+            is AppsEvent.RemoveFilter -> {
+                when (event.filter) {
+                    AppFilterKind.RANGE -> selection.update { it.copy(range = AppsRange.TODAY) }
+                    AppFilterKind.NETWORK -> selection.update { it.copy(network = AppsNetwork.ALL) }
+                    AppFilterKind.SORT -> selection.update { it.copy(sort = AppSort.BYTES_DESC) }
+                    AppFilterKind.SYSTEM_APPS -> selection.update { it.copy(showSystemApps = false) }
+                }
+            }
+            is AppsEvent.ResetFilters -> selection.value = Selection()
+            is AppsEvent.ApplyFilters -> selection.update {
+                it.copy(
+                    range = event.range,
+                    network = event.network,
+                    sort = event.sort,
+                    showSystemApps = event.showSystemApps,
+                )
+            }
         }
     }
 }
