@@ -60,6 +60,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.HistoryToggleOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +75,7 @@ import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.BudgetRing
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon
@@ -467,16 +469,25 @@ fun AppDetailContent(
                 modifier = Modifier.fillMaxWidth(),
                 container = TileContainer.Standard,
             ) {
-                UsageBarRow(
-                    points = state.bars,
-                    selectedIndex = selectedBarIndex,
-                    onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
-                    summaryDescription = weekSummary,
-                    barColor = { index, _ ->
-                        if (index == state.bars.lastIndex) palette.accent
-                        else palette.primary
-                    },
-                )
+                if (state.bars.isEmpty()) {
+                    EmptyState(
+                        icon = Icons.Rounded.HistoryToggleOff,
+                        title = "No daily usage",
+                        body = "Daily breakdown will show here once usage is recorded.",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    )
+                } else {
+                    UsageBarRow(
+                        points = state.bars,
+                        selectedIndex = selectedBarIndex,
+                        onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
+                        summaryDescription = weekSummary,
+                        barColor = { index, _ ->
+                            if (index == state.bars.lastIndex) palette.accent
+                            else palette.primary
+                        },
+                    )
+                }
             }
         }
 

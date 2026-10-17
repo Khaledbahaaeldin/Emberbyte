@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.MaterialTheme
-import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import kotlinx.coroutines.flow.onEach
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -275,16 +278,11 @@ fun HistoryContent(
         // Selected bar detail or chart
         if (state.loaded && state.bars.isEmpty()) {
             item {
-                io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile(
+                EmptyState(
+                    icon = Icons.Rounded.History,
                     title = "No history yet",
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        "Usage data will appear here once recorded.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.muted,
-                    )
-                }
+                    body = "Usage data will appear here once recorded.",
+                )
             }
         } else {
             // Selected bar readout row if any

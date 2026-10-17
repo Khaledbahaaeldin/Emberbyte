@@ -184,4 +184,11 @@ class HomeAccessibilityTest {
         val downBounds = downText.getBoundsInRoot()
         assertTrue("Speed number right edge exceeds 360dp parent", downBounds.right <= 360.dp)
     }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun home_7_day_row_opens_at_end_showing_todays_bar_at_rest() {
+        show()
+        rule.onNodeWithContentDescription("Sunday, 600 megabytes").assertIsDisplayed()
+    }
 }

@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 
 @Composable
@@ -71,19 +74,19 @@ internal fun PlansContent(
         }
         if (state.loaded && state.cards.isEmpty() && state.archivedCards.isEmpty()) {
             item {
-                BentoTile(title = "No plans yet", modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "Add your cap and renewal day to see what is left and when it runs out.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-                    )
-                    Button(
-                        onClick = onNewPlan,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("Set up your first plan")
-                    }
-                }
+                EmptyState(
+                    icon = Icons.Rounded.AccountBalanceWallet,
+                    title = "No plans yet",
+                    body = "Add your cap and renewal day to see what is left and when it runs out.",
+                    action = {
+                        Button(
+                            onClick = onNewPlan,
+                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                        ) {
+                            Text("Set up your first plan")
+                        }
+                    },
+                )
             }
         } else {
             items(state.cards, key = { it.id }) { card ->

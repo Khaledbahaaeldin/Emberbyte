@@ -18,9 +18,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -301,29 +303,24 @@ internal fun AppsContent(
         if (state.loaded && state.apps.isEmpty()) {
             item {
                 if (state.query.isNotBlank()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Text(
-                            text = "No apps match \"${state.query.trim()}\".",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = palette.muted,
-                        )
-                        TextButton(
-                            onClick = { onEvent(AppsEvent.SetQuery("")) },
-                        ) {
-                            Text("Clear search")
-                        }
-                    }
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState(
+                        icon = androidx.compose.material.icons.Icons.Rounded.Search,
+                        title = "No apps match",
+                        body = "No apps match \"${state.query.trim()}\".",
+                        action = {
+                            TextButton(
+                                onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                modifier = Modifier.sizeIn(minHeight = 48.dp),
+                            ) {
+                                Text("Clear search")
+                            }
+                        },
+                    )
                 } else {
-                    Text(
-                        text = "No app data yet. Per-app numbers appear within about 5 minutes once usage access is allowed.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.muted,
+                    EmptyState(
+                        icon = Icons.Rounded.Apps,
+                        title = "No app data yet",
+                        body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
                     )
                 }
             }

@@ -15,13 +15,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -128,7 +128,7 @@ internal fun HomeHeroSection(
                 .testTag("home_loading_indicator"),
             contentAlignment = Alignment.Center,
         ) {
-            CircularProgressIndicator(color = palette.primary)
+            LoadingState(label = "Loading today's usage")
         }
         return
     }
@@ -384,7 +384,7 @@ internal fun HomeHistorySection(
             points = state.week,
             selectedIndex = state.selectedDay,
             onSelect = onSelectDay,
-            openAtEnd = false,
+            openAtEnd = true,
             summaryDescription = weekSummary,
         )
     }

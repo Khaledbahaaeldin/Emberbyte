@@ -123,4 +123,12 @@ class AppDetailScreenTest {
         }
         rule.onNodeWithText("Video").assertIsDisplayed()
     }
+
+    @Test
+    fun empty_bars_shows_empty_state() {
+        val emptyBarsState = sampleState.copy(bars = emptyList())
+        show(emptyBarsState)
+        rule.onNodeWithText("No daily usage").assertIsDisplayed()
+        rule.onNodeWithText("Daily breakdown will show here once usage is recorded.").assertIsDisplayed()
+    }
 }

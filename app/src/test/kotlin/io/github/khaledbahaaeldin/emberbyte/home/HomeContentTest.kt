@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -194,5 +195,10 @@ class HomeContentTest {
     @Test fun without_a_spike_the_spike_detected_tile_is_not_shown() {
         show(HomeUiState(spike = null))
         rule.onNodeWithText("Spike detected").assertDoesNotExist()
+    }
+
+    @Test fun loading_shows_loading_state() {
+        show(HomeUiState(isLoading = true))
+        rule.onNodeWithContentDescription("Loading today's usage").assertIsDisplayed()
     }
 }
