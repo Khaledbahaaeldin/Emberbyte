@@ -123,6 +123,14 @@ class RoomPlanRepository(
             }
         }
 
+    override suspend fun setPinned(id: Long, pinned: Boolean): Outcome<Unit> =
+        guarded { plans.setPinned(id, pinned) }.let { outcome ->
+            when (outcome) {
+                is Outcome.Failure -> outcome
+                is Outcome.Success -> if (outcome.value) Outcome.Success(Unit) else Outcome.Failure(EmberbyteError.NotFound)
+            }
+        }
+
     override suspend fun upsertAddOn(addOn: AddOn): Outcome<Long> {
         PlanValidation.addOn(addOn)?.let { return Outcome.Failure(it) }
         if (plans.plan(addOn.planId) == null) return Outcome.Failure(EmberbyteError.NotFound)

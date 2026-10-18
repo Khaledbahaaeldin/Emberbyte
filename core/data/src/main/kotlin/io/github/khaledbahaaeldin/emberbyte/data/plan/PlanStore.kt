@@ -15,6 +15,7 @@ interface PlanStore {
     suspend fun plan(id: Long): Plan?
     suspend fun upsertPlan(plan: Plan): Long
     suspend fun setArchived(id: Long, archived: Boolean): Boolean
+    suspend fun setPinned(id: Long, pinned: Boolean): Boolean
     fun observeAddOns(planId: Long): Flow<List<AddOn>>
     suspend fun upsertAddOn(addOn: AddOn): Long
     suspend fun deleteAddOn(id: Long)

@@ -98,6 +98,15 @@ class RoomPlanStore(private val db: EmberbyteDatabase) : PlanStore {
     override suspend fun plan(id: Long): Plan? = dao.plan(id)?.toDomainOrNull()
     override suspend fun upsertPlan(plan: Plan): Long = dao.putPlan(plan.toEntity())
     override suspend fun setArchived(id: Long, archived: Boolean): Boolean = dao.setArchived(id, archived) > 0
+    override suspend fun setPinned(id: Long, pinned: Boolean): Boolean = db.withTransaction {
+        if (dao.plan(id) == null) return@withTransaction false
+        if (pinned) {
+            dao.clearAllPinned()
+            dao.setPinned(id, true) > 0
+        } else {
+            dao.setPinned(id, false) > 0
+        }
+    }
     override fun observeAddOns(planId: Long): Flow<List<AddOn>> = dao.observeAddOns(planId).map { list -> list.map { it.toDomain() } }
     override suspend fun upsertAddOn(addOn: AddOn): Long = dao.putAddOn(addOn.toEntity())
     override suspend fun deleteAddOn(id: Long) = dao.deleteAddOn(id)

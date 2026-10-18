@@ -32,7 +32,9 @@ object WidgetData {
     ): WidgetSnapshot {
         val zone = clock.zone
         val today = usage.observeToday().first()
-        val plan = plans.observeActivePlanStates().first().firstOrNull()
+        val allPlans = plans.observeActivePlanStates().first()
+        val plan = io.github.khaledbahaaeldin.emberbyte.engine.plan.PlanUrgency.front(allPlans, clock.instant())
+            ?: allPlans.firstOrNull()
         val forecast = plan?.let { plans.observeForecast(it.plan.id).firstOrNull() }
         val speed = withTimeoutOrNull(speedTimeoutMillis) { usage.observeLiveSpeed().firstOrNull() }
         val start = today.date.atStartOfDay(zone).toInstant()

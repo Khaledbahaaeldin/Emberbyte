@@ -149,7 +149,7 @@ class SamplerService : Service() {
         val activePlans = graph.plans.observeActivePlanStates()
         combine(speeds, graph.usage.observeToday(), graph.settings.observe(), activePlans) { speed, today, settings, plans ->
             if (settings.liveNotificationEnabled) {
-                val active = plans.firstOrNull()
+                val active = io.github.khaledbahaaeldin.emberbyte.engine.plan.PlanUrgency.front(plans, graph.clock.instant())
                 val units = settings.unitSystem.toByteUnits()
                 liveNotificationText(
                     todayBytes = today.totalBytes,

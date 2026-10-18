@@ -32,7 +32,20 @@ class InMemoryPlanStore : PlanStore {
     override suspend fun upsertPlan(plan: Plan): Long = plans.put(plan, plan.id, Plan::id, planIds) { p, id -> p.copy(id = id) }
     override suspend fun setArchived(id: Long, archived: Boolean): Boolean {
         if (plans.value.none { it.id == id }) return false
-        plans.update { list -> list.map { if (it.id == id) it.copy(archived = archived) else it } }
+        plans.update { list -> list.map { if (it.id == id) it.copy(archived = archived, pinned = if (archived) false else it.pinned) else it } }
+        return true
+    }
+    override suspend fun setPinned(id: Long, pinned: Boolean): Boolean {
+        if (plans.value.none { it.id == id }) return false
+        plans.update { list ->
+            list.map {
+                when {
+                    it.id == id -> it.copy(pinned = pinned)
+                    pinned -> it.copy(pinned = false)
+                    else -> it
+                }
+            }
+        }
         return true
     }
     override fun observeAddOns(planId: Long): Flow<List<AddOn>> = addOns.map { list -> list.filter { it.planId == planId }.sortedWith(compareBy({ it.validFrom }, { it.id })) }

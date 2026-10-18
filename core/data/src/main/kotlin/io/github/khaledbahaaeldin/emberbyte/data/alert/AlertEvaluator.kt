@@ -20,6 +20,7 @@ class AlertEvaluator(private val plans: PlanRepository, private val store: PlanS
     suspend fun evaluate(): List<AlertNotice> = mutex.withLock {
         val notices = ArrayList<AlertNotice>()
         for (state in plans.observeActivePlanStates().first()) {
+            if (state.isDormant) continue
             val cap = state.effectiveCapBytes
             if (cap <= 0L) continue
             val percent = state.percentUsed()

@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlansViewModel(
@@ -55,7 +56,16 @@ class PlansViewModel(
         PlansUiState(cards.filter { !it.archived }, cards.filter { it.archived }, archivedShown, loaded = true)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlansUiState())
 
-    fun onEvent(event: PlansEvent) { when (event) { PlansEvent.ToggleArchived -> showArchived.update { !it } } }
+    fun onEvent(event: PlansEvent) {
+        when (event) {
+            PlansEvent.ToggleArchived -> showArchived.update { !it }
+            is PlansEvent.SetPinned -> {
+                viewModelScope.launch {
+                    plans.setPinned(event.id, event.pinned)
+                }
+            }
+        }
+    }
 
     private fun simLabel(subscriptionId: Int?, installed: List<SimInfo>): String? = when {
         subscriptionId == null -> null
