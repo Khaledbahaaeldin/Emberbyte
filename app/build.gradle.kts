@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+import java.util.zip.ZipFile
+
 android {
     namespace = "io.github.khaledbahaaeldin.emberbyte"
     compileSdk = 37
@@ -28,7 +30,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     testOptions { unitTests.isIncludeAndroidResources = true }
 
     sourceSets.getByName("main") {
@@ -76,6 +81,38 @@ val verifyReleaseApk = tasks.register("verifyReleaseApk") {
         val apkFile = layout.buildDirectory.file("outputs/apk/release/app-release-unsigned.apk").get().asFile
         if (!apkFile.exists() || apkFile.length() == 0L) {
             throw GradleException("Release APK does not exist or is empty at ${apkFile.absolutePath}")
+        }
+        val forbiddenStrings = listOf("debug_fake_now")
+        ZipFile(apkFile).use { zip ->
+            val dexEntries = zip.entries().asSequence().filter { it.name.endsWith(".dex") }.toList()
+            if (dexEntries.isEmpty()) {
+                throw GradleException("Release APK has no dex files")
+            }
+            for (entry in dexEntries) {
+                val bytes = zip.getInputStream(entry).use { it.readBytes() }
+                for (forbidden in forbiddenStrings) {
+                    val target = forbidden.toByteArray(Charsets.UTF_8)
+                    var found = false
+                    if (bytes.size >= target.size) {
+                        for (i in 0..bytes.size - target.size) {
+                            var match = true
+                            for (j in target.indices) {
+                                if (bytes[i + j] != target[j]) {
+                                    match = false
+                                    break
+                                }
+                            }
+                            if (match) {
+                                found = true
+                                break
+                            }
+                        }
+                    }
+                    if (found) {
+                        throw GradleException("Release APK dex ${entry.name} contains forbidden string: $forbidden")
+                    }
+                }
+            }
         }
         logger.lifecycle("Release APK verified: ${apkFile.name} (${apkFile.length()} bytes)")
     }

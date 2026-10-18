@@ -28,6 +28,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.DEBUG) {
+            val fakeNowMillis = intent?.getLongExtra("debug_fake_now", -1L) ?: -1L
+            if (fakeNowMillis > 0L) {
+                AppClock.fakeNow = java.time.Instant.ofEpochMilli(fakeNowMillis)
+            }
+        }
         enableEdgeToEdge()
         graph = (application as EmberbyteApplication).graph
         setContent {
