@@ -199,7 +199,7 @@ class StreamingExportServiceTest {
         assertTrue(service.exportJson(out) is Outcome.Success<*>)
 
         val root = JSONObject(String(out.toByteArray(), Charsets.UTF_8))
-        assertEquals(1, root.getInt("contractVersion"))
+        assertEquals(2, root.getInt("contractVersion"))
         assertEquals("2026-10-15T12:00:00Z", root.getString("exportedAt"))
         val planJson = root.getJSONArray("plans").getJSONObject(0)
         assertEquals("Main", planJson.getString("name"))
@@ -208,6 +208,8 @@ class StreamingExportServiceTest {
         assertEquals(JSONObject(PlanJson.cycleToJson(cycle)).toString(), planJson.getJSONObject("cycle").toString())
         assertEquals("capped", planJson.getJSONObject("rollover").getString("type"))
         assertFalse(planJson.getBoolean("archived"))
+        assertFalse(planJson.getBoolean("pinned"))
+        assertEquals("phone", planJson.getJSONObject("firstCycle").getString("mode"))
         val addOn = planJson.getJSONArray("addOns").getJSONObject(0)
         assertEquals("Boost", addOn.getString("label"))
         assertEquals("2026-10-05T00:00:00Z", addOn.getString("validFrom"))

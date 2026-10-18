@@ -330,7 +330,7 @@ class DefaultBackupServiceTest {
 
         val futureJson = """
         {
-          "contractVersion": 2,
+          "contractVersion": 3,
           "exportedAt": "2026-10-15T12:00:00Z",
           "plans": [],
           "appBudgets": [],

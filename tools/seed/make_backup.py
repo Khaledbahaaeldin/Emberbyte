@@ -50,6 +50,7 @@ def generate_backup_payload(
     packages: list[str] | None = None,
     pseudo_uid: bool = False,
     end_time_str: str = "2026-10-17T00:00:00Z",
+    contract: int = 1,
 ) -> dict:
     pkg_list = list(packages) if packages is not None else list(FAKE_PACKAGES)
     if pseudo_uid and "uid:10001" not in pkg_list:
@@ -81,6 +82,9 @@ def generate_backup_payload(
             }
         ],
     }
+    if contract >= 2:
+        plan["firstCycle"] = {"mode": "phone"}
+        plan["pinned"] = False
 
     # 1 budget: daily limit on video package
     budget_pkg = pkg_list[1] if len(pkg_list) > 1 else pkg_list[0]
@@ -116,7 +120,7 @@ def generate_backup_payload(
             })
 
     return {
-        "contractVersion": 1,
+        "contractVersion": contract,
         "exportedAt": end_time_str,
         "plans": [plan],
         "appBudgets": [budget],
@@ -198,6 +202,7 @@ def main() -> int:
     parser.add_argument("--packages", help="Comma-separated package names")
     parser.add_argument("--pseudo-uid", action="store_true", help="Include a pseudo-uid row (e.g. uid:10001)")
     parser.add_argument("--end-time", default="2026-10-17T00:00:00Z", help="End time ISO-8601 (default: 2026-10-17T00:00:00Z)")
+    parser.add_argument("--contract", type=int, default=1, choices=[1, 2], help="Contract version (1 or 2, default: 1)")
     parser.add_argument("--selftest", action="store_true", help="Run self-test verifying decryption")
 
     args = parser.parse_args()
@@ -212,6 +217,7 @@ def main() -> int:
         packages=pkgs,
         pseudo_uid=args.pseudo_uid,
         end_time_str=args.end_time,
+        contract=args.contract,
     )
     row_count = len(payload["usageHourly"])
     print(f"rows={row_count}")

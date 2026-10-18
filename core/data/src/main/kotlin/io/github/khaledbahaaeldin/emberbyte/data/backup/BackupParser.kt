@@ -7,6 +7,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.AddOn
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AlertRule
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppBudget
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetPeriod
+import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.FreeRule
 import io.github.khaledbahaaeldin.emberbyte.engine.model.NetworkKind
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Plan
@@ -112,7 +113,39 @@ object BackupParser {
         val cycle = PlanJson.cycleFromJson(obj.getJSONObject("cycle").toString())
         val rollover = PlanJson.rolloverFromJson(obj.getJSONObject("rollover").toString())
         val archived = if (obj.has("archived")) obj.getBoolean("archived") else false
-        val plan = Plan(id, name, subId, capBytes, cycle, rollover, archived)
+        val pinned = if (obj.has("pinned")) obj.getBoolean("pinned") else false
+        val firstCycle = if (obj.has("firstCycle")) {
+            val fcObj = obj.getJSONObject("firstCycle")
+            if (!fcObj.has("mode")) {
+                throw BackupFormatException("file", "Corrupt firstCycle: missing mode")
+            }
+            when (val mode = fcObj.getString("mode")) {
+                "phone" -> FirstCycle.PhoneRecord
+                "entered" -> {
+                    if (!fcObj.has("usedBytes") || !fcObj.has("enteredAt") || !fcObj.has("cycleStart")) {
+                        throw BackupFormatException("file", "Corrupt firstCycle: missing fields for entered mode")
+                    }
+                    val usedBytes = fcObj.getLong("usedBytes")
+                    if (usedBytes < 0) {
+                        throw BackupFormatException("file", "Corrupt firstCycle: negative usedBytes")
+                    }
+                    val enteredAt = Instant.ofEpochMilli(fcObj.getLong("enteredAt"))
+                    val cycleStart = Instant.ofEpochMilli(fcObj.getLong("cycleStart"))
+                    FirstCycle.Entered(usedBytes, enteredAt, cycleStart)
+                }
+                "later" -> {
+                    if (!fcObj.has("startsAt")) {
+                        throw BackupFormatException("file", "Corrupt firstCycle: missing startsAt for later mode")
+                    }
+                    val startsAt = Instant.ofEpochMilli(fcObj.getLong("startsAt"))
+                    FirstCycle.StartsNextCycle(startsAt)
+                }
+                else -> throw BackupFormatException("file", "Corrupt firstCycle: unknown mode $mode")
+            }
+        } else {
+            FirstCycle.PhoneRecord
+        }
+        val plan = Plan(id, name, subId, capBytes, cycle, rollover, archived, firstCycle, pinned)
 
         val addOns = mutableListOf<AddOn>()
         val addOnsArray = obj.optJSONArray("addOns")

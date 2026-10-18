@@ -76,8 +76,8 @@ class DefaultBackupService(
         gzipStream.use { stream ->
             val parsed = BackupParser.parse(stream)
 
-            if (parsed.contractVersion > 1) {
-                return Outcome.Failure(EmberbyteError.Invalid("file", "This backup was made by a newer version of Emberbyte"))
+            if (parsed.contractVersion > 2) {
+                return Outcome.Failure(EmberbyteError.Invalid("file", "This backup was made by a newer version of Emberbyte. Please update Emberbyte to restore it."))
             }
 
             val planIds = HashSet<Long>()

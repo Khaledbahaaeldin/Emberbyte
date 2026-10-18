@@ -79,7 +79,7 @@ The decrypted plaintext is a standard **GZIP** stream (`gzip(exportJson)`). Once
 
 ```json
 {
-  "contractVersion": 1,
+  "contractVersion": 2,
   "exportedAt": "2026-10-06T12:00:00Z",
   "plans": [
     {
@@ -98,6 +98,10 @@ The decrypted plaintext is a standard **GZIP** stream (`gzip(exportJson)`). Once
         "maxBytes": 2147483648
       },
       "archived": false,
+      "firstCycle": {
+        "mode": "phone"
+      },
+      "pinned": false,
       "addOns": [
         {
           "id": 1,
@@ -155,9 +159,9 @@ The decrypted plaintext is a standard **GZIP** stream (`gzip(exportJson)`). Once
 
 ### JSON Fields
 
-- `contractVersion` (Int): Currently `1`.
+- `contractVersion` (Int): Currently `2` (the restore reader accepts versions 1 and 2; missing `firstCycle` and `pinned` fields default to `"phone"` and `false`; higher versions are rejected with an update message).
 - `exportedAt` (ISO-8601 String): Timestamp when backup was generated.
-- `plans` (Array): Configured data plans, including their cycle definition, rollover rules, `archived` status, child `addOns`, zero-rated `freeRules`, and threshold `alertRules`.
+- `plans` (Array): Configured data plans, including their cycle definition, rollover rules, `archived` status, `firstCycle` mode (`"phone"`, `"entered"` with `usedBytes`/`enteredAt`/`cycleStart`, or `"later"` with `startsAt`), `pinned` status, child `addOns`, zero-rated `freeRules`, and threshold `alertRules`.
 - `appBudgets` (Array): Per-app data budgets with package name, limit, period (`DAILY` or `CYCLE`), optional `planId`, warning percentage (`warnAtPercent`), and active status.
 - `usageHourly` (Array): Streamed list of 2-hour windowed usage rows keyed by package name (or `"uid:<n>"` if package unknown), network (`MOBILE` or `WIFI`), SIM subscription ID, and rx/tx byte counters.
 

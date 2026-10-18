@@ -97,7 +97,7 @@ class BackupParserTest {
 
         val parsed = BackupParser.parse(ByteArrayInputStream(out.toByteArray()))
 
-        assertEquals(CONTRACT_VERSION, parsed.contractVersion)
+        assertEquals(2, parsed.contractVersion)
         assertEquals(1, parsed.plans.size)
         val expectedPlan = RestoredPlan(
             plan = plan,

@@ -9,6 +9,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.CONTRACT_VERSION
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
 import io.github.khaledbahaaeldin.emberbyte.engine.model.EmberbyteError
+import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover
 import java.io.BufferedWriter
@@ -70,7 +71,7 @@ class StreamingExportService(
         val writer = JsonWriter(BufferedWriter(OutputStreamWriter(out, Charsets.UTF_8)))
         writer.setIndent("")
         writer.beginObject()
-        writer.name("contractVersion").value(CONTRACT_VERSION.toLong())
+        writer.name("contractVersion").value(2L)
         writer.name("exportedAt").value(clock.instant().toString())
 
         // plans
@@ -128,6 +129,29 @@ class StreamingExportService(
             writer.endObject()
 
             writer.name("archived").value(plan.archived)
+
+            // firstCycle
+            writer.name("firstCycle")
+            writer.beginObject()
+            when (val fc = plan.firstCycle) {
+                is FirstCycle.PhoneRecord -> {
+                    writer.name("mode").value("phone")
+                }
+                is FirstCycle.Entered -> {
+                    writer.name("mode").value("entered")
+                    writer.name("usedBytes").value(fc.usedBytes)
+                    writer.name("enteredAt").value(fc.enteredAt.toEpochMilli())
+                    writer.name("cycleStart").value(fc.cycleStart.toEpochMilli())
+                }
+                is FirstCycle.StartsNextCycle -> {
+                    writer.name("mode").value("later")
+                    writer.name("startsAt").value(fc.startsAt.toEpochMilli())
+                }
+            }
+            writer.endObject()
+
+            // pinned
+            writer.name("pinned").value(plan.pinned)
 
             // addOns
             writer.name("addOns")
