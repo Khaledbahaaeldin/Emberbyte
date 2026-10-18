@@ -45,4 +45,8 @@ data class PlanCardUi(
     val isEstimated: Boolean,
     val chips: List<String>,
     val archived: Boolean,
+    val isDormant: Boolean = false,
+    val startsAtText: String? = null,
+    val enteredNote: String? = null,
+    val pinned: Boolean = false,
 )

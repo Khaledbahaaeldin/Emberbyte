@@ -12,4 +12,5 @@ data class PlansUiState(
 sealed interface PlansEvent {
     data object ToggleArchived : PlansEvent
     data class SetPinned(val id: Long, val pinned: Boolean) : PlansEvent
+    data class ArchivePlan(val id: Long) : PlansEvent
 }

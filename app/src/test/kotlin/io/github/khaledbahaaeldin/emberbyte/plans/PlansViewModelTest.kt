@@ -194,4 +194,65 @@ class PlansViewModelTest {
         assertTrue(card.usedText.contains("10.0 GiB"))
         job.cancel()
     }
+
+    @Test fun state_orders_plans_by_urgency_and_dormant_last() = runTest(dispatcher) {
+        val planStore = InMemoryPlanStore()
+        val usageStore = InMemoryUsageStore()
+        val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
+        val settings = FakeSettingsRepository()
+        val sims = FakeSimInfoSource()
+        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
+
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        // p1: Low usage (10%)
+        val p1 = Plan(0L, "Low Urgency", 1, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
+        // p2: Over cap
+        val p2 = Plan(0L, "Over Cap", 2, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
+        // p3: Dormant
+        val nextMonth = Instant.parse("2026-11-01T00:00:00Z")
+        val p3 = Plan(0L, "Dormant", 3, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, firstCycle = io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle.StartsNextCycle(nextMonth))
+
+        val id1 = (repo.upsertPlan(p1) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
+        val id2 = (repo.upsertPlan(p2) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
+        val id3 = (repo.upsertPlan(p3) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
+
+        usageStore.addMinute(MinuteTotal(now.minusSeconds(3600), NetworkKind.MOBILE, 1, 1_000_000_000L, 0L))
+        usageStore.addMinute(MinuteTotal(now.minusSeconds(3600), NetworkKind.MOBILE, 2, 11_000_000_000L, 0L))
+        advanceUntilIdle()
+
+        val cards = vm.uiState.value.cards
+        assertEquals(3, cards.size)
+        // Over Cap leads, Low Urgency second, Dormant last
+        assertEquals(id2, cards[0].id)
+        assertEquals(id1, cards[1].id)
+        assertEquals(id3, cards[2].id)
+        assertTrue(cards[2].isDormant)
+        job.cancel()
+    }
+
+    @Test fun pin_action_calls_the_repository() = runTest(dispatcher) {
+        val planStore = InMemoryPlanStore()
+        val usageStore = InMemoryUsageStore()
+        val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
+        val settings = FakeSettingsRepository()
+        val sims = FakeSimInfoSource()
+        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
+
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        val p1 = Plan(0L, "Plan 1", null, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
+        val id1 = (repo.upsertPlan(p1) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.cards.first().pinned)
+
+        vm.onEvent(PlansEvent.SetPinned(id1, true))
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.cards.first().pinned)
+        job.cancel()
+    }
 }

@@ -89,8 +89,13 @@ internal fun PlansContent(
                 )
             }
         } else {
-            items(state.cards, key = { it.id }) { card ->
-                PlanCard(model = card, onClick = { onOpenPlan(card.id) })
+            item {
+                PlansBento(
+                    cards = state.cards,
+                    onOpenPlan = onOpenPlan,
+                    onPinPlan = { id, pinned -> onEvent(PlansEvent.SetPinned(id, pinned)) },
+                    onArchivePlan = { id -> onEvent(PlansEvent.ArchivePlan(id)) },
+                )
             }
             if (state.archivedCards.isNotEmpty()) {
                 item {

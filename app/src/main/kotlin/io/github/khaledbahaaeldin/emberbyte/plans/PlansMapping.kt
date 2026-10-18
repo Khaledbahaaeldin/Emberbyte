@@ -49,5 +49,14 @@ internal fun planCardUi(
         chips = addOns.filter { it.validFrom < state.window.end && it.validUntil > state.window.start }
             .map { "${it.label} +${plainBytes(it.bytes, units)}" },
         archived = state.plan.archived,
+        isDormant = state.isDormant,
+        startsAtText = state.startsAt?.let {
+            val formatter = java.time.format.DateTimeFormatter.ofPattern("d MMM", locale)
+            "Starts ${formatter.format(it.atZone(zone))}"
+        },
+        enteredNote = state.enteredBytes?.let {
+            "Includes ${plainBytes(it, units)} you entered"
+        },
+        pinned = state.plan.pinned,
     )
 }
