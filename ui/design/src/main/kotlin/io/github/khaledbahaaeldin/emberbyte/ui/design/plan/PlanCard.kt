@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,11 +32,21 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.EstimatedBadge
 fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val palette = LocalEmberbytePalette.current
     val summary = buildString {
-        append("${model.name}, ${model.percentText.removeSuffix("%")} percent used, ${model.remainingText}, ${model.daysLeftText}")
-        when (model.ringState) {
-            BudgetStateUi.Warning -> append(", nearly used up")
-            BudgetStateUi.Exceeded -> append(", over the cap")
-            BudgetStateUi.Ok -> Unit
+        if (model.isDormant) {
+            append("${model.name}, ${model.startsAtText ?: "Starts next cycle"}")
+        } else {
+            append("${model.name}, ${model.percentText.removeSuffix("%")} percent used, ${model.remainingText}, ${model.daysLeftText}")
+            when (model.ringState) {
+                BudgetStateUi.Warning -> append(", nearly used up")
+                BudgetStateUi.Exceeded -> append(", over the cap")
+                BudgetStateUi.Ok -> Unit
+            }
+        }
+        if (model.enteredNote != null) {
+            append(", ${model.enteredNote}")
+        }
+        if (model.pinned) {
+            append(", pinned")
         }
         if (model.isEstimated) {
             append(", estimated")
@@ -45,25 +59,53 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
         onClick = onClick,
         modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = summary },
         shape = MaterialTheme.shapes.extraLarge,
-        color = palette.surface2,
+        color = if (model.isDormant) palette.surface else palette.surface2,
     ) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            BudgetRing(model.fraction, model.ringState, percentText = model.percentText)
+            if (model.isDormant) {
+                DormantBadge()
+            } else {
+                BudgetRing(model.fraction, model.ringState, percentText = model.percentText)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(model.name, style = MaterialTheme.typography.titleMedium, color = palette.text)
-                model.simLabel?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = palette.muted) }
-                ForceLtr { Text(model.usedText, style = MaterialTheme.typography.bodyMedium, color = palette.text) }
-                ForceLtr {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(model.remainingText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
-                        Text("·", style = MaterialTheme.typography.bodyMedium, color = palette.muted)
-                        Text(model.daysLeftText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(model.name, style = MaterialTheme.typography.titleMedium, color = if (model.isDormant) palette.muted else palette.text)
+                    if (model.pinned) {
+                        Icon(
+                            imageVector = Icons.Rounded.PushPin,
+                            contentDescription = "Pinned",
+                            tint = palette.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
-                model.forecastText?.let {
+                model.simLabel?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = palette.muted) }
+                if (!model.isDormant) {
+                    ForceLtr { Text(model.usedText, style = MaterialTheme.typography.bodyMedium, color = palette.text) }
                     ForceLtr {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = palette.accent)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(model.remainingText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
+                            Text("·", style = MaterialTheme.typography.bodyMedium, color = palette.muted)
+                            Text(model.daysLeftText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
+                        }
                     }
+                    model.forecastText?.let {
+                        ForceLtr {
+                            Text(it, style = MaterialTheme.typography.bodyMedium, color = palette.accent)
+                        }
+                    }
+                } else {
+                    Text(
+                        text = model.startsAtText ?: "Starts next cycle",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.muted,
+                    )
+                }
+                model.enteredNote?.let { note ->
+                    Text(note, style = MaterialTheme.typography.labelSmall, color = palette.muted)
                 }
                 if (model.isEstimated) EstimatedBadge()
                 if (model.archived) Text("Archived", style = MaterialTheme.typography.labelMedium, color = palette.muted)

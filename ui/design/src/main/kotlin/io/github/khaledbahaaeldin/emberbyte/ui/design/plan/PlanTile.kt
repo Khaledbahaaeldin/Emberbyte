@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +42,9 @@ fun PlanTile(
                 BudgetStateUi.Ok -> Unit
             }
         }
+        if (model.enteredNote != null) {
+            append(", ${model.enteredNote}")
+        }
         if (model.pinned) {
             append(", pinned")
         }
@@ -69,11 +76,25 @@ fun PlanTile(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = model.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (model.isDormant) palette.muted else palette.text,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false),
+                ) {
+                    Text(
+                        text = model.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (model.isDormant) palette.muted else palette.text,
+                    )
+                    if (model.pinned) {
+                        Icon(
+                            imageVector = Icons.Rounded.PushPin,
+                            contentDescription = "Pinned",
+                            tint = palette.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
                 if (!model.isDormant) {
                     BudgetRing(model.fraction, model.ringState, percentText = model.percentText)
                 }
@@ -92,6 +113,13 @@ fun PlanTile(
                         color = palette.text,
                     )
                 }
+            }
+            model.enteredNote?.let { note ->
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.muted,
+                )
             }
         }
     }

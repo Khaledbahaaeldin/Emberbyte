@@ -133,4 +133,23 @@ class PlanCardTest {
         rule.onNodeWithText("3.80 GB left").assertIsDisplayed()
         rule.onNodeWithText("9 days left").assertIsDisplayed()
     }
+
+    @Test fun dormant_plan_shows_dormant_badge_and_no_ring() {
+        show(model.copy(isDormant = true, startsAtText = "Starts 1 Nov"))
+        rule.onNodeWithText("Starts 1 Nov").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Main SIM, Starts 1 Nov").assertExists()
+        rule.onNodeWithText("62%", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun entered_note_is_visible_and_spoken_on_card() {
+        show(model.copy(enteredNote = "Includes 3 GB you entered"))
+        rule.onNodeWithText("Includes 3 GB you entered").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Includes 3 GB you entered", substring = true).assertExists()
+    }
+
+    @Test fun pinned_shows_pin_icon_on_card() {
+        show(model.copy(pinned = true))
+        rule.onNodeWithContentDescription("Pinned", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("pinned", substring = true).assertExists()
+    }
 }
