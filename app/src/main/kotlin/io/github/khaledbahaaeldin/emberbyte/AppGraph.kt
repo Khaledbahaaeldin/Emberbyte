@@ -226,4 +226,15 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
             )
         }
     }
+
+    fun planFlowViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
+        initializer {
+            io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowViewModel(
+                plans = plans,
+                settings = settings,
+                sims = simInfo,
+                clock = clock,
+            )
+        }
+    }
 }

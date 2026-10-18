@@ -9,6 +9,7 @@ object Routes {
     const val APPEARANCE = "settings/appearance"
     const val LICENSES = "licenses"
     const val APP_DETAIL = "apps/{packageName}"
+    const val PLAN_NEW = "plans/new"
     const val PLAN_EDITOR = "plans/{planId}"
     fun appDetail(packageName: String): String = "apps/" + Uri.encode(packageName)
     fun planEditor(planId: Long): String = "plans/$planId"

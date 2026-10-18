@@ -210,7 +210,20 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 PlansScreen(
                     viewModel(factory = graph.plansViewModelFactory()),
                     onOpenPlan = { navController.navigate(Routes.planEditor(it)) },
-                    onNewPlan = { navController.navigate(Routes.planEditor(0)) },
+                    onNewPlan = { navController.navigate(Routes.PLAN_NEW) },
+                )
+            }
+            composable(Routes.PLAN_NEW) {
+                val viewModel: io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowViewModel =
+                    viewModel(factory = graph.planFlowViewModelFactory())
+                io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowScreen(
+                    viewModel = viewModel,
+                    onPlanCreated = {
+                        navController.popBackStack()
+                    },
+                    onCancel = {
+                        navController.popBackStack()
+                    },
                 )
             }
             composable(
@@ -270,7 +283,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 trailing = if (route == Destination.Plans.route) {
                     {
                         PlusButton(
-                            onClick = { navController.navigate(Routes.planEditor(0)) },
+                            onClick = { navController.navigate(Routes.PLAN_NEW) },
                             contentDescription = "New plan",
                         )
                     }
