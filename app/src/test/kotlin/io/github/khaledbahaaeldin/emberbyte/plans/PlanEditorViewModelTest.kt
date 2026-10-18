@@ -21,7 +21,9 @@ import io.github.khaledbahaaeldin.emberbyte.engine.usage.MinuteTotal
 import io.github.khaledbahaaeldin.emberbyte.engine.model.NetworkKind
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Plan
+import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -564,6 +566,39 @@ class PlanEditorViewModelTest {
         val vm = vm(0L, handle = handle)
         val job = started(vm)
         assertTrue(vm.uiState.value.isDirty)
+        job.cancel()
+    }
+
+    @Test fun switching_to_entered_stamps_now_and_the_current_cycle_start() = runTest(dispatcher) {
+        val vm = vm()
+        val job = started(vm)
+        vm.fill("Mid-Cycle Plan", "10")
+        vm.onEvent(PlanEditorEvent.SetDayOfMonth(1))
+        vm.onEvent(PlanEditorEvent.SetFirstCycleChoice(FirstCycleChoice.Entered))
+        vm.onEvent(PlanEditorEvent.SetEnteredAmount("3.5"))
+        vm.onEvent(PlanEditorEvent.SetEnteredUnit(CapUnit.GB))
+
+        val fc = vm.uiState.value.form.firstCycle
+        assertTrue(fc is FirstCycle.Entered)
+        val entered = fc as FirstCycle.Entered
+        assertEquals(now, entered.enteredAt)
+        assertEquals(Instant.parse("2026-10-01T00:00:00Z"), entered.cycleStart)
+        assertEquals(3_500_000_000L, entered.usedBytes)
+        job.cancel()
+    }
+
+    @Test fun switching_back_to_phone_record_clears_the_entered_values() = runTest(dispatcher) {
+        val vm = vm()
+        val job = started(vm)
+        vm.fill("Mid-Cycle Plan", "10")
+        vm.onEvent(PlanEditorEvent.SetDayOfMonth(1))
+        vm.onEvent(PlanEditorEvent.SetFirstCycleChoice(FirstCycleChoice.Entered))
+        vm.onEvent(PlanEditorEvent.SetEnteredAmount("3.5"))
+
+        vm.onEvent(PlanEditorEvent.SetFirstCycleChoice(FirstCycleChoice.PhoneRecord))
+        val fc = vm.uiState.value.form.firstCycle
+        assertEquals(FirstCycle.PhoneRecord, fc)
+        assertEquals("", vm.uiState.value.form.enteredAmount)
         job.cancel()
     }
 

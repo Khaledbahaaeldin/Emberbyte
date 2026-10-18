@@ -53,7 +53,7 @@ internal fun PlanEditorForm.toDomain(planId: Long, zone: ZoneId, system: UnitSys
         CycleKind.Monthly -> Cycle.MonthlyOnDay(dayOfMonth, renewalTime, zone)
         CycleKind.EveryNDays -> Cycle.EveryNDays(everyDays, anchor, renewalTime, zone)
     }
-    val plan = Plan(planId, name, subscriptionId, cap!!, cycle, rollover, archived)
+    val plan = Plan(planId, name, subscriptionId, cap!!, cycle, rollover, archived, firstCycle = firstCycle, pinned = pinned)
     val addOnDomain = addOns.mapIndexed { index, d ->
         AddOn(d.id, planId, d.label, addOnBytes[index]!!, d.validFrom.atStartOfDay(zone).toInstant(), d.validUntil.plusDays(1).atStartOfDay(zone).toInstant())
     }

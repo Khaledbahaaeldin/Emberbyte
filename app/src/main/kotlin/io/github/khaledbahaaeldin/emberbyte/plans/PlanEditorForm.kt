@@ -1,6 +1,8 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
+import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -46,6 +48,11 @@ data class PlanEditorForm(
     val addOns: List<AddOnDraft> = emptyList(),
     val freeRules: List<FreeRuleDraft> = emptyList(),
     val alertThresholds: Set<Int> = setOf(80, 100),
+    val firstCycle: FirstCycle = FirstCycle.PhoneRecord,
+    val firstCycleChoice: FirstCycleChoice = FirstCycleChoice.PhoneRecord,
+    val enteredAmount: String = "",
+    val enteredUnit: CapUnit = CapUnit.GB,
+    val pinned: Boolean = false,
 )
 
 data class SimOptionUi(val subscriptionId: Int?, val label: String)
@@ -82,6 +89,9 @@ sealed interface PlanEditorEvent {
     data class SetRolloverKind(val kind: RolloverKind) : PlanEditorEvent
     data class SetRolloverCap(val text: String) : PlanEditorEvent
     data class SetRolloverUnit(val unit: CapUnit) : PlanEditorEvent
+    data class SetFirstCycleChoice(val choice: FirstCycleChoice) : PlanEditorEvent
+    data class SetEnteredAmount(val amount: String) : PlanEditorEvent
+    data class SetEnteredUnit(val unit: CapUnit) : PlanEditorEvent
     data object AddAddOn : PlanEditorEvent
     data class UpdateAddOn(val index: Int, val draft: AddOnDraft) : PlanEditorEvent
     data class RemoveAddOn(val index: Int) : PlanEditorEvent
@@ -91,4 +101,5 @@ sealed interface PlanEditorEvent {
     data class ToggleThreshold(val percent: Int) : PlanEditorEvent
     data object Save : PlanEditorEvent
     data object Archive : PlanEditorEvent
+    data object Delete : PlanEditorEvent
 }

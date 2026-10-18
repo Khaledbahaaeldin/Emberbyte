@@ -46,11 +46,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
@@ -140,6 +142,35 @@ internal fun PlanEditorContent(
         )
     }
 
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete plan?") },
+            text = { Text("Are you sure you want to delete this plan? This action cannot be undone.") },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                ) {
+                    Text("Cancel")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onEvent(PlanEditorEvent.Delete)
+                    },
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                ) {
+                    Text("Delete")
+                }
+            },
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -211,6 +242,12 @@ internal fun PlanEditorContent(
                     }
                 }
 
+                Text(
+                    text = "Basics",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+
                 val nameError = state.errors["name"]
                 OutlinedTextField(
                     value = state.form.name,
@@ -266,6 +303,12 @@ internal fun PlanEditorContent(
                         Text(sim.label, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
+
+                Text(
+                    text = "Cap and cycle",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
 
                 val capError = state.errors["capBytes"]
                 OutlinedTextField(
@@ -643,7 +686,69 @@ internal fun PlanEditorContent(
                     Text("Add free window")
                 }
 
-                Text("Alert me at", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "This cycle",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+
+                val choices = listOf(
+                    Triple(FirstCycleChoice.PhoneRecord, "Use my phone's record", "Counts usage recorded by Android for this cycle."),
+                    Triple(FirstCycleChoice.Entered, "I've used some already", "Enter the data you already consumed this cycle:"),
+                    Triple(FirstCycleChoice.StartNextCycle, "Start tracking from the next cycle", "Starts on the next cycle reset. No alerts until then."),
+                )
+
+                for ((choice, title, helper) in choices) {
+                    val isSelected = state.form.firstCycleChoice == choice
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onEvent(PlanEditorEvent.SetFirstCycleChoice(choice)) },
+                            )
+                            .semantics(mergeDescendants = true) {}
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                        )
+                        Column(modifier = Modifier.padding(start = 8.dp)) {
+                            Text(title, style = MaterialTheme.typography.bodyLarge)
+                            Text(helper, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                if (state.form.firstCycleChoice == FirstCycleChoice.Entered) {
+                    OutlinedTextField(
+                        value = state.form.enteredAmount,
+                        onValueChange = { onEvent(PlanEditorEvent.SetEnteredAmount(it)) },
+                        label = { Text("Entered usage") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (unit in listOf(CapUnit.MB, CapUnit.GB)) {
+                            EmberbyteFilterChip(
+                                selected = state.form.enteredUnit == unit,
+                                onClick = { onEvent(PlanEditorEvent.SetEnteredUnit(unit)) },
+                                label = { Text(unit.label, softWrap = false) },
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Alerts",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (percent in listOf(50, 80, 90, 100)) {
                         EmberbyteFilterChip(
@@ -690,11 +795,24 @@ internal fun PlanEditorContent(
                 }
 
                 if (!state.isNew) {
+                    Text(
+                        text = "Danger zone",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
+
                     TextButton(
                         onClick = { onEvent(PlanEditorEvent.Archive) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
                         Text("Archive plan")
+                    }
+
+                    TextButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Text("Delete plan")
                     }
                 }
             }
