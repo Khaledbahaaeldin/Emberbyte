@@ -252,7 +252,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     viewModel,
                     dataViewModel,
                     onBack = { navController.popBackStack() },
-                    onOpenLicenses = { navController.navigate(Routes.LICENSES) },
+                    onOpenLicenses = { navController.navigate(Routes.LICENCES) },
                     onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
                 )
             }
@@ -263,8 +263,21 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onBack = { navController.popBackStack() },
                 )
             }
+            composable(Routes.LICENCES) {
+                val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
+                    viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
+                io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable(Routes.LICENSES) {
-                LicensesScreen(onBack = { navController.popBackStack() })
+                val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
+                    viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
+                io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                )
             }
         }
         val isTopLevel = route in setOf(Destination.Home.route, Destination.Apps.route, Destination.Plans.route)

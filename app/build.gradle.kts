@@ -71,10 +71,34 @@ tasks.matching { it.name == "testDebugUnitTest" }.configureEach {
     }
 }
 
+val verifyLicencesAsset = tasks.register("verifyLicencesAsset") {
+    description = "Verifies that app/src/main/assets/licences.json is present and not stale"
+    group = "verification"
+    inputs.file(rootProject.file("docs/release/dependency-licences.txt"))
+    inputs.file(rootProject.file("NOTICE"))
+    inputs.file(project.file("src/main/assets/licences.json"))
+    doLast {
+        val assetFile = project.file("src/main/assets/licences.json")
+        if (!assetFile.exists() || assetFile.length() == 0L) {
+            throw GradleException("Licences asset missing or empty at ${assetFile.absolutePath}. Run python tools/gen-licences.py")
+        }
+        val genScript = rootProject.file("tools/gen-licences.py")
+        if (genScript.exists()) {
+            val depFile = rootProject.file("docs/release/dependency-licences.txt")
+            val noticeFile = rootProject.file("NOTICE")
+            if (assetFile.lastModified() < depFile.lastModified() || assetFile.lastModified() < noticeFile.lastModified()) {
+                throw GradleException("Licences asset ${assetFile.name} is older than dependency-licences.txt or NOTICE. Run python tools/gen-licences.py to regenerate it.")
+            }
+        }
+        logger.lifecycle("Licences asset verified: ${assetFile.name} (${assetFile.length()} bytes)")
+    }
+}
+
 val verifyReleaseApk = tasks.register("verifyReleaseApk") {
     description = "Verifies the unsigned release APK matches contract requirements"
     group = "verification"
     dependsOn("assembleRelease")
+    dependsOn(verifyLicencesAsset)
     dependsOn(tasks.matching { it.name == "testDebugUnitTest" })
     inputs.file(layout.buildDirectory.file("outputs/apk/release/app-release-unsigned.apk"))
     doLast {
