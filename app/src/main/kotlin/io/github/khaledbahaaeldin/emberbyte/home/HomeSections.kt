@@ -295,26 +295,20 @@ internal fun HomeTopAppsSection(
         title = "Top apps today",
         modifier = modifier.fillMaxWidth(),
         container = TileContainer.Standard,
+        trailing = {
+            TextButton(
+                onClick = onNavigateToApps,
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+            ) {
+                Text(
+                    text = "See all",
+                    color = palette.primary,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(Modifier.weight(1f))
-                TextButton(
-                    onClick = onNavigateToApps,
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text(
-                        text = "See all",
-                        color = palette.primary,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
-
             when {
                 state.topAppsLocked -> {
                     Text(

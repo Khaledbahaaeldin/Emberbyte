@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,6 +49,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -56,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -178,11 +181,19 @@ private fun NavBarSlots(
     val marginPx = with(density) { 7.dp.toPx() }
     val minPillWidthPx = with(density) { 54.dp.roundToPx() }
 
-    val starts = remember(items.size) {
-        FloatArray(items.size) { i -> i * slotWidthPx }
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
+    val starts = remember(items.size, isRtl) {
+        FloatArray(items.size) { i ->
+            val slotIndex = if (isRtl) (items.size - 1 - i) else i
+            slotIndex * slotWidthPx
+        }
     }
-    val ends = remember(items.size) {
-        FloatArray(items.size) { i -> (i + 1) * slotWidthPx }
+    val ends = remember(items.size, isRtl) {
+        FloatArray(items.size) { i ->
+            val slotIndex = if (isRtl) (items.size - 1 - i) else i
+            (slotIndex + 1) * slotWidthPx
+        }
     }
 
     val shownIndex = previewIndex ?: selectedIndex
@@ -253,6 +264,7 @@ private fun NavBarSlots(
         // Elastic / jumping primary pill behind the selected icon
         Box(
             modifier = Modifier
+                .fillMaxSize()
                 .layout { measurable, constraints ->
                     val pillWidth = (animRight - animLeft).toInt().coerceAtLeast(minPillWidthPx)
                     val placeable = measurable.measure(
@@ -263,13 +275,19 @@ private fun NavBarSlots(
                             maxHeight = 28.dp.roundToPx(),
                         ),
                     )
-                    layout(pillWidth, placeable.height) {
-                        placeable.place(animLeft.toInt(), 0)
+                    layout(constraints.maxWidth, constraints.maxHeight) {
+                        placeable.place(animLeft.toInt(), (constraints.maxHeight - placeable.height) / 2)
                     }
-                }
-                .clip(CircleShape)
-                .background(palette.primary),
-        )
+                },
+        ) {
+            Box(
+                modifier = Modifier
+                    .testTag("compact_nav_pill")
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(palette.primary),
+            )
+        }
 
         // Equal slots Row
         Row(

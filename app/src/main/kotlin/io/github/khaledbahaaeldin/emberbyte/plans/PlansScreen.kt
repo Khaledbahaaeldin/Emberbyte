@@ -54,7 +54,7 @@ internal fun PlansContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 112.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {

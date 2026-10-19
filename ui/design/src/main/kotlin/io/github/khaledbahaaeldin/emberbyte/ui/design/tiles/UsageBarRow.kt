@@ -211,7 +211,7 @@ fun UsageBarRow(
                     .background(palette.track),
             ) {
                 val totalWidth = maxWidth
-                val fillWidth = (totalWidth * clampedFraction).coerceAtLeast(4.dp)
+                val fillWidth = (totalWidth * clampedFraction).coerceIn(8.dp, totalWidth)
                 Box(
                     modifier = Modifier
                         .testTag("usage_bar_row_stub")

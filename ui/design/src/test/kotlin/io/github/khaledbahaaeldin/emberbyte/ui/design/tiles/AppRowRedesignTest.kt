@@ -82,4 +82,31 @@ class AppRowRedesignTest {
         // AppIcon fallback letter in unmerged tree
         rule.onNodeWithTag("AppIcon:Cookie", useUnmergedTree = true).assertExists()
     }
+
+    @Test
+    fun row_with_tiny_fraction_renders_rounded_stub_with_minimum_width() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                Box(Modifier.width(360.dp)) {
+                    AppRow(
+                        icon = null,
+                        shape = AppShape.Cookie,
+                        label = "TinyApp",
+                        bytes = 1000L,
+                        fraction = 0.0001f,
+                        mobileBytes = 500L,
+                        wifiBytes = 500L,
+                        onClick = {},
+                    )
+                }
+            }
+        }
+
+        // The bar must be sized to share with a minimum visible rounded stub of at least 8.dp
+        val barStub = rule.onNodeWithTag("app_row_bar_stub", useUnmergedTree = true)
+        barStub.assertExists()
+        val bounds = barStub.getBoundsInRoot()
+        val width = bounds.right - bounds.left
+        assertTrue("Stub width ($width) must be at least 8.dp", width >= 8.dp)
+    }
 }

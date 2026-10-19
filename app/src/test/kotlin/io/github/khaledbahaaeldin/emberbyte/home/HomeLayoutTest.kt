@@ -182,6 +182,24 @@ class HomeLayoutTest {
     }
 
     @Test
+    fun see_all_is_on_the_header_row_with_top_apps_today() {
+        val apps = listOf(AppRowUi("com.app1", "App 1", 100_000_000L, 50_000_000L))
+        val state = HomeUiState(topApps = apps)
+        show(state)
+
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Top apps today"))
+        val titleBounds = rule.onNodeWithText("Top apps today").getBoundsInRoot()
+        val seeAllBounds = rule.onNodeWithText("See all").getBoundsInRoot()
+
+        // Both must be on the same header row, with top coordinates vertically aligned
+        val verticalDiff = kotlin.math.abs(titleBounds.top.value - seeAllBounds.top.value)
+        assertTrue(
+            "See all must sit on the header row with Top apps today (diff=$verticalDiff, titleTop=${titleBounds.top}, seeAllTop=${seeAllBounds.top})",
+            verticalDiff < 16f
+        )
+    }
+
+    @Test
     fun font_scale_2_shrinks_the_hero_number_without_clipping() {
         val state = HomeUiState(
             heroBytes = 1_380_000_000L,

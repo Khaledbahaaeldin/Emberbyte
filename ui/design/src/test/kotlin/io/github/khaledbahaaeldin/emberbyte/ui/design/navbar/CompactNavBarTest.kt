@@ -310,6 +310,28 @@ class CompactNavBarTest {
             appsBounds.left < homeBounds.left
         )
     }
+
+    @Test
+    fun rtl_selected_nav_pill_has_correct_width_and_stays_within_slot() {
+        show(selectedId = "home", layoutDirection = LayoutDirection.Rtl)
+
+        val homeBounds = rule.onNodeWithTag("nav_home").getBoundsInRoot()
+        val pillNode = rule.onNodeWithTag("compact_nav_pill")
+        pillNode.assertExists()
+        val pillBounds = pillNode.getBoundsInRoot()
+
+        val pillWidth = pillBounds.right - pillBounds.left
+        assertEquals(54.dp, pillWidth)
+
+        assertTrue(
+            "Pill left (${pillBounds.left}) must be within Home slot left (${homeBounds.left})",
+            pillBounds.left >= homeBounds.left
+        )
+        assertTrue(
+            "Pill right (${pillBounds.right}) must be within Home slot right (${homeBounds.right})",
+            pillBounds.right <= homeBounds.right
+        )
+    }
 }
 
 

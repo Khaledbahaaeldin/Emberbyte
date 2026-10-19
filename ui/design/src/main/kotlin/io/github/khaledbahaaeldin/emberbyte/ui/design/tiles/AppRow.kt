@@ -4,10 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -134,14 +136,33 @@ fun AppRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            NetworkBar(
-                mobileBytes = mobileBytes,
-                wifiBytes = wifiBytes,
-                mobileColor = palette.primary,
-                wifiColor = palette.accent,
-                height = 6.dp,
-                units = units,
-            )
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(palette.track),
+            ) {
+                val clampedFraction = fraction.coerceIn(0f, 1f)
+                val minStub = 8.dp
+                val barWidth = (maxWidth * clampedFraction).coerceIn(minStub, maxWidth)
+                Box(
+                    modifier = Modifier
+                        .testTag("app_row_bar_stub")
+                        .width(barWidth)
+                        .height(6.dp)
+                        .clip(CircleShape),
+                ) {
+                    NetworkBar(
+                        mobileBytes = mobileBytes,
+                        wifiBytes = wifiBytes,
+                        mobileColor = palette.primary,
+                        wifiColor = palette.accent,
+                        height = 6.dp,
+                        units = units,
+                    )
+                }
+            }
         }
         // Value bubble
         Box(
