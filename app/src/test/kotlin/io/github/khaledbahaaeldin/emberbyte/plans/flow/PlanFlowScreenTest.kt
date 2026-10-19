@@ -155,4 +155,46 @@ class PlanFlowScreenTest {
         }
         rule.onNodeWithText("Step 3 of 5").assertIsDisplayed()
     }
+
+    @Test
+    fun step2_allowance_field_and_step4_entered_field_have_usable_width_and_row_text_selects_choice() {
+        var lastEvent: PlanFlowEvent? = null
+        val showStep4 = androidx.compose.runtime.mutableStateOf(false)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                if (!showStep4.value) {
+                    Step2Cap(
+                        state = PlanFlowState(
+                            step = 2,
+                            totalSteps = 5,
+                            capText = "10",
+                        ),
+                        onEvent = { lastEvent = it },
+                    )
+                } else {
+                    Step4ThisCycle(
+                        state = PlanFlowState(
+                            step = 4,
+                            totalSteps = 5,
+                            firstCycleChoice = FirstCycleChoice.Entered,
+                            enteredAmount = "3",
+                        ),
+                        onEvent = { lastEvent = it },
+                    )
+                }
+            }
+        }
+        val allowanceBounds = rule.onNodeWithText("10").fetchSemanticsNode().boundsInRoot
+        assertTrue("Data allowance field should not be squished, was ${allowanceBounds.width}", allowanceBounds.width > 150f)
+
+        showStep4.value = true
+        rule.waitForIdle()
+
+        val usedBounds = rule.onNodeWithText("3").fetchSemanticsNode().boundsInRoot
+        assertTrue("Used so far field should not be squished, was ${usedBounds.width}", usedBounds.width > 150f)
+
+        rule.onNodeWithText("Start next cycle").performClick()
+        assertEquals(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.StartNextCycle), lastEvent)
+    }
 }
+

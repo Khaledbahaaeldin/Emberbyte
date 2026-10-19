@@ -267,7 +267,8 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 LicensesScreen(onBack = { navController.popBackStack() })
             }
         }
-        if (route != Routes.ONBOARDING) {
+        val isTopLevel = route in setOf(Destination.Home.route, Destination.Apps.route, Destination.Plans.route)
+        if (isTopLevel) {
             CompactNavBar(
                 items = items,
                 selectedId = selected.id,

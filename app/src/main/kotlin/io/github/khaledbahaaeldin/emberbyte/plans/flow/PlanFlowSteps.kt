@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.plans.flow
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -63,7 +64,9 @@ fun Step1NameAndSim(
             )
             state.sims.forEach { sim ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEvent(PlanFlowEvent.SetSim(sim.subscriptionId)) },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(
@@ -102,38 +105,33 @@ fun Step2Cap(
             modifier = Modifier.semantics { heading() },
         )
 
-        Row(
+        OutlinedTextField(
+            value = state.capText,
+            onValueChange = { onEvent(PlanFlowEvent.SetCap(it)) },
+            label = { Text("Data allowance") },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = state.capText,
-                onValueChange = { onEvent(PlanFlowEvent.SetCap(it)) },
-                label = { Text("Data allowance") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
+        )
 
-            val unitOptions = listOf("MB", "GB", "TB")
-            val selectedIdx = when (state.capUnit) {
-                CapUnit.MB -> 0
-                CapUnit.GB -> 1
-                CapUnit.TB -> 2
-            }
-            ConnectedButtonGroup(
-                options = unitOptions,
-                selectedIndex = selectedIdx,
-                onSelect = { idx ->
-                    val u = when (idx) {
-                        0 -> CapUnit.MB
-                        1 -> CapUnit.GB
-                        else -> CapUnit.TB
-                    }
-                    onEvent(PlanFlowEvent.SetCapUnit(u))
-                },
-            )
+        val unitOptions = listOf("MB", "GB", "TB")
+        val selectedIdx = when (state.capUnit) {
+            CapUnit.MB -> 0
+            CapUnit.GB -> 1
+            CapUnit.TB -> 2
         }
+        ConnectedButtonGroup(
+            options = unitOptions,
+            selectedIndex = selectedIdx,
+            onSelect = { idx ->
+                val u = when (idx) {
+                    0 -> CapUnit.MB
+                    1 -> CapUnit.GB
+                    else -> CapUnit.TB
+                }
+                onEvent(PlanFlowEvent.SetCapUnit(u))
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("5", "10", "20", "50").forEach { quickValue ->
@@ -238,14 +236,16 @@ fun Step4ThisCycle(
 
         // Option 1: Phone record
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onEvent(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.PhoneRecord)) },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RadioButton(
                 selected = state.firstCycleChoice == FirstCycleChoice.PhoneRecord,
                 onClick = { onEvent(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.PhoneRecord)) },
             )
-            Column(modifier = Modifier.padding(start = 8.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
                 Text(
                     text = "Use what my phone recorded",
                     style = MaterialTheme.typography.titleMedium,
@@ -268,51 +268,54 @@ fun Step4ThisCycle(
                 selected = state.firstCycleChoice == FirstCycleChoice.Entered,
                 onClick = { onEvent(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.Entered)) },
             )
-            Column(modifier = Modifier.padding(start = 8.dp)) {
-                Text(
-                    text = "I've used some already",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.text,
-                )
-                Text(
-                    text = "Copy it from your carrier's app. Emberbyte adds what the phone measures from now on.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.muted,
-                )
+            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEvent(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.Entered)) },
+                ) {
+                    Text(
+                        text = "I've used some already",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.text,
+                    )
+                    Text(
+                        text = "Copy it from your carrier's app. Emberbyte adds what the phone measures from now on.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.muted,
+                    )
+                }
                 if (state.firstCycleChoice == FirstCycleChoice.Entered) {
-                    Row(
+                    OutlinedTextField(
+                        value = state.enteredAmount,
+                        onValueChange = { onEvent(PlanFlowEvent.SetEnteredAmount(it)) },
+                        label = { Text("Used so far") },
+                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        OutlinedTextField(
-                            value = state.enteredAmount,
-                            onValueChange = { onEvent(PlanFlowEvent.SetEnteredAmount(it)) },
-                            label = { Text("Used so far") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                        val unitOptions = listOf("MB", "GB", "TB")
-                        val selectedIdx = when (state.enteredUnit) {
-                            CapUnit.MB -> 0
-                            CapUnit.GB -> 1
-                            CapUnit.TB -> 2
-                        }
-                        ConnectedButtonGroup(
-                            options = unitOptions,
-                            selectedIndex = selectedIdx,
-                            onSelect = { idx ->
-                                val u = when (idx) {
-                                    0 -> CapUnit.MB
-                                    1 -> CapUnit.GB
-                                    else -> CapUnit.TB
-                                }
-                                onEvent(PlanFlowEvent.SetEnteredUnit(u))
-                            },
-                        )
+                    )
+                    val unitOptions = listOf("MB", "GB", "TB")
+                    val selectedIdx = when (state.enteredUnit) {
+                        CapUnit.MB -> 0
+                        CapUnit.GB -> 1
+                        CapUnit.TB -> 2
                     }
+                    ConnectedButtonGroup(
+                        options = unitOptions,
+                        selectedIndex = selectedIdx,
+                        onSelect = { idx ->
+                            val u = when (idx) {
+                                0 -> CapUnit.MB
+                                1 -> CapUnit.GB
+                                else -> CapUnit.TB
+                            }
+                            onEvent(PlanFlowEvent.SetEnteredUnit(u))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    )
                     if (state.isEnteredOverCap) {
                         Text(
                             text = "This is already over your cap",
@@ -327,14 +330,16 @@ fun Step4ThisCycle(
 
         // Option 3: Start next cycle
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onEvent(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.StartNextCycle)) },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RadioButton(
                 selected = state.firstCycleChoice == FirstCycleChoice.StartNextCycle,
                 onClick = { onEvent(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.StartNextCycle)) },
             )
-            Column(modifier = Modifier.padding(start = 8.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
                 Text(
                     text = "Start next cycle",
                     style = MaterialTheme.typography.titleMedium,
