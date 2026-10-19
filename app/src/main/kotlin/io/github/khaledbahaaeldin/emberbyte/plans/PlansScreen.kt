@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 
 @Composable
@@ -72,7 +74,18 @@ internal fun PlansContent(
                 }
             }
         }
-        if (state.loaded && state.cards.isEmpty() && state.archivedCards.isEmpty()) {
+        if (!state.loaded) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading plans")
+                }
+            }
+        } else if (state.cards.isEmpty() && state.archivedCards.isEmpty()) {
             item {
                 EmptyState(
                     icon = Icons.Rounded.AccountBalanceWallet,
@@ -97,6 +110,7 @@ internal fun PlansContent(
                     onArchivePlan = { id -> onEvent(PlansEvent.ArchivePlan(id)) },
                 )
             }
+
             if (state.archivedCards.isNotEmpty()) {
                 item {
                     TextButton(

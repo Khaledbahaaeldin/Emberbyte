@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.plans
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -57,6 +58,8 @@ import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
 import java.time.DayOfWeek
 
@@ -185,8 +188,16 @@ internal fun PlanEditorContent(
 
         when {
             state.loading -> {
-                Text("Loading plan")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading plan")
+                }
             }
+
             state.notFound -> {
                 Text("This plan no longer exists")
                 Button(onClick = onBack) {

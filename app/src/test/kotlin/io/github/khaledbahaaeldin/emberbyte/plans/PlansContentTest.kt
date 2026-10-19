@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.plans
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
@@ -117,6 +118,15 @@ class PlansContentTest {
         rule.onNodeWithText("No plans yet").assertDoesNotExist()
         rule.onNodeWithText("Set up your first plan").assertDoesNotExist()
     }
+
+    @Test fun loading_state_shows_when_loaded_false() {
+        show(
+            state = PlansUiState(cards = emptyList(), archivedCards = emptyList(), loaded = false),
+        )
+
+        rule.onNodeWithContentDescription("Loading plans").assertIsDisplayed()
+    }
+
 
     @Test fun archived_cards_render_when_show_archived_true() {
         val archived = sampleCard(id = 99L, name = "Archived Plan", archived = true)

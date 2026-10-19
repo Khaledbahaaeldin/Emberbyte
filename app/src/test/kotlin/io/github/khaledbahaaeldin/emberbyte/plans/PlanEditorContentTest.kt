@@ -183,6 +183,7 @@ class PlanEditorContentTest {
     @Test fun the_loading_state() {
         show(state.copy(loading = true))
         rule.onNodeWithText("Plan name").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Loading plan").assertIsDisplayed()
     }
 
     @Test fun the_time_field_opens_a_dialog_that_can_be_cancelled() {

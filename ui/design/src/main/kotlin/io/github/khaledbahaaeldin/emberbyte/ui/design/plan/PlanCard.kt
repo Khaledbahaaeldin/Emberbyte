@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -93,10 +94,26 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
                         }
                     }
                     model.forecastText?.let {
+                        val isExceeded = model.ringState == BudgetStateUi.Exceeded
+                        val textColor = if (isExceeded) palette.danger else palette.accent
                         ForceLtr {
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = palette.accent)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (isExceeded) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Warning,
+                                        contentDescription = "Data used up",
+                                        tint = palette.danger,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                                Text(it, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                            }
                         }
                     }
+
                 } else {
                     Text(
                         text = model.startsAtText ?: "Starts next cycle",

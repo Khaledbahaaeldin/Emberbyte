@@ -152,4 +152,15 @@ class PlanCardTest {
         rule.onNodeWithContentDescription("Pinned", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithContentDescription("pinned", substring = true).assertExists()
     }
+
+    @Test fun exceeded_plan_shows_danger_color_and_warning_icon_for_forecast_text() {
+        val exceededModel = model.copy(
+            ringState = BudgetStateUi.Exceeded,
+            forecastText = "Data used up",
+        )
+        show(exceededModel)
+        rule.onNodeWithText("Data used up").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Data used up", useUnmergedTree = true).assertIsDisplayed()
+    }
 }
+
