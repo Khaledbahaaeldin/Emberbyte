@@ -11,6 +11,9 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.Plan
 import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
+import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.toArgb
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -405,6 +408,174 @@ class LiveNotificationTest {
         assertEquals("3.2 GB", estimatedProgress?.chip)
     }
 
+    @Test
+    fun accent_follows_the_theme_state_colour_for_ok_warning_exceeded() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val preset = ThemePresets.first { it.id == "dusk" }
+        val okColor = preset.dark.primary.toArgb()
+        val warnColor = preset.dark.warn.toArgb()
+        val dangerColor = preset.dark.danger.toArgb()
+
+        val settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(
+            themeId = "dusk",
+            themeMode = io.github.khaledbahaaeldin.emberbyte.data.ThemeMode.DARK,
+        )
+
+        val recorder = RecordingPlatformNotificationCaller()
+        val builder = LiveNotificationBuilder(
+            context = app,
+            sdkInt = 36,
+            sdkIntFull = Build.VERSION_CODES_FULL.BAKLAVA_1,
+            platformCaller = recorder,
+            settingsSupplier = { settings },
+            isNight = { true },
+        )
+
+        // 1. Ok state (e.g. 50% used)
+        val okPlan = samplePlanState(remainingBytes = 5_000_000_000L, fractionUsed = 0.5f)
+        val okText = liveNotificationText(
+            todayBytes = 1_000_000L,
+            rxBps = 1000L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = true,
+            remainingBytes = okPlan.remainingBytes,
+            progress = liveProgressOf(okPlan, ByteUnits.DECIMAL),
+            state = liveNotificationStateOf(okPlan),
+        )
+        val okNotification = builder.build(okText)
+        assertEquals(okColor, okNotification.color)
+        assertEquals(listOf(okColor), recorder.segmentColorCalls)
+
+        // 2. Warning state (e.g. 85% used)
+        val warnPlan = samplePlanState(remainingBytes = 1_500_000_000L, fractionUsed = 0.85f)
+        val warnText = liveNotificationText(
+            todayBytes = 1_000_000L,
+            rxBps = 1000L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = true,
+            remainingBytes = warnPlan.remainingBytes,
+            progress = liveProgressOf(warnPlan, ByteUnits.DECIMAL),
+            state = liveNotificationStateOf(warnPlan),
+        )
+        val warnNotification = builder.build(warnText)
+        assertEquals(warnColor, warnNotification.color)
+        assertEquals(listOf(okColor, warnColor), recorder.segmentColorCalls)
+
+        // 3. Exceeded state (e.g. 100% used / 0 bytes remaining)
+        val dangerPlan = samplePlanState(remainingBytes = 0L, fractionUsed = 1.0f)
+        val dangerText = liveNotificationText(
+            todayBytes = 1_000_000L,
+            rxBps = 1000L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = true,
+            remainingBytes = dangerPlan.remainingBytes,
+            progress = liveProgressOf(dangerPlan, ByteUnits.DECIMAL),
+            state = liveNotificationStateOf(dangerPlan),
+        )
+        val dangerNotification = builder.build(dangerText)
+        assertEquals(dangerColor, dangerNotification.color)
+        assertEquals(listOf(okColor, warnColor, dangerColor), recorder.segmentColorCalls)
+    }
+
+    @Test
+    fun accent_uses_the_light_palette_in_day_mode_and_dark_in_night_mode() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val preset = ThemePresets.first { it.id == "ember" }
+        val darkOkColor = preset.dark.primary.toArgb()
+        val lightOkColor = preset.light.primary.toArgb()
+
+        val settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(
+            themeId = "ember",
+            themeMode = io.github.khaledbahaaeldin.emberbyte.data.ThemeMode.SYSTEM,
+        )
+
+        var night = true
+        val recorder = RecordingPlatformNotificationCaller()
+        val builder = LiveNotificationBuilder(
+            context = app,
+            sdkInt = 36,
+            sdkIntFull = Build.VERSION_CODES_FULL.BAKLAVA_1,
+            platformCaller = recorder,
+            settingsSupplier = { settings },
+            isNight = { night },
+        )
+
+        val plan = samplePlanState(remainingBytes = 5_000_000_000L, fractionUsed = 0.5f)
+        val text = liveNotificationText(
+            todayBytes = 1_000_000L,
+            rxBps = 1000L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = true,
+            remainingBytes = plan.remainingBytes,
+            progress = liveProgressOf(plan, ByteUnits.DECIMAL),
+            state = liveNotificationStateOf(plan),
+        )
+
+        // Night mode -> dark palette
+        val darkNotif = builder.build(text)
+        assertEquals(darkOkColor, darkNotif.color)
+
+        // Day mode -> light palette
+        night = false
+        val lightNotif = builder.build(text)
+        assertEquals(lightOkColor, lightNotif.color)
+    }
+
+    @Test
+    fun text_still_names_the_state() {
+        val okPlan = samplePlanState(remainingBytes = 3_800_000_000L, fractionUsed = 0.62f)
+        val okText = liveNotificationText(
+            todayBytes = 1_240_000_000L,
+            rxBps = 4_200_000L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = true,
+            remainingBytes = okPlan.remainingBytes,
+            progress = liveProgressOf(okPlan, ByteUnits.DECIMAL),
+            state = liveNotificationStateOf(okPlan),
+        )
+        assertEquals("3.80 GB left · ↓ 4.20 MB/s", okText.text)
+
+        val exceededPlan = samplePlanState(remainingBytes = 0L, fractionUsed = 1.0f)
+        val exceededText = liveNotificationText(
+            todayBytes = 1_240_000_000L,
+            rxBps = 0L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = false,
+            remainingBytes = exceededPlan.remainingBytes,
+            progress = liveProgressOf(exceededPlan, ByteUnits.DECIMAL),
+            state = liveNotificationStateOf(exceededPlan),
+        )
+        assertEquals("No data left", exceededText.text)
+    }
+
+    @Test
+    fun api_guards_unchanged() {
+        // existing notification builder tests remain green
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val text = liveNotificationText(
+            todayBytes = 1_240_000_000L,
+            rxBps = 4_200_000L,
+            units = ByteUnits.DECIMAL,
+            showSpeed = true,
+            remainingBytes = 3_200_000_000L,
+            progress = LiveProgress(0.63f, "3.2 GB"),
+            state = BudgetStateUi.Ok,
+        )
+        val recorder35 = RecordingPlatformNotificationCaller()
+        val builder35 = LiveNotificationBuilder(
+            context = app,
+            sdkInt = 35,
+            sdkIntFull = 0,
+            platformCaller = recorder35,
+        )
+        val notif35 = builder35.build(text)
+        assertTrue(recorder35.progressCalls.isEmpty())
+        assertTrue(recorder35.shortCriticalTextCalls.isEmpty())
+        assertTrue(recorder35.promotedOngoingCalls.isEmpty())
+        // NotificationCompat builder also received setColor
+        assertTrue(notif35.color != 0)
+    }
+
     private fun samplePlanState(
         remainingBytes: Long,
         fractionUsed: Float,
@@ -435,9 +606,11 @@ class RecordingPlatformNotificationCaller : PlatformNotificationCaller {
     val progressCalls = mutableListOf<Float>()
     val shortCriticalTextCalls = mutableListOf<String>()
     val promotedOngoingCalls = mutableListOf<Boolean>()
+    val segmentColorCalls = mutableListOf<Int>()
 
-    override fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float): Notification.Builder {
+    override fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float, color: Int): Notification.Builder {
         progressCalls.add(fractionUsed)
+        segmentColorCalls.add(color)
         return builder
     }
 

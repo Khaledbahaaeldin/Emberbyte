@@ -67,7 +67,10 @@ class SamplerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val graph = (application as EmberbyteApplication).graph
-        val builder = LiveNotificationBuilder(this)
+        val builder = LiveNotificationBuilder(
+            context = this,
+            settingsSupplier = { graph.settingsState.value ?: io.github.khaledbahaaeldin.emberbyte.data.Settings() },
+        )
         // Re-post the last known text, never a zero placeholder, when Android calls us again while the work is already running.
         val text = lastText ?: LiveNotificationText(getString(R.string.notification_measuring), null)
         val notification = buildNotificationSafely(builder, text)
@@ -159,6 +162,7 @@ class SamplerService : Service() {
                     offline = speed != null && speed.network == null,
                     remainingBytes = active?.remainingBytes,
                     progress = liveProgressOf(active, units),
+                    state = liveNotificationStateOf(active),
                 )
             } else {
                 // A foreground service must show a notification; keep it minimal when the user turned this off.

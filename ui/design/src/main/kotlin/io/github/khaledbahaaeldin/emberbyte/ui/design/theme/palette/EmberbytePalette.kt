@@ -22,3 +22,5 @@ data class EmberbytePalette(
 ) {
     companion object
 }
+
+fun Color.toArgb(): Int = (value.toLong() shr 32).toInt()
