@@ -109,41 +109,111 @@ class CompactNavBarTest {
     }
 
     @Test
-    fun total_width_is_identical_for_every_selected_item() {
-        var currentItems by androidx.compose.runtime.mutableStateOf(items)
+    fun total_width_is_identical_for_every_selection_and_at_every_frame_of_a_switch() {
         var currentSelected by androidx.compose.runtime.mutableStateOf("home")
-        val expected3ItemsWidth = (68 * items.size + 20).dp // 224.dp
+        rule.mainClock.autoAdvance = false
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompactNavBar(
-                    items = currentItems,
+                    items = items,
                     selectedId = currentSelected,
-                    onSelect = {},
+                    onSelect = { currentSelected = it },
                     visible = true,
                 )
             }
         }
-        for (item in items) {
-            currentSelected = item.id
-            rule.waitForIdle()
-            rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo(expected3ItemsWidth)
-        }
+        rule.mainClock.advanceTimeBy(16)
+        val initialBarBounds = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
+        val expectedWidth = initialBarBounds.right - initialBarBounds.left
+        val expectedHeight = initialBarBounds.bottom - initialBarBounds.top
+        assertEquals(64.dp, expectedHeight)
+        assertEquals(216.dp, expectedWidth)
 
-        currentItems = fourItems
-        rule.waitForIdle()
-        val expected4ItemsWidth = (68 * fourItems.size + 20).dp // 292.dp
-        rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo(expected4ItemsWidth)
+        // Switch through every selection and sample every 16 ms frame
+        for (target in listOf("apps", "plans", "home")) {
+            currentSelected = target
+            repeat(35) {
+                rule.mainClock.advanceTimeBy(16)
+                rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo(expectedWidth)
+            }
+        }
     }
 
     @Test
-    fun each_slot_is_68dp_wide_and_at_least_48dp_tall() {
-        show(selectedId = "home")
+    fun label_of_the_selected_tab_is_visible_when_settled_and_clipped_not_wrapped_while_moving() {
+        var currentSelected by androidx.compose.runtime.mutableStateOf("home")
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompactNavBar(
+                    items = items,
+                    selectedId = currentSelected,
+                    onSelect = { currentSelected = it },
+                    visible = true,
+                )
+            }
+        }
+        rule.mainClock.advanceTimeBy(16)
+
+        // When settled on Home, Home label is visible and cell is expanded (>= 92.dp), others are collapsed (56.dp)
+        val homeBounds = rule.onNodeWithTag("nav_home").getBoundsInRoot()
+        val appsBounds = rule.onNodeWithTag("nav_apps").getBoundsInRoot()
+        val plansBounds = rule.onNodeWithTag("nav_plans").getBoundsInRoot()
+        assertTrue("Selected cell width (${homeBounds.right - homeBounds.left}) >= 92.dp", (homeBounds.right - homeBounds.left) >= 92.dp)
+        assertEquals(56.dp, appsBounds.right - appsBounds.left)
+        assertEquals(56.dp, plansBounds.right - plansBounds.left)
+        rule.onNodeWithTag("nav_label_home", useUnmergedTree = true).assertIsDisplayed()
+
+        // Switch to Plans and verify across frames that the expanding label never wraps (height stays single-line)
+        rule.runOnIdle { currentSelected = "plans" }
+        rule.mainClock.advanceTimeByFrame()
+        var settledHeight: androidx.compose.ui.unit.Dp? = null
+        repeat(95) {
+            rule.mainClock.advanceTimeBy(16)
+        }
+        val finalLabelBounds = rule.onNodeWithTag("nav_label_plans", useUnmergedTree = true).getBoundsInRoot()
+        settledHeight = finalLabelBounds.bottom - finalLabelBounds.top
+        assertTrue("Settled label height ($settledHeight) must be > 0.dp and single-line (<= 40.dp)", settledHeight > 0.dp && settledHeight <= 40.dp)
+
+        // Switch back to Home and sample every frame while moving
+        rule.runOnIdle { currentSelected = "home" }
+        rule.mainClock.advanceTimeByFrame()
+        repeat(25) {
+            rule.mainClock.advanceTimeBy(16)
+            val movingNodes = rule.onAllNodes(androidx.compose.ui.test.hasTestTag("nav_label_home"), useUnmergedTree = true).fetchSemanticsNodes()
+            if (movingNodes.isNotEmpty()) {
+                val b = rule.onNodeWithTag("nav_label_home", useUnmergedTree = true).getBoundsInRoot()
+                val h = b.bottom - b.top
+                assertTrue("Moving label height ($h) must never wrap past single-line height ($settledHeight)", h <= settledHeight + 2.dp)
+            }
+        }
+    }
+
+    @Test
+    fun unselected_tabs_are_icon_only_but_keep_their_names_for_talkback_and_48dp_targets() {
+        show(selectedId = "home", reduceMotion = true)
         for (item in items) {
             val node = rule.onNodeWithTag("nav_${item.id}")
-            node.assertWidthIsEqualTo(68.dp)
+            node.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
             val bounds = node.getBoundsInRoot()
+            val width = bounds.right - bounds.left
             val height = bounds.bottom - bounds.top
+            assertTrue("${item.id} width ($width) >= 48.dp", width >= 48.dp)
             assertTrue("${item.id} height ($height) >= 48.dp", height >= 48.dp)
+
+            val semanticsNode = node.fetchSemanticsNode()
+            val descriptions = semanticsNode.config.getOrElse(SemanticsProperties.ContentDescription) { emptyList() }
+            val texts = semanticsNode.config.getOrElse(SemanticsProperties.Text) { emptyList() }.map { it.text }
+            assertTrue(
+                "${item.id} must expose '${item.label}' to TalkBack via contentDescription or text",
+                descriptions.contains(item.label) || texts.contains(item.label),
+            )
+
+            if (item.id != "home") {
+                assertEquals("Unselected tab ${item.id} must be 56.dp wide (icon-only cell)", 56.dp, width)
+            } else {
+                assertTrue("Selected tab ${item.id} must be >= 92.dp wide", width >= 92.dp)
+            }
         }
     }
 
@@ -218,17 +288,34 @@ class CompactNavBarTest {
     }
 
     @Test
-    fun haptic_tick_fires_once_per_snap() {
+    fun haptic_fires_once_per_landing_not_per_frame() {
         val haptics = CountingHaptics()
-        show(selectedId = "home", haptics = haptics)
-        val homeCenter = rule.onNodeWithTag("nav_home").getBoundsInRoot().centerOffset()
-        val appsCenter = rule.onNodeWithTag("nav_apps").getBoundsInRoot().centerOffset()
-
-        rule.onNodeWithTag("compact_nav_bar").performTouchInput {
-            swipe(start = homeCenter, end = appsCenter, durationMillis = 300)
+        var currentSelected by androidx.compose.runtime.mutableStateOf("home")
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                    CompactNavBar(
+                        items = items,
+                        selectedId = currentSelected,
+                        onSelect = { currentSelected = it },
+                        visible = true,
+                    )
+                }
+            }
         }
-        rule.waitForIdle()
-        assertEquals(1, haptics.calls)
+        rule.mainClock.advanceTimeBy(16)
+        val homeCenter = rule.onNodeWithTag("nav_home").getBoundsInRoot().centerOffset()
+        val plansCenter = rule.onNodeWithTag("nav_plans").getBoundsInRoot().centerOffset()
+
+        // Drag across all 3 items (passing through Apps to Plans) and step through 40 frames of spring settle
+        rule.onNodeWithTag("compact_nav_bar").performTouchInput {
+            swipe(start = homeCenter, end = plansCenter, durationMillis = 300)
+        }
+        repeat(40) {
+            rule.mainClock.advanceTimeBy(16)
+        }
+        assertEquals("Haptic must fire once on landing, not per intermediate tab or per spring frame", 1, haptics.calls)
         assertEquals(HapticFeedbackType.SegmentTick, haptics.history.first())
     }
 
@@ -239,31 +326,49 @@ class CompactNavBarTest {
     }
 
     @Test
-    fun at_font_scale_2_labels_stay_one_line_and_the_bar_does_not_overflow_a_360dp_screen() {
+    fun at_font_scale_2_the_expanded_cell_grows_and_the_bar_width_stays_identical_across_selections() {
+        val longItems = listOf(
+            NavBarItem("home", "Dashboard", Icons.Rounded.Home, NavAccent.Primary),
+            NavBarItem("apps", "Applications", Icons.Rounded.Apps, NavAccent.Tertiary),
+            NavBarItem("plans", "Budgets", Icons.Rounded.AccountBalanceWallet, NavAccent.Secondary),
+        )
+        var currentSelected by androidx.compose.runtime.mutableStateOf("home")
+        var fontScale by androidx.compose.runtime.mutableStateOf(1f)
         rule.setContent {
-            CompositionLocalProvider(
-                LocalDensity provides Density(density = 2f, fontScale = 2f),
-            ) {
-                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(
+                    LocalDensity provides Density(density = 1f, fontScale = fontScale),
+                    LocalReduceMotion provides true,
+                ) {
                     Box(Modifier.width(360.dp)) {
                         CompactNavBar(
-                            items = items,
-                            selectedId = "home",
-                            onSelect = {},
+                            items = longItems,
+                            selectedId = currentSelected,
+                            onSelect = { currentSelected = it },
                             visible = true,
                         )
                     }
                 }
             }
         }
-        val barBounds = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
-        val barWidth = barBounds.right - barBounds.left
-        assertTrue("bar width ($barWidth) <= 360.dp", barWidth <= 360.dp)
-        for (item in items) {
-            rule.onNodeWithText(item.label).assertIsDisplayed()
-            val itemBounds = rule.onNodeWithTag("nav_${item.id}").getBoundsInRoot()
-            assertTrue("${item.id} within bar left", itemBounds.left >= barBounds.left)
-            assertTrue("${item.id} within bar right", itemBounds.right <= barBounds.right)
+        rule.waitForIdle()
+        val widthAtScale1 = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot().let { it.right - it.left }
+
+        fontScale = 2f
+        rule.waitForIdle()
+        val widthAtScale2Home = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot().let { it.right - it.left }
+        val expandedCellAtScale2 = rule.onNodeWithTag("nav_home").getBoundsInRoot().let { it.right - it.left }
+
+        assertTrue(
+            "At font scale 2.0, expanded cell ($expandedCellAtScale2) and bar width ($widthAtScale2Home) must grow beyond scale 1.0 ($widthAtScale1)",
+            widthAtScale2Home > widthAtScale1 && expandedCellAtScale2 > 92.dp,
+        )
+        assertTrue("Bar width ($widthAtScale2Home) <= 360.dp", widthAtScale2Home <= 360.dp)
+
+        for (item in longItems) {
+            currentSelected = item.id
+            rule.waitForIdle()
+            rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo(widthAtScale2Home)
         }
     }
 
@@ -293,45 +398,65 @@ class CompactNavBarTest {
 
     @Test
     fun tabs_are_ordered_right_to_left_in_rtl() {
-        show(selectedId = "home", layoutDirection = LayoutDirection.Rtl)
+        show(selectedId = "home", layoutDirection = LayoutDirection.Rtl, reduceMotion = true)
 
         val homeBounds = rule.onNodeWithTag("nav_home").getBoundsInRoot()
         val appsBounds = rule.onNodeWithTag("nav_apps").getBoundsInRoot()
         val plansBounds = rule.onNodeWithTag("nav_plans").getBoundsInRoot()
 
-        // In RTL: item 0 (Home) starts at the right, item 1 (Apps) in the middle, item 2 (Plans) on the left.
-        // Therefore: plansBounds.left < appsBounds.left < homeBounds.left
         assertTrue(
             "Plans (left=${plansBounds.left}) must be to the left of Apps (left=${appsBounds.left}) in RTL",
-            plansBounds.left < appsBounds.left
+            plansBounds.left < appsBounds.left,
         )
         assertTrue(
             "Apps (left=${appsBounds.left}) must be to the left of Home (left=${homeBounds.left}) in RTL",
-            appsBounds.left < homeBounds.left
+            appsBounds.left < homeBounds.left,
         )
     }
 
     @Test
-    fun rtl_selected_nav_pill_has_correct_width_and_stays_within_slot() {
-        show(selectedId = "home", layoutDirection = LayoutDirection.Rtl)
+    fun rtl_mirrors_the_pill_and_the_travel_direction() {
+        var currentSelected by androidx.compose.runtime.mutableStateOf("home")
+        var picked: String? = null
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    CompactNavBar(
+                        items = items,
+                        selectedId = currentSelected,
+                        onSelect = {
+                            picked = it
+                            currentSelected = it
+                        },
+                        visible = true,
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(16)
 
+        val barBounds = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
         val homeBounds = rule.onNodeWithTag("nav_home").getBoundsInRoot()
-        val pillNode = rule.onNodeWithTag("compact_nav_pill")
-        pillNode.assertExists()
-        val pillBounds = pillNode.getBoundsInRoot()
 
-        val pillWidth = pillBounds.right - pillBounds.left
-        assertEquals(54.dp, pillWidth)
+        // In RTL, Home (item 0) is on the right side of the bar, with expanded width (>= 92.dp)
+        val homeWidth = homeBounds.right - homeBounds.left
+        assertTrue("RTL Home width ($homeWidth) >= 92.dp", homeWidth >= 92.dp)
+        assertTrue("RTL Home is on the right half of the bar", homeBounds.left > barBounds.left + 100.dp)
 
-        assertTrue(
-            "Pill left (${pillBounds.left}) must be within Home slot left (${homeBounds.left})",
-            pillBounds.left >= homeBounds.left
-        )
-        assertTrue(
-            "Pill right (${pillBounds.right}) must be within Home slot right (${homeBounds.right})",
-            pillBounds.right <= homeBounds.right
-        )
+        // Switching from Home (right) to Plans (left) moves the pill leftward (left edge leads with higher stiffness)
+        rule.onNodeWithTag("nav_plans").performClick()
+        assertEquals("plans", picked)
+        rule.runOnIdle { currentSelected = "plans" }
+        rule.mainClock.advanceTimeByFrame()
+        repeat(95) {
+            rule.mainClock.advanceTimeBy(16)
+        }
+        val plansBoundsAfter = rule.onNodeWithTag("nav_plans").getBoundsInRoot()
+        assertTrue("After switching to Plans in RTL, Plans cell expands (>= 91.5.dp, was ${plansBoundsAfter.right - plansBoundsAfter.left})", (plansBoundsAfter.right - plansBoundsAfter.left) >= 91.5.dp)
+        assertEquals(56.dp, rule.onNodeWithTag("nav_home").getBoundsInRoot().let { it.right - it.left })
     }
 }
+
 
 

@@ -45,6 +45,49 @@ internal object CompactNavMotion {
         if (previewIndex != null || reduceMotion) snap() else motion.fastSpatialSpec()
 }
 
+object NavBarSpring {
+    const val BASE_STIFFNESS = 420f
+    const val DAMPING_RATIO = 0.58f
+    const val EDGE_LEAD = 1.7f
+    const val TRAILING_STIFFNESS_EXTRA = 0.3f
+    const val CELL_STIFFNESS_FACTOR = 0.9f
+    const val MOMENTUM_SECONDS = 0.08f
+    const val LABEL_FADE_START = 0.35f
+    const val LABEL_FADE_SPAN = 0.65f
+
+    val leadingStiffness: Float
+        get() = BASE_STIFFNESS * EDGE_LEAD
+
+    val trailingStiffness: Float
+        get() = BASE_STIFFNESS / EDGE_LEAD + BASE_STIFFNESS * TRAILING_STIFFNESS_EXTRA
+
+    val cellStiffness: Float
+        get() = BASE_STIFFNESS * CELL_STIFFNESS_FACTOR
+
+    fun landingIndex(
+        pillLeft: Float,
+        pillRight: Float,
+        velocityPxPerSec: Float,
+        paddingPx: Float,
+        innerWidthPx: Float,
+        itemCount: Int,
+        isRtl: Boolean = false,
+    ): Int {
+        if (itemCount <= 1 || innerWidthPx <= 0f) return 0
+        val centre = (pillLeft + pillRight) / 2f + velocityPxPerSec * MOMENTUM_SECONDS
+        val slotSpan = innerWidthPx / itemCount
+        val visualIdx = kotlin.math.floor((centre - paddingPx) / slotSpan).toInt().coerceIn(0, itemCount - 1)
+        return if (isRtl) (itemCount - 1 - visualIdx) else visualIdx
+    }
+
+    fun labelOpacity(cellWidthPx: Float, collapsedWidthPx: Float, expandedWidthPx: Float): Float {
+        val span = expandedWidthPx - collapsedWidthPx
+        if (span <= 0f) return 1f
+        val f = ((cellWidthPx - collapsedWidthPx) / span).coerceIn(0f, 1f)
+        return ((f - LABEL_FADE_START) / LABEL_FADE_SPAN).coerceIn(0f, 1f)
+    }
+}
+
 /**
  * Hides after [thresholdPx] of accumulated downward scroll; any upward scroll shows again.
  * `downPx` is positive when the user scrolls the content down (finger moves up).

@@ -64,7 +64,7 @@ class NavBarHousekeepingTest {
                 Box(Modifier.width(400.dp)) { CompactNavBar(items, "home", {}, visible = true) }
             }
         }
-        rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo((68 * items.size + 20).dp)
+        rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo(((items.size - 1) * 56 + 92 + 12).dp)
     }
 
     @Test fun tapping_the_selected_item_does_nothing() {
