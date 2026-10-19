@@ -6,6 +6,7 @@ import androidx.glance.appwidget.updateAll
 object WidgetUpdater {
     suspend fun updateAll(context: Context) {
         TodayWidget().updateAll(context)
+        PlanWidget().updateAll(context)
         HeroWidget().updateAll(context)
         BentoWidget().updateAll(context)
     }

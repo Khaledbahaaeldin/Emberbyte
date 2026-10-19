@@ -69,6 +69,10 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_widget_info" />
         </receiver>
+        <receiver android:name=".widget.PlanWidgetReceiver" android:exported="true" android:label="@string/widget_plan_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/plan_widget_info" />
+        </receiver>
         <receiver android:name=".widget.HeroWidgetReceiver" android:exported="true" android:label="@string/widget_hero_label">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/hero_widget_info" />

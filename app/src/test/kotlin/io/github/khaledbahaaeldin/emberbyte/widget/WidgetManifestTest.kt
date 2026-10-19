@@ -19,8 +19,12 @@ class WidgetManifestTest {
         val receivers = pm.queryBroadcastReceivers(intent, 0)
         val names = receivers.map { it.activityInfo.name }
         assertTrue(names.contains("${context.packageName}.widget.TodayWidgetReceiver"))
+        assertTrue(names.contains("${context.packageName}.widget.PlanWidgetReceiver"))
         assertTrue(names.contains("${context.packageName}.widget.HeroWidgetReceiver"))
         assertTrue(names.contains("${context.packageName}.widget.BentoWidgetReceiver"))
+
+        val planReceiver = receivers.find { it.activityInfo.name == "${context.packageName}.widget.PlanWidgetReceiver" }
+        assertTrue(planReceiver?.activityInfo?.exported == true)
         
         val heroReceiver = receivers.find { it.activityInfo.name == "${context.packageName}.widget.HeroWidgetReceiver" }
         assertTrue(heroReceiver?.activityInfo?.exported == true)
