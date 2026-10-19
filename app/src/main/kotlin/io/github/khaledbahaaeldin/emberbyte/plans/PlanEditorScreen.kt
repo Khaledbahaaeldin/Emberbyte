@@ -18,7 +18,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.AlertDialog
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -105,70 +106,68 @@ internal fun PlanEditorContent(
     }
 
     if (showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = {
+        EmberbyteDialog(
+            onDismiss = {
                 showDiscardDialog = false
                 backRequester.requestFocus()
             },
-            title = { Text("Discard changes?") },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDiscardDialog = false
-                        backRequester.requestFocus()
-                    },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("Keep editing")
-                }
-            },
-            confirmButton = {
-                LaunchedEffect(Unit) {
-                    kotlinx.coroutines.yield()
-                    discardRequester.requestFocus()
-                }
-                TextButton(
-                    onClick = {
-                        showDiscardDialog = false
-                        onBack()
-                    },
-                    modifier = Modifier
-                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        .focusRequester(discardRequester),
-                ) {
-                    Text("Discard")
-                }
-            },
-        )
+            title = "Discard changes?",
+            icon = Icons.Rounded.Delete,
+            destructive = true,
+            confirm = DialogAction(
+                label = "Discard",
+                onClick = {
+                    showDiscardDialog = false
+                    onBack()
+                },
+                modifier = Modifier.focusRequester(discardRequester),
+            ),
+            dismiss = DialogAction(
+                label = "Keep editing",
+                onClick = {
+                    showDiscardDialog = false
+                    backRequester.requestFocus()
+                },
+            ),
+        ) {
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.yield()
+                discardRequester.requestFocus()
+            }
+            Text(
+                text = "You edited this plan. If you leave now, those changes are lost.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete plan?") },
-            text = { Text("Are you sure you want to delete this plan? This action cannot be undone.") },
-            dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("Cancel")
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onEvent(PlanEditorEvent.Delete)
-                    },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("Delete")
-                }
-            },
-        )
+        EmberbyteDialog(
+            onDismiss = { showDeleteDialog = false },
+            title = "Delete plan?",
+            icon = Icons.Rounded.Delete,
+            destructive = true,
+            confirm = DialogAction(
+                label = "Delete",
+                onClick = {
+                    showDeleteDialog = false
+                    onEvent(PlanEditorEvent.Delete)
+                },
+            ),
+            dismiss = DialogAction(
+                label = "Cancel",
+                onClick = { showDeleteDialog = false },
+            ),
+        ) {
+            Text(
+                text = "Are you sure you want to delete this plan? This action cannot be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     Column(

@@ -57,5 +57,7 @@ internal object ContrastPairs {
         register(ContrastPair("danger marks on background", { markColor(it.danger, it.onDanger, it.background) }, { it.background }, 3.0))
         register(ContrastPair("text on surface2 bubble", { it.text }, { it.surface2 }, 4.5))
         register(ContrastPair("bar color on track", { it.primary }, { it.track }, 2.2))
+        register(ContrastPair("dialog primary confirm", { it.onPrimary }, { it.primary }, 4.5))
+        register(ContrastPair("dialog danger confirm", { it.onDanger }, { it.danger }, 4.5))
     }
 }

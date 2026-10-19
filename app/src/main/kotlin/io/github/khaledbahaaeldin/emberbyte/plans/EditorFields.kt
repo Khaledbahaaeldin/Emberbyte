@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.AlertDialog
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -113,30 +114,23 @@ fun TimeField(
             initialMinute = time.minute,
             is24Hour = is24Hour,
         )
-        AlertDialog(
-            onDismissRequest = { open = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onChange(LocalTime.of(timePickerState.hour, timePickerState.minute))
-                        open = false
-                    },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { open = false },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("Cancel")
-                }
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            },
-        )
+        EmberbyteDialog(
+            onDismiss = { open = false },
+            title = label,
+            icon = null,
+            confirm = DialogAction(
+                label = "OK",
+                onClick = {
+                    onChange(LocalTime.of(timePickerState.hour, timePickerState.minute))
+                    open = false
+                },
+            ),
+            dismiss = DialogAction(
+                label = "Cancel",
+                onClick = { open = false },
+            ),
+        ) {
+            TimePicker(state = timePickerState)
+        }
     }
 }

@@ -141,7 +141,7 @@ class SettingsAccessibilityTest {
 
         // Cancel button is displayed and clickable above IME
         val cancelButton = rule.onNodeWithText("Cancel")
-        cancelButton.performScrollTo().assertIsDisplayed()
+        cancelButton.assertIsDisplayed()
         val cancelBounds = cancelButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Cancel button bottom (${cancelBounds.bottom}) must be <= IME top ($imeTopPx)",
@@ -152,7 +152,7 @@ class SettingsAccessibilityTest {
 
         // Create button is displayed above IME
         val createButton = rule.onNodeWithText("Create")
-        createButton.performScrollTo().assertIsDisplayed()
+        createButton.assertIsDisplayed()
         val createBounds = createButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Create button bottom (${createBounds.bottom}) must be <= IME top ($imeTopPx)",

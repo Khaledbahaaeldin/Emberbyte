@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -84,26 +87,29 @@ fun PlanFlowContent(
     }
 
     if (showDiscardConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDiscardConfirm = false },
-            title = { Text("Discard plan?") },
-            text = { Text("You have entered details for this plan. Are you sure you want to exit without creating it?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDiscardConfirm = false
-                        onBack()
-                    },
-                ) {
-                    Text("Discard")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDiscardConfirm = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
+        EmberbyteDialog(
+            onDismiss = { showDiscardConfirm = false },
+            title = "Discard plan?",
+            icon = Icons.Rounded.Delete,
+            destructive = true,
+            confirm = DialogAction(
+                label = "Discard",
+                onClick = {
+                    showDiscardConfirm = false
+                    onBack()
+                },
+            ),
+            dismiss = DialogAction(
+                label = "Cancel",
+                onClick = { showDiscardConfirm = false },
+            ),
+        ) {
+            Text(
+                text = "You have entered details for this plan. Are you sure you want to exit without creating it?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 
     Scaffold(

@@ -116,7 +116,7 @@ class BudgetEditorAccessibilityTest {
 
         // Cancel button is reachable and above IME
         val cancelButton = rule.onNodeWithText("Cancel")
-        cancelButton.performScrollTo()
+        cancelButton.assertIsDisplayed()
         val cancelBounds = cancelButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Cancel button bottom (${cancelBounds.bottom}) must be <= IME top ($imeTopPx)",
@@ -127,7 +127,7 @@ class BudgetEditorAccessibilityTest {
 
         // Save button is reachable and above IME
         val saveButton = rule.onNodeWithText("Save")
-        saveButton.performScrollTo()
+        saveButton.assertIsDisplayed()
         val saveBounds = saveButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Save button bottom (${saveBounds.bottom}) must be <= IME top ($imeTopPx)",
