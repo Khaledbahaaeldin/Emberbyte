@@ -87,6 +87,7 @@ fun HeroBlock(
 
     val heroDesc = "${formattedToday.value} ${formattedToday.unit} used today. $planCaption"
 
+    val context = LocalContext.current
     // Try rendering hero number bitmap if budget allows
     val heroBitmap = try {
         val bmp = WidgetImages.heroNumber(
@@ -94,10 +95,11 @@ fun HeroBlock(
             unit = formattedToday.unit,
             palette = palette,
             widthPx = 280,
-            heightPx = 140
+            heightPx = 140,
+            context = context,
         )
         if (budget.add(bmp)) bmp else null
-    } catch (_: Throwable) {
+    } catch (e: Throwable) {
         null
     }
 
@@ -465,25 +467,41 @@ fun PermissionBlock(
  * Test harness function: renders a Glance @Composable hierarchy into an [Emittable] root tree
  * so unit tests can inspect semantic properties, content descriptions, and modifiers.
  */
-fun renderGlanceTree(context: Context, content: @Composable () -> Unit): Emittable = kotlinx.coroutines.runBlocking {
-    val root = androidx.glance.appwidget.RemoteViewsRoot(maxDepth = 20)
-    val applier = androidx.glance.Applier(root)
-    val clock = androidx.compose.runtime.BroadcastFrameClock()
-    val recomposer = androidx.compose.runtime.Recomposer(coroutineContext + clock)
-    val job = launch(clock, start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
-        recomposer.runRecomposeAndApplyChanges()
-    }
-    val composition = androidx.compose.runtime.Composition(applier, recomposer)
-    composition.setContent {
-        androidx.compose.runtime.CompositionLocalProvider(
-            androidx.glance.LocalContext provides context,
-            androidx.glance.LocalSize provides DpSize(200.dp, 200.dp)
-        ) {
-            content()
+@androidx.annotation.VisibleForTesting
+@android.annotation.SuppressLint("RestrictedApi")
+fun renderGlanceTree(
+    context: Context,
+    size: DpSize = DpSize(200.dp, 200.dp),
+    content: @Composable () -> Unit
+): Emittable = kotlinx.coroutines.runBlocking {
+    kotlinx.coroutines.withTimeout(10_000) {
+        val root = androidx.glance.appwidget.RemoteViewsRoot(maxDepth = 20)
+        val applier = androidx.glance.Applier(root)
+        val clock = androidx.compose.runtime.BroadcastFrameClock()
+        val recomposer = androidx.compose.runtime.Recomposer(coroutineContext + clock)
+        val job = launch(clock, start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            recomposer.runRecomposeAndApplyChanges()
         }
+        val composition = androidx.compose.runtime.Composition(applier, recomposer)
+        composition.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.glance.LocalContext provides context,
+                androidx.glance.LocalSize provides size
+            ) {
+                content()
+            }
+        }
+        clock.sendFrame(0L)
+        recomposer.cancel()
+        recomposer.close()
+        job.cancel()
+        root
     }
-    clock.sendFrame(0L)
-    job.cancel()
-    composition.dispose()
-    root
 }
+
+@androidx.annotation.VisibleForTesting
+@android.annotation.SuppressLint("RestrictedApi")
+fun renderGlanceTree(
+    context: Context,
+    content: @Composable () -> Unit
+): Emittable = renderGlanceTree(context, DpSize(200.dp, 200.dp), content)
