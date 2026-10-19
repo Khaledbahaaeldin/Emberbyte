@@ -15,7 +15,7 @@ This run is the **Expressive Redesign**, five milestones, one branch:
 | M7 Foundation | A1 to A16 | 12 themes (light, dark, AMOLED), typography, shapes, app icons, new components, compact navbar, Appearance screen |
 | M8 Core screens | B1 to B7 | Home, Apps, App detail, History, shared states |
 | M9 Plans | C1 to C10 | mid-cycle plans, Room v4, backup v2, urgency and pin, bento Plans, guided flow |
-| M10 Surfaces | D1 to D7 | onboarding, Settings, dialogs, live notification colours, licences screen |
+| M10 Surfaces | D0 to D7 | the spring-physics expanding-pill navbar (D0), onboarding, Settings, dialogs, live notification colours, licences screen |
 | M11 Widgets | E1 to E8 | four widgets |
 | Finish | Z1, Z2 | docs, store screenshots, final proof |
 
@@ -37,7 +37,7 @@ Branch **`redesign`**. It should already exist on origin with the design, plan, 
 
 Before task A1 read, in this order: the plan header (Goal, Global Constraints, Review Focus, Rules, "How the run is organised"); **API contract section 13** (the plan implements it one to one; where plan and contract differ the contract wins and you stop and tell the user); the design document `docs/superpowers/specs/2026-10-17-expressive-redesign-design.md`; the mockups README `docs/design/expressive/mockups/README.md` and then, per task, the mockup HTML the task names.
 
-Execute **every task of the plan in order: A1 to A16, B1 to B7, C1 to C10, D1 to D7, E1 to E8, Z1, Z2.** Do not reorder. Do not skip a task because it looks done.
+Execute **every task of the plan in order: A1 to A16, B1 to B7, C1 to C10, D0 to D7, E1 to E8, Z1, Z2.** (D0 was added after the A13 navbar: it replaces the equal-slot look by an expanding pill on spring physics.) Do not reorder. Do not skip a task because it looks done.
 
 # 3. Orchestration protocol
 

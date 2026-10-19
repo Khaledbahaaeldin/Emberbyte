@@ -19,3 +19,4 @@ Open each file in a browser (needs internet once for the Roboto Flex web font). 
 - `14-palettes.html`: Palette checkpoint: 12 themes in dark and light with the contrast numbers after our rules (provisional until the user approves)
 
 These are throwaway HTML sketches, not production code. Colours, shapes and copy are the reference; the spec is `docs/superpowers/specs/2026-10-17-expressive-redesign-design.md`.
+- `15-navbar-spring.html`: Navbar v2: CHOSEN = style 1 (selected tab expands) with spring physics; playable and tunable (task D0 of the plan)
