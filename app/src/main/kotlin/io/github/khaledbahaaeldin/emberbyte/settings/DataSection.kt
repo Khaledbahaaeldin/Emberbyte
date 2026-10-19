@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
 @Composable
 fun DataSection(
@@ -45,6 +47,7 @@ fun DataSection(
     var showRestoreWarningDialog by remember { mutableStateOf(false) }
     val createBackupRequester = remember { FocusRequester() }
     val restoreBackupRequester = remember { FocusRequester() }
+    val palette = LocalEmberbytePalette.current
 
     if (showRangeDialog) {
         CsvRangeDialog(
@@ -99,29 +102,45 @@ fun DataSection(
     val rowsEnabled = !uiState.busy
 
     Column(modifier = modifier.fillMaxWidth()) {
-        ActionRow(
+        SettingsRow(
             title = "Export usage (CSV)",
             subtitle = "Detailed hourly usage for a spreadsheet",
             enabled = rowsEnabled,
+            iconShape = AppShape.Cookie,
+            iconColor = palette.primary,
+            onIconColor = palette.onPrimary,
+            iconText = "C",
             onClick = { showRangeDialog = true },
         )
-        ActionRow(
+        SettingsRow(
             title = "Export everything (JSON)",
             subtitle = "Plans, budgets and usage as standard JSON",
             enabled = rowsEnabled,
+            iconShape = AppShape.Squircle,
+            iconColor = palette.accent,
+            onIconColor = palette.onAccent,
+            iconText = "J",
             onClick = onExportJson,
         )
-        ActionRow(
+        SettingsRow(
             title = "Create backup",
             subtitle = "Save an encrypted copy of your data",
             enabled = rowsEnabled,
+            iconShape = AppShape.Sunny,
+            iconColor = palette.warn,
+            onIconColor = palette.onWarn,
+            iconText = "B",
             onClick = { showCreateBackupDialog = true },
             modifier = Modifier.focusRequester(createBackupRequester),
         )
-        ActionRow(
+        SettingsRow(
             title = "Restore backup",
             subtitle = "Replace data from an encrypted backup",
             enabled = rowsEnabled,
+            iconShape = AppShape.Burst,
+            iconColor = palette.danger,
+            onIconColor = palette.onDanger,
+            iconText = "R",
             onClick = { showRestoreWarningDialog = true },
             modifier = Modifier.focusRequester(restoreBackupRequester),
         )
@@ -161,40 +180,6 @@ fun DataSection(
                 ) {
                     Text("Dismiss")
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActionRow(
-    title: String,
-    subtitle: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .semantics(mergeDescendants = true) {}
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            )
-            subtitle?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
-                )
             }
         }
     }
