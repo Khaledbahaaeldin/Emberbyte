@@ -1,0 +1,158 @@
+name: Release
+
+# Builds, verifies and signs a release when a version tag is pushed, then prepares a DRAFT GitHub Release.
+#
+# Security model (see docs/release/RELEASE.md, "Releasing from CI"):
+# - The signing key exists only as secrets of the protected "release" environment, which needs a manual
+#   approval and only accepts v* tags. The build job has no secrets at all.
+# - Every third-party action is pinned to a commit SHA.
+# - The job refuses to sign unless the tag points at a commit that is on main, the tag matches versionName,
+#   and the resulting signature carries the expected certificate fingerprint.
+# - The release is created as a draft: nothing is public until the maintainer publishes it.
+#
+# workflow_dispatch with dry_run=true builds and signs but publishes nothing (the signed APK is kept as a
+# short-lived artifact for inspection).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and sign, but do not create a release'
+        type: boolean
+        default: true
+
+permissions: {}
+
+env:
+  # Public SHA-256 fingerprint of the maintainer's release certificate (emberbyte-release-v2).
+  EXPECTED_CERT_SHA256: 72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef
+
+jobs:
+  build:
+    name: Build and verify (no secrets)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check the tag is on main and matches the version
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+            || { echo "::error::$GITHUB_SHA is not on main; refusing to release it"; exit 1; }
+          VERSION="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' app/build.gradle.kts | head -1)"
+          echo "versionName in the source: $VERSION"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${VERSION}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match versionName v${VERSION}"; exit 1
+          fi
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - name: Python tool tests
+        run: |
+          python tools/test_test_diff.py
+          python tools/test_check_cited_tests.py
+          python tools/test_gen_licences.py
+          python tools/palettes/generate_palettes.py --check
+      - name: Full gate
+        run: ./gradlew testDebugUnitTest :core:engine:test lintDebug assembleDebug assembleRelease lintRelease verifyReleaseApk --stacktrace
+      - name: Keep the first release APK
+        run: cp app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/first.apk"
+      - name: Rebuild from scratch and compare (reproducibility)
+        run: |
+          set -euo pipefail
+          ./gradlew clean :app:assembleRelease --no-build-cache --no-daemon
+          python tools/compare-apks.py "$RUNNER_TEMP/first.apk" app/build/outputs/apk/release/app-release-unsigned.apk
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-apk
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  sign:
+    name: Sign and prepare the draft release
+    needs: build
+    runs-on: ubuntu-latest
+    # Requires the manual approval configured on the "release" environment; its secrets exist only here.
+    environment: release
+    permissions:
+      contents: write        # create the draft release
+      id-token: write        # build provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: unsigned-apk
+          path: ${{ runner.temp }}/unsigned
+      - name: Sign
+        env:
+          KEYSTORE_B64: ${{ secrets.EMBERBYTE_KEYSTORE_B64 }}
+          EMBERBYTE_KS_PASS: ${{ secrets.EMBERBYTE_KS_PASS }}
+        run: |
+          set -euo pipefail
+          # With the default keystore type the key password equals the keystore password.
+          export EMBERBYTE_KEY_PASS="$EMBERBYTE_KS_PASS"
+          umask 077
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          tools/release/sign.sh "$RUNNER_TEMP/release.jks" \
+            "$RUNNER_TEMP/unsigned/app-release-unsigned.apk" "$RUNNER_TEMP/dist" | tee "$RUNNER_TEMP/sign.log"
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+      - name: Check the certificate fingerprint
+        run: |
+          set -euo pipefail
+          GOT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/sign.log" | head -1)"
+          echo "signed with certificate $GOT"
+          [ "$GOT" = "$EXPECTED_CERT_SHA256" ] \
+            || { echo "::error::signed with an unexpected certificate ($GOT)"; exit 1; }
+      - name: Name the release files
+        id: files
+        run: |
+          set -euo pipefail
+          APK="$(ls "$RUNNER_TEMP"/dist/emberbyte-*.apk)"
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          echo "sha=$APK.sha256" >> "$GITHUB_OUTPUT"
+          echo "version=$(basename "$APK" .apk | sed 's/^emberbyte-//')" >> "$GITHUB_OUTPUT"
+      - name: Dry run - keep the signed APK as an artifact only
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: signed-apk-dry-run
+          path: ${{ steps.files.outputs.apk }}
+          retention-days: 3
+      - name: Provenance attestation
+        if: github.ref_type == 'tag'
+        continue-on-error: true
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: ${{ steps.files.outputs.apk }}
+      - name: Create the draft release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.files.outputs.version }}
+          APK: ${{ steps.files.outputs.apk }}
+          SHA: ${{ steps.files.outputs.sha }}
+        run: |
+          set -euo pipefail
+          NOTES="docs/release/RELEASE-NOTES-${VERSION}.md"
+          [ -f "$NOTES" ] || { echo "::error::missing $NOTES"; exit 1; }
+          gh release create "$TAG" --draft --verify-tag \
+            --title "Emberbyte ${VERSION}" --notes-file "$NOTES" "$APK" "$SHA"
