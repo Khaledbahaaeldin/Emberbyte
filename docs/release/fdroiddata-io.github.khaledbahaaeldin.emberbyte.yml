@@ -8,9 +8,7 @@ SourceCode: https://github.com/Khaledbahaaeldin/Emberbyte
 IssueTracker: https://github.com/Khaledbahaaeldin/Emberbyte/issues
 Changelog: https://github.com/Khaledbahaaeldin/Emberbyte/blob/main/CHANGELOG.md
 
-Binaries: https://github.com/Khaledbahaaeldin/Emberbyte/releases/download/v%v/emberbyte-%v.apk
-AllowedAPKSigningKeys:
-  - 72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef
+AutoName: Emberbyte
 
 RepoType: git
 Repo: https://github.com/Khaledbahaaeldin/Emberbyte.git
@@ -20,6 +18,10 @@ Builds:
     versionCode: 1
     commit: 7909bbc8ca4ab790d2592127f9306d4acfe0394d
     subdir: app
+    sudo:
+      - apt-get update || apt-get update
+      - apt-get install -y openjdk-17-jdk-headless
+      - sdkmanager 'platforms;android-37' 'build-tools;36.1.0'
     gradle:
       - yes
 

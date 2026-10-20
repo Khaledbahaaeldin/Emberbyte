@@ -28,16 +28,11 @@ and shows home-screen widgets and a live notification. Everything stays on the d
   `WAKE_LOCK`: the live notification, alerts and the sampler that keeps measuring after a reboot.
   The full table is in the README.
 
-**Build:** Gradle (wrapper, Gradle 9.6.0), JDK 17, `compileSdk` 37, build-tools 36.1.0, run from the repository root with
-`subdir: app`. Release builds are reproducible: CI builds the tag twice and compares the APKs
+**Build:** Gradle (wrapper, Gradle 9.6.0), JDK 17 (installed through `sudo` in the recipe, because the project uses a Java 17 toolchain), `compileSdk` 37 and build-tools 36.1.0 (installed with `sdkmanager`), `subdir: app`. Release builds are reproducible: CI builds the tag twice and compares the APKs
 (`tools/compare-apks.py`), and builds on Linux like the F-Droid server. I have **not** run `fdroid build` locally
 (no suitable machine), so I rely on this pipeline and will fix whatever it reports.
 
-**Reproducible build with my signature (optional):** the recipe sets `Binaries` and `AllowedAPKSigningKeys` so that,
-if the build matches, the APK signed with my release key is published. Signing certificate SHA-256:
-`72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef`. The signed APK is built and signed by the public
-workflow `.github/workflows/release.yml`. If the comparison fails, I will remove those two lines so F-Droid signs
-the build itself.
+**Signing:** F-Droid signs the build itself. (I considered reproducible-build verification against my GitHub APK, but the F-Droid server uses Debian's JDK while my CI uses Temurin, so I left it out to keep the first listing simple.)
 
 **Metadata:** fastlane metadata (title, short and full description, changelog `1.txt`, icon and seven screenshots)
 is in the source repository under `fastlane/metadata/android/en-US/`.
