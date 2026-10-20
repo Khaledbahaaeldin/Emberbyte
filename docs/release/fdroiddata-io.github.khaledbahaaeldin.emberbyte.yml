@@ -39,3 +39,10 @@ Builds:
     subdir: app
     gradle:
       - yes
+
+# Reproducible-build verification (optional, to be confirmed with `fdroid build` before submitting):
+# if F-Droid's own build of the tag matches the maintainer-signed GitHub APK, F-Droid can publish the
+# maintainer's signed APK, so GitHub and F-Droid users can update across each other.
+# Maintainer release certificate SHA-256 (public; key emberbyte-release-v2, CN=Khaled Bahaaeldin, C=MA):
+#   AllowedAPKSigningKeys: 72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef
+#   Binaries: https://github.com/Khaledbahaaeldin/Emberbyte/releases/download/v%v/emberbyte-%v.apk
