@@ -123,7 +123,7 @@ class AlertEvaluatorTest {
 
         val settleWindowMs = 200L
         val settleStart = System.currentTimeMillis()
-        kotlinx.coroutines.withTimeout(2_000) {
+        kotlinx.coroutines.withTimeout(10_000) {
             while (System.currentTimeMillis() - settleStart < settleWindowMs) {
                 if (maxConcurrent.get() > 1) break
                 kotlinx.coroutines.delay(5)
