@@ -1,6 +1,10 @@
 package io.github.khaledbahaaeldin.emberbyte.nav
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
@@ -39,21 +46,44 @@ fun GuardedBack(
     content: @Composable (shrink: Float) -> Unit,
 ) {
     var shrink by remember { mutableFloatStateOf(1f) }
+    var gestureProgress by remember { mutableFloatStateOf(0f) }
     var showDiscardDialog by remember { mutableStateOf(false) }
 
     PredictiveBackHandler(enabled = dirty) { progressFlow ->
         try {
             progressFlow.collect { backEvent ->
                 val p = backEvent.progress.coerceIn(0f, 1f)
+                gestureProgress = p
                 shrink = 1.0f - (1.0f - BackTransitions.SHRINK) * p
             }
             showDiscardDialog = true
         } catch (_: CancellationException) {
             shrink = 1f
+            gestureProgress = 0f
         }
     }
 
-    content(shrink)
+    val cornerRadius = BackTransitions.cornerRadiusFor(gestureProgress)
+    val shadowElevation = (8f * (gestureProgress * 4f).coerceAtMost(1f)).dp
+    val palette = LocalEmberbytePalette.current
+    val layoutDirection = LocalLayoutDirection.current
+    val origin = BackTransitions.transformOriginFor(layoutDirection)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = shrink
+                scaleY = shrink
+                transformOrigin = origin
+                this.shadowElevation = shadowElevation.toPx()
+                this.shape = RoundedCornerShape(cornerRadius)
+                this.clip = cornerRadius > 0.dp
+            }
+            .background(palette.background),
+    ) {
+        content(shrink)
+    }
 
     if (showDiscardDialog) {
         val discardRequester = remember { FocusRequester() }
@@ -61,6 +91,7 @@ fun GuardedBack(
             onDismiss = {
                 showDiscardDialog = false
                 shrink = 1f
+                gestureProgress = 0f
                 onDismiss()
             },
             title = "Discard changes?",
@@ -70,6 +101,7 @@ fun GuardedBack(
                 onClick = {
                     showDiscardDialog = false
                     shrink = 1f
+                    gestureProgress = 0f
                     onConfirmLeave()
                 },
                 modifier = Modifier.focusRequester(discardRequester),
@@ -79,6 +111,7 @@ fun GuardedBack(
                 onClick = {
                     showDiscardDialog = false
                     shrink = 1f
+                    gestureProgress = 0f
                     onDismiss()
                 },
             ),

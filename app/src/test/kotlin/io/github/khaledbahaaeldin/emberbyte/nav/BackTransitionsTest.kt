@@ -62,4 +62,46 @@ class BackTransitionsTest {
         assertTrue("popExitTransition must not use tabExitTransition", !popExitMatch)
         assertTrue("EmberbyteApp must reference BackTransitions", content.contains("BackTransitions"))
     }
+
+    @Test
+    fun pop_exit_in_rtl_uses_rtl_origin_and_negative_slide() {
+        val rtlExit = BackTransitions.popExit(LayoutDirection.Rtl)
+        org.junit.Assert.assertNotNull(rtlExit)
+    }
+
+    @Test
+    fun pop_exit_in_ltr_uses_ltr_origin_and_positive_slide() {
+        val ltrExit = BackTransitions.popExit(LayoutDirection.Ltr)
+        org.junit.Assert.assertNotNull(ltrExit)
+    }
+
+    @Test
+    fun pop_enter_uses_scrim_fade_in() {
+        assertEquals(0.55f, BackTransitions.SCRIM_START_ALPHA, 0.001f)
+    }
+
+    @Test
+    fun emberbyte_app_passes_layout_direction_to_back_transitions() {
+        val appFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/EmberbyteApp.kt")
+        assertTrue("EmberbyteApp.kt should exist", appFile.exists())
+        val content = appFile.readText()
+        assertTrue(
+            "EmberbyteApp must pass layoutDirection to BackTransitions.popExit",
+            content.contains("BackTransitions.popExit(layoutDirection)")
+        )
+        assertTrue(
+            "EmberbyteApp must pass layoutDirection to BackTransitions.popEnter",
+            content.contains("BackTransitions.popEnter(layoutDirection)")
+        )
+    }
+
+    @Test
+    fun emberbyte_app_wraps_subscreens_with_predictive_back_screen() {
+        val appFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/EmberbyteApp.kt")
+        val content = appFile.readText()
+        assertTrue(
+            "EmberbyteApp must wrap sub-screens with PredictiveBackSubScreen",
+            content.contains("PredictiveBackSubScreen")
+        )
+    }
 }

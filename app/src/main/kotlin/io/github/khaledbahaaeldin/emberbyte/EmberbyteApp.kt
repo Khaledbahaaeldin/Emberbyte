@@ -45,6 +45,7 @@ import io.github.khaledbahaaeldin.emberbyte.history.HistoryScreen
 import io.github.khaledbahaaeldin.emberbyte.history.HistoryViewModel
 import io.github.khaledbahaaeldin.emberbyte.home.HomeScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Destination
+import io.github.khaledbahaaeldin.emberbyte.nav.PredictiveBackSubScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
 import io.github.khaledbahaaeldin.emberbyte.nav.rememberPermissionActions
@@ -140,6 +141,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     val items = remember { Destination.entries.map { it.toNavBarItem() } }
     val motion = MaterialTheme.motionScheme
     val reduceMotion = LocalReduceMotion.current
+    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
 
     Box(Modifier.fillMaxSize().nestedScroll(visibility.connection), contentAlignment = Alignment.TopCenter) {
         NavHost(
@@ -150,11 +152,11 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             exitTransition = { tabExitTransition(motion, reduceMotion) },
             popEnterTransition = {
                 if (reduceMotion) BackTransitions.popEnterReducedMotion()
-                else BackTransitions.popEnter(this)
+                else BackTransitions.popEnter(layoutDirection)(this)
             },
             popExitTransition = {
                 if (reduceMotion) BackTransitions.popExitReducedMotion()
-                else BackTransitions.popExit(this)
+                else BackTransitions.popExit(layoutDirection)(this)
             },
         ) {
             composable(Routes.ONBOARDING) {
@@ -205,10 +207,12 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 arguments = listOf(navArgument("packageName") { type = NavType.StringType }),
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.APP_DETAIL }),
             ) { entry ->
-                val packageName = entry.arguments?.getString("packageName").orEmpty()
-                val viewModel: AppDetailViewModel =
-                    viewModel(key = "app-$packageName", factory = graph.appDetailViewModelFactory(packageName))
-                AppDetailScreen(viewModel, onBack = { navController.popBackStack() }, iconProvider = graph.appIcons)
+                PredictiveBackSubScreen {
+                    val packageName = entry.arguments?.getString("packageName").orEmpty()
+                    val viewModel: AppDetailViewModel =
+                        viewModel(key = "app-$packageName", factory = graph.appDetailViewModelFactory(packageName))
+                    AppDetailScreen(viewModel, onBack = { navController.popBackStack() }, iconProvider = graph.appIcons)
+                }
             }
             composable(
                 Destination.Plans.route,
@@ -221,70 +225,84 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 )
             }
             composable(Routes.PLAN_NEW) {
-                val viewModel: io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowViewModel =
-                    viewModel(factory = graph.planFlowViewModelFactory())
-                io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowScreen(
-                    viewModel = viewModel,
-                    onPlanCreated = {
-                        navController.popBackStack()
-                    },
-                    onCancel = {
-                        navController.popBackStack()
-                    },
-                )
+                PredictiveBackSubScreen {
+                    val viewModel: io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowViewModel =
+                        viewModel(factory = graph.planFlowViewModelFactory())
+                    io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowScreen(
+                        viewModel = viewModel,
+                        onPlanCreated = {
+                            navController.popBackStack()
+                        },
+                        onCancel = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
             }
             composable(
                 Routes.PLAN_EDITOR,
                 arguments = listOf(navArgument("planId") { type = NavType.LongType }),
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.PLAN_EDITOR }),
             ) { entry ->
-                val planId = entry.arguments?.getLong("planId") ?: 0L
-                val viewModel: PlanEditorViewModel =
-                    viewModel(key = "plan-$planId", factory = graph.planEditorViewModelFactory(planId))
-                PlanEditorScreen(viewModel, onBack = { navController.popBackStack() }, onPrompt = actions::onPrompt)
+                PredictiveBackSubScreen {
+                    val planId = entry.arguments?.getLong("planId") ?: 0L
+                    val viewModel: PlanEditorViewModel =
+                        viewModel(key = "plan-$planId", factory = graph.planEditorViewModelFactory(planId))
+                    PlanEditorScreen(viewModel, onBack = { navController.popBackStack() }, onPrompt = actions::onPrompt)
+                }
             }
             composable(Routes.HISTORY) {
-                val viewModel: HistoryViewModel = viewModel(factory = graph.historyViewModelFactory())
-                HistoryScreen(viewModel, onBack = { navController.popBackStack() })
+                PredictiveBackSubScreen {
+                    val viewModel: HistoryViewModel = viewModel(factory = graph.historyViewModelFactory())
+                    HistoryScreen(viewModel, onBack = { navController.popBackStack() })
+                }
             }
             composable(
                 Routes.SETTINGS,
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.SETTINGS }),
             ) {
-                val viewModel: SettingsViewModel = viewModel(factory = graph.settingsViewModelFactory())
-                val dataViewModel: DataViewModel = viewModel(
-                    factory = graph.dataViewModelFactory(ContentResolverStreamOpener(context.contentResolver)),
-                )
-                SettingsScreen(
-                    viewModel,
-                    dataViewModel,
-                    onBack = { navController.popBackStack() },
-                    onOpenLicenses = { navController.navigate(Routes.LICENCES) },
-                    onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
-                )
+                PredictiveBackSubScreen {
+                    val viewModel: SettingsViewModel = viewModel(factory = graph.settingsViewModelFactory())
+                    val dataViewModel: DataViewModel = viewModel(
+                        factory = graph.dataViewModelFactory(ContentResolverStreamOpener(context.contentResolver)),
+                    )
+                    SettingsScreen(
+                        viewModel,
+                        dataViewModel,
+                        onBack = { navController.popBackStack() },
+                        onOpenLicenses = { navController.navigate(Routes.LICENCES) },
+                        onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
+                    )
+                }
             }
             composable(Routes.APPEARANCE) {
-                val viewModel: AppearanceViewModel = viewModel(factory = graph.appearanceViewModelFactory())
-                AppearanceScreen(
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() },
-                )
+                PredictiveBackSubScreen {
+                    val viewModel: AppearanceViewModel = viewModel(factory = graph.appearanceViewModelFactory())
+                    AppearanceScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
             composable(Routes.LICENCES) {
-                val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
-                    viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
-                io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() },
-                )
+                PredictiveBackSubScreen {
+                    val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
+                        viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
+                    io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
             composable(Routes.LICENSES) {
-                val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
-                    viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
-                io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() },
-                )
+                PredictiveBackSubScreen {
+                    val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
+                        viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
+                    io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
         }
         val isTopLevel = route in setOf(Destination.Home.route, Destination.Apps.route, Destination.Plans.route)
