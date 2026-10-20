@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlansViewModel(
@@ -48,14 +49,37 @@ class PlansViewModel(
         val units = s.unitSystem.toByteUnits()
         val installed = sims.activeSims()
         val now = clock.instant()
-        val cards = list.mapNotNull { e ->
+        val activeEntries = list.filter { !it.plan.archived }
+        val activeStates = activeEntries.mapNotNull { it.state }
+        val orderedStates = io.github.khaledbahaaeldin.emberbyte.engine.plan.PlanUrgency.order(activeStates, now)
+        val entriesByPlanId = activeEntries.associateBy { it.plan.id }
+
+        val activeCards = orderedStates.mapNotNull { state ->
+            val e = entriesByPlanId[state.plan.id] ?: return@mapNotNull null
+            planCardUi(state, e.forecast, e.addOns, simLabel(e.plan.subscriptionId, installed), units, now, clock.zone, locale)
+        }
+        val archivedCards = list.filter { it.plan.archived }.mapNotNull { e ->
             val state = e.state ?: return@mapNotNull null
             planCardUi(state, e.forecast, e.addOns, simLabel(e.plan.subscriptionId, installed), units, now, clock.zone, locale)
         }
-        PlansUiState(cards.filter { !it.archived }, cards.filter { it.archived }, archivedShown, loaded = true)
+        PlansUiState(activeCards, archivedCards, archivedShown, loaded = true)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlansUiState())
 
-    fun onEvent(event: PlansEvent) { when (event) { PlansEvent.ToggleArchived -> showArchived.update { !it } } }
+    fun onEvent(event: PlansEvent) {
+        when (event) {
+            PlansEvent.ToggleArchived -> showArchived.update { !it }
+            is PlansEvent.SetPinned -> {
+                viewModelScope.launch {
+                    plans.setPinned(event.id, event.pinned)
+                }
+            }
+            is PlansEvent.ArchivePlan -> {
+                viewModelScope.launch {
+                    plans.archivePlan(event.id)
+                }
+            }
+        }
+    }
 
     private fun simLabel(subscriptionId: Int?, installed: List<SimInfo>): String? = when {
         subscriptionId == null -> null

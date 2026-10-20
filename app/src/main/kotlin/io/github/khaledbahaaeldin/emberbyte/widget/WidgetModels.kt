@@ -13,7 +13,19 @@ data class BentoWidgetModel(val hero: HeroWidgetModel, val forecast: String, val
 internal fun heroWidgetModel(s: WidgetSnapshot): HeroWidgetModel {
     val units = s.units.toByteUnits()
     val today = formatBytes(s.today.totalBytes, units)
-    val caption = s.plan?.let { remainingText(it.remainingBytes, units) } ?: "Set up a plan"
+    val caption = when {
+        s.plan == null -> "Set up a plan"
+        s.plan.isDormant -> {
+            val starts = s.plan.startsAt
+            if (starts != null) {
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("d MMM", s.locale)
+                "Starts ${formatter.format(starts.atZone(s.zone))}"
+            } else {
+                "Starts next cycle"
+            }
+        }
+        else -> remainingText(s.plan.remainingBytes, units)
+    }
     return HeroWidgetModel(today.value, today.unit, caption)
 }
 

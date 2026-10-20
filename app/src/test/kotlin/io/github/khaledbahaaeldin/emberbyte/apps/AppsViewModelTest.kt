@@ -81,4 +81,56 @@ class AppsViewModelTest {
         assertEquals(false, vm.uiState.value.needsUsageAccess)
         job.cancel()
     }
+
+    @Test fun featured_is_the_top_app_and_absent_during_search() = runTest(dispatcher) {
+        val vm = viewModel()
+        val jobUi = launch { vm.uiState.collect {} }
+        val jobFeat = launch { vm.featured.collect {} }
+        advanceUntilIdle()
+        assertEquals("YouTube", vm.featured.value?.label)
+        assertEquals("YouTube", vm.uiState.value.featured?.label)
+
+        vm.onEvent(AppsEvent.SetQuery("you"))
+        advanceUntilIdle()
+        assertEquals(null, vm.featured.value)
+        assertEquals(null, vm.uiState.value.featured)
+        jobUi.cancel()
+        jobFeat.cancel()
+    }
+
+    @Test fun removing_a_chip_resets_only_that_filter() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.onEvent(AppsEvent.SetRange(AppsRange.LAST_7_DAYS))
+        vm.onEvent(AppsEvent.SetNetwork(AppsNetwork.WIFI))
+        advanceUntilIdle()
+        assertEquals(AppsRange.LAST_7_DAYS, vm.uiState.value.range)
+        assertEquals(AppsNetwork.WIFI, vm.uiState.value.network)
+
+        vm.onEvent(AppsEvent.RemoveFilter(AppFilterKind.RANGE))
+        advanceUntilIdle()
+        assertEquals(AppsRange.TODAY, vm.uiState.value.range)
+        assertEquals(AppsNetwork.WIFI, vm.uiState.value.network)
+        job.cancel()
+    }
+
+    @Test fun reset_returns_all_defaults() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.onEvent(AppsEvent.SetRange(AppsRange.LAST_7_DAYS))
+        vm.onEvent(AppsEvent.SetNetwork(AppsNetwork.WIFI))
+        vm.onEvent(AppsEvent.SetSort(AppSort.NAME))
+        vm.onEvent(AppsEvent.SetShowSystemApps(true))
+        advanceUntilIdle()
+
+        vm.onEvent(AppsEvent.ResetFilters)
+        advanceUntilIdle()
+        assertEquals(AppsRange.TODAY, vm.uiState.value.range)
+        assertEquals(AppsNetwork.ALL, vm.uiState.value.network)
+        assertEquals(AppSort.BYTES_DESC, vm.uiState.value.sort)
+        assertEquals(false, vm.uiState.value.showSystemApps)
+        job.cancel()
+    }
 }

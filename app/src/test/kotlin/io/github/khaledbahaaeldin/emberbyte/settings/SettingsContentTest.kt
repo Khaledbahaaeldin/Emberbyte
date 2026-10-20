@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.performScrollToNode
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -30,9 +32,10 @@ class SettingsContentTest {
         onUpdate: ((Settings) -> Settings) -> Unit = {},
         onBack: () -> Unit = {},
         onOpenBatterySettings: () -> Unit = {},
+        onOpenAppearance: () -> Unit = {},
     ) =
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SettingsContent(
                     settings = settings,
                     onUpdate = onUpdate,
@@ -40,6 +43,7 @@ class SettingsContentTest {
                     versionName = "0.2.0",
                     onOpenSource = {},
                     onOpenBatterySettings = onOpenBatterySettings,
+                    onOpenAppearance = onOpenAppearance,
                     dataUiState = DataUiState(),
                     onExportCsv = {},
                     onExportJson = {},
@@ -81,9 +85,8 @@ class SettingsContentTest {
         show(onUpdate = { seen += it })
         scrollTo("AMOLED black")
         rule.onNodeWithText("AMOLED black").performClick()
-        rule.onNodeWithText("Dynamic colour").performClick()
         assertTrue(seen[0](Settings()).amoledBlack)
-        assertFalse(seen[1](Settings()).useDynamicColor)
+        assertEquals(1, seen.size)
     }
 
     @Test fun unit_chips_switch_the_unit_system() {
@@ -108,6 +111,15 @@ class SettingsContentTest {
         show(onOpenBatterySettings = { opened = true })
         scrollTo("Battery settings")
         rule.onNodeWithText("Battery settings").performClick()
+        assertTrue(opened)
+    }
+
+    @Test fun appearance_row_shows_current_theme_name_and_opens_appearance() {
+        var opened = false
+        show(settings = Settings(themeId = "gruvbox"), onOpenAppearance = { opened = true })
+        scrollTo("Appearance")
+        rule.onNodeWithText("Gruvbox").assertIsDisplayed()
+        rule.onNode(hasText("Appearance") and hasClickAction()).performClick()
         assertTrue(opened)
     }
 }

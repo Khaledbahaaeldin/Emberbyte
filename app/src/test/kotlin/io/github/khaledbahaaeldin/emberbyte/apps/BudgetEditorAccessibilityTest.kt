@@ -20,6 +20,7 @@ import io.github.khaledbahaaeldin.emberbyte.common.injectImeInsets
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetPeriod
 import io.github.khaledbahaaeldin.emberbyte.plans.CapUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -48,7 +49,7 @@ class BudgetEditorAccessibilityTest {
         )
 
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 BudgetEditorDialog(
                     editor = editor,
                     planOptions = emptyList(),
@@ -89,7 +90,7 @@ class BudgetEditorAccessibilityTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density = 2.625f, fontScale = 2f),
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     BudgetEditorDialog(
                         editor = editor,
                         planOptions = emptyList(),
@@ -115,7 +116,7 @@ class BudgetEditorAccessibilityTest {
 
         // Cancel button is reachable and above IME
         val cancelButton = rule.onNodeWithText("Cancel")
-        cancelButton.performScrollTo()
+        cancelButton.assertIsDisplayed()
         val cancelBounds = cancelButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Cancel button bottom (${cancelBounds.bottom}) must be <= IME top ($imeTopPx)",
@@ -126,7 +127,7 @@ class BudgetEditorAccessibilityTest {
 
         // Save button is reachable and above IME
         val saveButton = rule.onNodeWithText("Save")
-        saveButton.performScrollTo()
+        saveButton.assertIsDisplayed()
         val saveBounds = saveButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Save button bottom (${saveBounds.bottom}) must be <= IME top ($imeTopPx)",

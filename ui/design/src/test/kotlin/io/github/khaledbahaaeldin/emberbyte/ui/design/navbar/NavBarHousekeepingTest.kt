@@ -22,6 +22,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -50,8 +51,8 @@ class NavBarHousekeepingTest {
     private fun show(selected: String, haptics: CountingHaptics, onSelect: (String) -> Unit) {
         rule.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
-                    FloatingPillNavBar(items, selected, onSelect, visible = true)
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    CompactNavBar(items, selected, onSelect, visible = true)
                 }
             }
         }
@@ -59,11 +60,11 @@ class NavBarHousekeepingTest {
 
     @Test fun bar_fills_the_width_it_is_given() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
-                Box(Modifier.width(400.dp)) { FloatingPillNavBar(items, "home", {}, visible = true) }
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                Box(Modifier.width(400.dp)) { CompactNavBar(items, "home", {}, visible = true) }
             }
         }
-        rule.onNodeWithTag("pill_nav_bar").assertWidthIsEqualTo(400.dp)
+        rule.onNodeWithTag("compact_nav_bar").assertWidthIsEqualTo(((items.size - 1) * 56 + 92 + 12).dp)
     }
 
     @Test fun tapping_the_selected_item_does_nothing() {
@@ -88,11 +89,11 @@ class NavBarHousekeepingTest {
         val haptics = CountingHaptics()
         show("home", haptics) {}
         val home = rule.onNodeWithTag("nav_home").getBoundsInRoot()
-        val bar = rule.onNodeWithTag("pill_nav_bar").getBoundsInRoot()
+        val bar = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
         val density = 1f
         val startX = (home.left - bar.left).value * density + 4f
         val endX = (home.right - bar.left).value * density - 4f
-        rule.onNodeWithTag("pill_nav_bar").performTouchInput {
+        rule.onNodeWithTag("compact_nav_bar").performTouchInput {
             swipe(start = Offset(startX, centerY), end = Offset(endX, centerY), durationMillis = 300)
         }
         rule.waitForIdle()

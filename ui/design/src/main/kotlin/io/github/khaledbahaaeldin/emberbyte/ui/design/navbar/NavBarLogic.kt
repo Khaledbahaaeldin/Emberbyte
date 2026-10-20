@@ -1,9 +1,23 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.navbar
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.snap
+import androidx.compose.material3.MotionScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Index of the item whose measured bounds contain [x]; in gaps or beyond the ends, the item with the nearest edge.
- * Items have unequal widths (the selected one shows its label), so equal slots would drift.
  */
 internal fun itemIndexAt(x: Float, starts: List<Float>, ends: List<Float>): Int {
     var best = 0
@@ -24,6 +38,55 @@ internal fun itemIndexAt(x: Float, starts: List<Float>, ends: List<Float>): Int 
 
 /** Pixels the previewed pill trails behind the finger: it follows with resistance, never 1:1. */
 internal fun dragResistance(deltaPx: Float): Float = deltaPx * 0.5f
+
+/** Motion specs for compact nav bar pill following and transitions. */
+internal object CompactNavMotion {
+    fun <T> pillFollowSpec(previewIndex: Int?, reduceMotion: Boolean, motion: MotionScheme): AnimationSpec<T> =
+        if (previewIndex != null || reduceMotion) snap() else motion.fastSpatialSpec()
+}
+
+object NavBarSpring {
+    const val BASE_STIFFNESS = 420f
+    const val DAMPING_RATIO = 0.58f
+    const val EDGE_LEAD = 1.7f
+    const val TRAILING_STIFFNESS_EXTRA = 0.3f
+    const val CELL_STIFFNESS_FACTOR = 0.9f
+    const val MOMENTUM_SECONDS = 0.08f
+    const val LABEL_FADE_START = 0.35f
+    const val LABEL_FADE_SPAN = 0.65f
+
+    val leadingStiffness: Float
+        get() = BASE_STIFFNESS * EDGE_LEAD
+
+    val trailingStiffness: Float
+        get() = BASE_STIFFNESS / EDGE_LEAD + BASE_STIFFNESS * TRAILING_STIFFNESS_EXTRA
+
+    val cellStiffness: Float
+        get() = BASE_STIFFNESS * CELL_STIFFNESS_FACTOR
+
+    fun landingIndex(
+        pillLeft: Float,
+        pillRight: Float,
+        velocityPxPerSec: Float,
+        paddingPx: Float,
+        innerWidthPx: Float,
+        itemCount: Int,
+        isRtl: Boolean = false,
+    ): Int {
+        if (itemCount <= 1 || innerWidthPx <= 0f) return 0
+        val centre = (pillLeft + pillRight) / 2f + velocityPxPerSec * MOMENTUM_SECONDS
+        val slotSpan = innerWidthPx / itemCount
+        val visualIdx = kotlin.math.floor((centre - paddingPx) / slotSpan).toInt().coerceIn(0, itemCount - 1)
+        return if (isRtl) (itemCount - 1 - visualIdx) else visualIdx
+    }
+
+    fun labelOpacity(cellWidthPx: Float, collapsedWidthPx: Float, expandedWidthPx: Float): Float {
+        val span = expandedWidthPx - collapsedWidthPx
+        if (span <= 0f) return 1f
+        val f = ((cellWidthPx - collapsedWidthPx) / span).coerceIn(0f, 1f)
+        return ((f - LABEL_FADE_START) / LABEL_FADE_SPAN).coerceIn(0f, 1f)
+    }
+}
 
 /**
  * Hides after [thresholdPx] of accumulated downward scroll; any upward scroll shows again.
@@ -52,4 +115,31 @@ internal class ScrollVisibilityTracker(private val thresholdPx: Float) {
         accumulatedDown = 0f
         visible = true
     }
+}
+
+@Stable
+class NavBarVisibility internal constructor(thresholdPx: Float) {
+    private val tracker = ScrollVisibilityTracker(thresholdPx)
+
+    var visible: Boolean by mutableStateOf(true)
+        private set
+
+    /** Attach with `Modifier.nestedScroll(connection)` on an ancestor of the scrolling content. */
+    val connection: NestedScrollConnection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            visible = tracker.onScroll(downPx = -available.y)
+            return Offset.Zero
+        }
+    }
+
+    fun show() {
+        tracker.reset()
+        visible = true
+    }
+}
+
+@Composable
+fun rememberNavBarVisibility(threshold: Dp = 40.dp): NavBarVisibility {
+    val thresholdPx = with(LocalDensity.current) { threshold.toPx() }
+    return remember(thresholdPx) { NavBarVisibility(thresholdPx) }
 }

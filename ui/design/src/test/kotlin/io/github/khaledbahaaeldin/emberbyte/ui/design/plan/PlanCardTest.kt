@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -32,7 +33,7 @@ class PlanCardTest {
         forecastText = "runs out Thu (±1 day)", isEstimated = false, chips = listOf("Boost +2.00 GB"), archived = false,
     )
     private fun show(m: PlanCardUi = model, onClick: () -> Unit = {}) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) { PlanCard(m, onClick) }
+        EmberbyteTheme(EmberbyteThemeSpec.Default) { PlanCard(m, onClick) }
     }
 
     @Test fun shows_the_numbers_the_sim_and_the_chips() {
@@ -79,7 +80,7 @@ class PlanCardTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale = 2f)
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanCard(testModel, onClick = {})
                 }
             }
@@ -107,7 +108,7 @@ class PlanCardTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale = 2f)
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanCard(testModel, onClick = {})
                 }
             }
@@ -124,7 +125,7 @@ class PlanCardTest {
             CompositionLocalProvider(
                 LocalLayoutDirection provides LayoutDirection.Rtl
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanCard(model, onClick = {})
                 }
             }
@@ -132,4 +133,34 @@ class PlanCardTest {
         rule.onNodeWithText("3.80 GB left").assertIsDisplayed()
         rule.onNodeWithText("9 days left").assertIsDisplayed()
     }
+
+    @Test fun dormant_plan_shows_dormant_badge_and_no_ring() {
+        show(model.copy(isDormant = true, startsAtText = "Starts 1 Nov"))
+        rule.onNodeWithText("Starts 1 Nov").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Main SIM, Starts 1 Nov").assertExists()
+        rule.onNodeWithText("62%", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun entered_note_is_visible_and_spoken_on_card() {
+        show(model.copy(enteredNote = "Includes 3 GB you entered"))
+        rule.onNodeWithText("Includes 3 GB you entered").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Includes 3 GB you entered", substring = true).assertExists()
+    }
+
+    @Test fun pinned_shows_pin_icon_on_card() {
+        show(model.copy(pinned = true))
+        rule.onNodeWithContentDescription("Pinned", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("pinned", substring = true).assertExists()
+    }
+
+    @Test fun exceeded_plan_shows_danger_color_and_warning_icon_for_forecast_text() {
+        val exceededModel = model.copy(
+            ringState = BudgetStateUi.Exceeded,
+            forecastText = "Data used up",
+        )
+        show(exceededModel)
+        rule.onNodeWithText("Data used up").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Data used up", useUnmergedTree = true).assertIsDisplayed()
+    }
 }
+

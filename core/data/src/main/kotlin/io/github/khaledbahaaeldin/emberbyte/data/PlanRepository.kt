@@ -19,6 +19,7 @@ interface PlanRepository {
     fun observeFreeRules(planId: Long): Flow<List<FreeRule>>
     suspend fun upsertPlan(plan: Plan): Outcome<Long>
     suspend fun archivePlan(planId: Long): Outcome<Unit>
+    suspend fun setPinned(id: Long, pinned: Boolean): Outcome<Unit>
     suspend fun upsertAddOn(addOn: AddOn): Outcome<Long>
     suspend fun deleteAddOn(id: Long): Outcome<Unit>
     suspend fun upsertFreeRule(rule: FreeRule): Outcome<Long>

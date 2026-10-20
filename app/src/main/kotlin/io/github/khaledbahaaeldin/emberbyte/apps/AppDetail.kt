@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
@@ -56,9 +57,30 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
-import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.HistoryToggleOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.BudgetRing
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 import java.time.Clock
@@ -81,6 +103,8 @@ data class AppDetailUiState(
     val totalBytes: Long = 0L,
     val mobileBytes: Long = 0L,
     val wifiBytes: Long = 0L,
+    val foregroundBytes: Long = 0L,
+    val backgroundBytes: Long = 0L,
     val bars: List<BarUi> = emptyList(),
     val units: ByteUnits = ByteUnits.DECIMAL,
     val loaded: Boolean = false,
@@ -287,39 +311,240 @@ fun AppDetailContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenSettings: (() -> Unit)? = null,
+    icon: ImageBitmap? = null,
 ) {
+    val palette = LocalEmberbytePalette.current
+    var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { ScreenHeader(state.label.ifEmpty { state.packageName }, onBack) }
+        // Header with Back button, AppIcon, Title & Package
         item {
-            Text(
-                "Last 7 days",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            MorphingNumber(
-                bytes = state.totalBytes,
-                throughputBps = 0L,
-                units = state.units,
-                contentDescription = "${spokenBytes(state.totalBytes, state.units)} used in the last 7 days",
-                animate = false,
-            )
-        }
-        item {
-            val mobile = formatBytes(state.mobileBytes, state.units)
-            val wifi = formatBytes(state.wifiBytes, state.units)
-            BentoTile(title = "By network", modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
-                ForceLtr {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = palette.text,
+                    )
+                }
+                AppIcon(
+                    label = state.label.ifEmpty { state.packageName },
+                    icon = icon,
+                    shape = shapeFor(state.packageName),
+                    size = 56.dp,
+                )
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Mobile ${mobile.value} ${mobile.unit}  ·  Wi-Fi ${wifi.value} ${wifi.unit}",
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = state.label.ifEmpty { state.packageName },
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        color = palette.text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (state.label.isNotEmpty() && state.label != state.packageName) {
+                        Text(
+                            text = state.packageName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = palette.muted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Hero Number section
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Last 7 days",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = palette.muted,
+                )
+                val totalFmt = formatBytes(state.totalBytes, state.units)
+                HeroNumber(
+                    value = totalFmt.value,
+                    unit = totalFmt.unit,
+                    contentDescription = "${spokenBytes(state.totalBytes, state.units)} used in the last 7 days",
+                    size = 64.sp,
+                    color = palette.primary,
+                )
+            }
+        }
+
+        // Network split bar & legend
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                NetworkBar(
+                    mobileBytes = state.mobileBytes,
+                    wifiBytes = state.wifiBytes,
+                    mobileColor = palette.warn,
+                    wifiColor = palette.primary,
+                    units = state.units,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    val mobileFmt = formatBytes(state.mobileBytes, state.units)
+                    val wifiFmt = formatBytes(state.wifiBytes, state.units)
+                    ForceLtr {
+                        Text(
+                            text = "• Mobile ${mobileFmt.value} ${mobileFmt.unit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = palette.warn,
+                        )
+                    }
+                    ForceLtr {
+                        Text(
+                            text = "• Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = palette.primary,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Foreground vs Background split as two BentoTiles
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val fgFmt = formatBytes(state.foregroundBytes, state.units)
+                val bgFmt = formatBytes(state.backgroundBytes, state.units)
+                BentoTile(
+                    title = "Foreground",
+                    modifier = Modifier.weight(1f),
+                    container = TileContainer.Standard,
+                ) {
+                    ForceLtr {
+                        Text(
+                            text = "${fgFmt.value} ${fgFmt.unit}",
+                            style = EmberbyteType.value(20.sp),
+                            color = palette.text,
+                        )
+                    }
+                }
+                BentoTile(
+                    title = "Background",
+                    modifier = Modifier.weight(1f),
+                    container = TileContainer.Standard,
+                ) {
+                    ForceLtr {
+                        Text(
+                            text = "${bgFmt.value} ${bgFmt.unit}",
+                            style = EmberbyteType.value(20.sp),
+                            color = palette.text,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Daily chart (bars use primary, today's bar uses accent)
+        item {
+            val weekSummary = run {
+                val highest = state.bars.maxByOrNull { it.bytes }
+                if (highest != null) "Daily usage, last 7 days, highest ${highest.description}"
+                else "Daily usage, last 7 days"
+            }
+            BentoTile(
+                title = "Daily usage",
+                modifier = Modifier.fillMaxWidth(),
+                container = TileContainer.Standard,
+            ) {
+                if (state.bars.isEmpty()) {
+                    EmptyState(
+                        icon = Icons.Rounded.HistoryToggleOff,
+                        title = "No daily usage",
+                        body = "Daily breakdown will show here once usage is recorded.",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    )
+                } else {
+                    UsageBarRow(
+                        points = state.bars,
+                        selectedIndex = selectedBarIndex,
+                        onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
+                        summaryDescription = weekSummary,
+                        barColor = { index, _ ->
+                            if (index == state.bars.lastIndex) palette.accent
+                            else palette.primary
+                        },
                     )
                 }
             }
         }
+
+        // Spikes if present
+        if (state.spikes.isNotEmpty()) {
+            item {
+                BentoTile(title = "Spikes", modifier = Modifier.fillMaxWidth(), container = TileContainer.Warn) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        state.spikes.forEach { spike ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    ForceLtr {
+                                        Text(spike.whenText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        ForceLtr {
+                                            Text(
+                                                spike.bytesText,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = palette.muted,
+                                            )
+                                        }
+                                        Text(
+                                            "·",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = palette.muted,
+                                        )
+                                        ForceLtr {
+                                            Text(
+                                                spike.multipleText,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = palette.muted,
+                                            )
+                                        }
+                                    }
+                                }
+                                TextButton(
+                                    onClick = { onEvent(AppDetailEvent.DismissSpike(spike.id)) },
+                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                                ) {
+                                    Text("Dismiss", color = palette.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Data budget
         item {
             BentoTile(title = "Data budget", modifier = Modifier.fillMaxWidth()) {
                 val b = state.budget
@@ -332,13 +557,13 @@ fun AppDetailContent(
                         Text(
                             "No budget set",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = palette.muted,
                         )
                         TextButton(
                             onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
                             modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                         ) {
-                            Text("Set a budget")
+                            Text("Set a budget", color = palette.primary)
                         }
                     }
                 } else {
@@ -357,13 +582,13 @@ fun AppDetailContent(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             ForceLtr {
-                                Text(b.usedText, style = MaterialTheme.typography.titleMedium)
+                                Text(b.usedText, style = MaterialTheme.typography.titleMedium, color = palette.text)
                             }
                             ForceLtr {
                                 Text(
                                     b.periodText,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = palette.muted,
                                 )
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -371,13 +596,13 @@ fun AppDetailContent(
                                     onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
                                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                 ) {
-                                    Text("Edit")
+                                    Text("Edit", color = palette.primary)
                                 }
                                 TextButton(
                                     onClick = { onEvent(AppDetailEvent.RemoveBudget) },
                                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                 ) {
-                                    Text("Remove")
+                                    Text("Remove", color = palette.danger)
                                 }
                             }
                         }
@@ -385,70 +610,8 @@ fun AppDetailContent(
                 }
             }
         }
-        if (state.spikes.isNotEmpty()) {
-            item {
-                BentoTile(title = "Spikes", modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        state.spikes.forEach { spike ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    ForceLtr {
-                                        Text(spike.whenText, style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        ForceLtr {
-                                            Text(
-                                                spike.bytesText,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                        Text(
-                                            "·",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        ForceLtr {
-                                            Text(
-                                                spike.multipleText,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                    }
-                                }
-                                TextButton(
-                                    onClick = { onEvent(AppDetailEvent.DismissSpike(spike.id)) },
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Dismiss")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            val weekSummary = run {
-                val highest = state.bars.maxByOrNull { it.bytes }
-                if (highest != null) "Daily usage, last 7 days, highest ${highest.description}"
-                else "Daily usage, last 7 days"
-            }
-            UsageBarRow(
-                points = state.bars,
-                selectedIndex = null,
-                onSelect = {},
-                summaryDescription = weekSummary,
-            )
-        }
+
+        // App settings
         if (!state.packageName.startsWith("uid:") && onOpenSettings != null) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
@@ -456,7 +619,7 @@ fun AppDetailContent(
                         onClick = onOpenSettings,
                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                     ) {
-                        Text("App settings")
+                        Text("App settings", color = palette.primary)
                     }
                 }
             }
@@ -473,15 +636,24 @@ fun AppDetailContent(
 }
 
 @Composable
-fun AppDetailScreen(viewModel: AppDetailViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun AppDetailScreen(
+    viewModel: AppDetailViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconProvider: AppIconProvider? = null,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val icon by produceState<ImageBitmap?>(initialValue = null, state.packageName, iconProvider) {
+        value = iconProvider?.icon(state.packageName)
+    }
     AppDetailContent(
         state = state,
         onEvent = viewModel::onEvent,
         onBack = onBack,
         onOpenSettings = { openAppSettings(context, state.packageName) },
         modifier = modifier,
+        icon = icon,
     )
 }
 

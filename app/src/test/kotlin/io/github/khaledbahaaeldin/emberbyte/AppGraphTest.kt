@@ -89,5 +89,13 @@ class AppGraphTest {
         )
         org.junit.Assert.assertNotNull(onboardingViewModel)
         org.junit.Assert.assertNotNull(onboardingViewModel.uiState.value)
+
+        val appearanceFactory = graph.appearanceViewModelFactory()
+        val appearanceViewModel = appearanceFactory.create(
+            io.github.khaledbahaaeldin.emberbyte.settings.AppearanceViewModel::class.java,
+            androidx.lifecycle.viewmodel.CreationExtras.Empty,
+        )
+        org.junit.Assert.assertNotNull(appearanceViewModel)
+        org.junit.Assert.assertNotNull(appearanceViewModel.uiState.value)
     }
 }

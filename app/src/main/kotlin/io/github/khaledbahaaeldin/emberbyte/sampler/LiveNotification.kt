@@ -12,12 +12,23 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import kotlin.math.roundToInt
+
+import android.content.res.Configuration
+import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
+import io.github.khaledbahaaeldin.emberbyte.engine.plan.percentUsed
+import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.toArgb
 
 data class LiveProgress(val fractionUsed: Float, val chip: String)
 
@@ -26,7 +37,18 @@ data class LiveNotificationText(
     val text: String?,
     val contentDescription: String = "",
     val progress: LiveProgress? = null,
+    val state: BudgetStateUi = BudgetStateUi.Ok,
 )
+
+fun liveNotificationStateOf(planState: PlanState?): BudgetStateUi {
+    if (planState == null) return BudgetStateUi.Ok
+    val percent = planState.percentUsed()
+    return when {
+        percent >= 100 || planState.remainingBytes <= 0L -> BudgetStateUi.Exceeded
+        percent >= 80 -> BudgetStateUi.Warning
+        else -> BudgetStateUi.Ok
+    }
+}
 
 fun formatProgressChip(bytes: Long, units: ByteUnits): String {
     val safe = bytes.coerceAtLeast(0L)
@@ -69,7 +91,11 @@ fun formatProgressChip(bytes: Long, units: ByteUnits): String {
     return "$valueStr $finalUnit"
 }
 
-fun liveProgressOf(planState: PlanState?, units: ByteUnits): LiveProgress? {
+fun liveProgressOf(
+    planState: PlanState?,
+    units: ByteUnits,
+    todayBytes: Long,
+): LiveProgress? {
     if (planState == null) return null
     val isExhausted = planState.remainingBytes <= 0L
     val fraction = if (isExhausted) {
@@ -78,7 +104,10 @@ fun liveProgressOf(planState: PlanState?, units: ByteUnits): LiveProgress? {
         val clamped = planState.fractionUsed.coerceIn(0f, 1f)
         (kotlin.math.round(clamped * 1000f) / 1000f)
     }
-    val chip = if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
+    val state = liveNotificationStateOf(planState)
+    val usedToday = formatProgressChip(todayBytes, units)
+    val remaining = if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
+    val chip = ChipText.forState(state, usedToday, remaining)
     return LiveProgress(fractionUsed = fraction, chip = chip)
 }
 
@@ -90,6 +119,7 @@ fun liveNotificationText(
     offline: Boolean = false,
     remainingBytes: Long? = null,
     progress: LiveProgress? = null,
+    state: BudgetStateUi = BudgetStateUi.Ok,
 ): LiveNotificationText {
     val today = formatBytes(todayBytes, units)
     val spokenToday = spokenBytes(todayBytes, units)
@@ -127,6 +157,7 @@ fun liveNotificationText(
         text = parts.joinToString(" · ").ifEmpty { null },
         contentDescription = spokenParts.joinToString(". ") + ".",
         progress = progress,
+        state = state,
     )
 }
 
@@ -150,18 +181,21 @@ fun resolveLiveNotificationStyle(
 }
 
 interface PlatformNotificationCaller {
-    fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float): Notification.Builder
+    fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float): Notification.Builder =
+        setProgressStyle(builder, fractionUsed, 0)
+    fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float, color: Int): Notification.Builder
     fun setShortCriticalText(builder: Notification.Builder, chip: String): Notification.Builder
     fun setRequestPromotedOngoing(builder: Notification.Builder, request: Boolean): Notification.Builder
 }
 
 internal object DefaultPlatformNotificationCaller : PlatformNotificationCaller {
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
-    override fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float): Notification.Builder {
+    override fun setProgressStyle(builder: Notification.Builder, fractionUsed: Float, color: Int): Notification.Builder {
         val progressUnits = (fractionUsed * 1000f).roundToInt()
+        val segment = Notification.ProgressStyle.Segment(1000).setColor(color)
         val style = Notification.ProgressStyle()
             .setProgress(progressUnits)
-            .addProgressSegment(Notification.ProgressStyle.Segment(1000))
+            .addProgressSegment(segment)
         return builder.setStyle(style)
     }
 
@@ -183,24 +217,67 @@ open class LiveNotificationBuilder(
     private val sdkInt: Int = Build.VERSION.SDK_INT,
     private val sdkIntFull: Int = if (Build.VERSION.SDK_INT >= 36) Build.VERSION.SDK_INT_FULL else 0,
     private val platformCaller: PlatformNotificationCaller = DefaultPlatformNotificationCaller,
+    private val settingsSupplier: () -> Settings = { Settings() },
+    private val isNight: () -> Boolean = {
+        (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+    },
+    private val promotedGate: PromotedGate = PromotedGate(context, { sdkInt }, { sdkIntFull }),
+    private val promotedDismissedOnSupplier: () -> String? = { settingsSupplier().promotedDismissedOn },
+    private val todaySupplier: () -> String = { LocalDate.now().toString() },
 ) {
+    private fun resolveActivePalette(): EmberbytePalette {
+        val settings = settingsSupplier()
+        val dark = when (settings.themeMode) {
+            ThemeMode.SYSTEM -> isNight()
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+        }
+        val preset = ThemePresets.firstOrNull { it.id == settings.themeId }
+            ?: ThemePresets.first()
+        return if (dark) preset.dark else preset.light
+    }
+
+    private fun resolveStateColorArgb(palette: EmberbytePalette, state: BudgetStateUi): Int {
+        val color = when (state) {
+            BudgetStateUi.Ok -> palette.primary
+            BudgetStateUi.Warning -> palette.warn
+            BudgetStateUi.Exceeded -> palette.danger
+        }
+        return color.toArgb()
+    }
+
     open fun build(text: LiveNotificationText): Notification {
         val style = resolveLiveNotificationStyle(sdkInt, sdkIntFull, text.progress != null)
+        val palette = resolveActivePalette()
+        val stateColorArgb = resolveStateColorArgb(palette, text.state)
         if (style == LiveNotificationStyle.COMPAT || text.progress == null) {
-            return buildStandard(text)
+            return buildStandard(text, stateColorArgb)
         }
-        return buildLiveUpdateNotification(text, text.progress, style)
+        return buildLiveUpdateNotification(text, text.progress, style, stateColorArgb)
     }
 
     fun buildStandard(text: LiveNotificationText): Notification {
+        val palette = resolveActivePalette()
+        val stateColorArgb = resolveStateColorArgb(palette, text.state)
+        return buildStandard(text, stateColorArgb)
+    }
+
+    fun buildStandard(text: LiveNotificationText, colorArgb: Int): Notification {
         val open = PendingIntent.getActivity(
             context,
             0,
             DeepLinks.intent(context, DeepLinks.HOME),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val deleteIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, PromotedDismissReceiver::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         return NotificationCompat.Builder(context, NotificationChannels.LIVE)
             .setSmallIcon(R.drawable.ic_stat_ember)
+            .setColor(colorArgb)
             .setContentTitle(text.title)
             .setContentText(text.text)
             .setTicker(text.contentDescription)
@@ -210,6 +287,7 @@ open class LiveNotificationBuilder(
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(open)
+            .setDeleteIntent(deleteIntent)
             .build()
     }
 
@@ -217,6 +295,7 @@ open class LiveNotificationBuilder(
         text: LiveNotificationText,
         progress: LiveProgress,
         style: LiveNotificationStyle,
+        colorArgb: Int,
     ): Notification {
         val open = PendingIntent.getActivity(
             context,
@@ -224,8 +303,15 @@ open class LiveNotificationBuilder(
             DeepLinks.intent(context, DeepLinks.HOME),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val deleteIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, PromotedDismissReceiver::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         val builder = Notification.Builder(context, NotificationChannels.LIVE)
             .setSmallIcon(R.drawable.ic_stat_ember)
+            .setColor(colorArgb)
             .setContentTitle(text.title)
             .setContentText(text.text)
             .setTicker(text.contentDescription)
@@ -234,15 +320,29 @@ open class LiveNotificationBuilder(
             .setShowWhen(false)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setContentIntent(open)
+            .setDeleteIntent(deleteIntent)
 
         if (Build.VERSION.SDK_INT >= 31) {
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
         }
 
-        platformCaller.setProgressStyle(builder, progress.fractionUsed)
+        platformCaller.setProgressStyle(builder, progress.fractionUsed, colorArgb)
         platformCaller.setShortCriticalText(builder, progress.chip)
-        if (style == LiveNotificationStyle.PROMOTED) {
-            platformCaller.setRequestPromotedOngoing(builder, true)
+
+        val settings = settingsSupplier()
+        val isDismissedToday = promotedDismissedOnSupplier() == todaySupplier()
+        val shouldPromote = settings.liveNotificationEnabled &&
+            promotedGate.mayPost() &&
+            !isDismissedToday
+
+        if (shouldPromote) {
+            if (promotedGate.usesExtraForPromotion()) {
+                val extras = android.os.Bundle()
+                extras.putBoolean("android.requestPromotedOngoing", true)
+                builder.addExtras(extras)
+            } else {
+                platformCaller.setRequestPromotedOngoing(builder, true)
+            }
         }
         return builder.build()
     }

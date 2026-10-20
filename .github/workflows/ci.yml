@@ -22,6 +22,14 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Python tool tests
+        run: |
+          python tools/test_test_diff.py
+          python tools/test_check_cited_tests.py
+          python tools/palettes/generate_palettes.py --check
       - name: Build, test and lint
         run: ./gradlew testDebugUnitTest :core:engine:test lintDebug assembleDebug assembleRelease lintRelease verifyReleaseApk --stacktrace
       - name: Upload unsigned release APK

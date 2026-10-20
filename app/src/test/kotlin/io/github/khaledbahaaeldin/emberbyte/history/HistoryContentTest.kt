@@ -16,6 +16,7 @@ import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeUsageRepository
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -80,7 +81,7 @@ class HistoryContentTest {
         )
 
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 HistoryScreen(viewModel = vm, onBack = {})
             }
         }
@@ -144,7 +145,7 @@ class HistoryContentTest {
         )
 
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 HistoryScreen(viewModel = vm, onBack = {})
             }
         }

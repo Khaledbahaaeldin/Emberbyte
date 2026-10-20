@@ -12,7 +12,9 @@ abstract class PlanDao {
     @Query("SELECT * FROM plan WHERE id = :id") abstract fun observePlan(id: Long): Flow<PlanEntity?>
     @Query("SELECT * FROM plan WHERE id = :id") abstract suspend fun plan(id: Long): PlanEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putPlan(entity: PlanEntity): Long
-    @Query("UPDATE plan SET archived = :archived WHERE id = :id") abstract suspend fun setArchived(id: Long, archived: Boolean): Int
+    @Query("UPDATE plan SET archived = :archived, pinned = CASE WHEN :archived THEN 0 ELSE pinned END WHERE id = :id") abstract suspend fun setArchived(id: Long, archived: Boolean): Int
+    @Query("UPDATE plan SET pinned = :pinned WHERE id = :id") abstract suspend fun setPinned(id: Long, pinned: Boolean): Int
+    @Query("UPDATE plan SET pinned = 0") abstract suspend fun clearAllPinned(): Int
 
     @Query("SELECT * FROM add_on WHERE planId = :planId ORDER BY validFrom, id") abstract fun observeAddOns(planId: Long): Flow<List<AddOnEntity>>
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putAddOn(entity: AddOnEntity): Long

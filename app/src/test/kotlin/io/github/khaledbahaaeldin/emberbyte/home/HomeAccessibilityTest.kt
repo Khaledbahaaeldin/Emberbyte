@@ -31,6 +31,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanChipUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -81,7 +82,7 @@ class HomeAccessibilityTest {
 
     private fun show(state: HomeUiState = sampleHomeState) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 HomeContent(
                     state = state,
                     onEvent = {},
@@ -144,7 +145,7 @@ class HomeAccessibilityTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density = 2f, fontScale = 2f),
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     Box(Modifier.size(360.dp, 2000.dp)) {
                         HomeContent(
                             state = sampleHomeState,
@@ -182,5 +183,12 @@ class HomeAccessibilityTest {
         downText.assertIsDisplayed()
         val downBounds = downText.getBoundsInRoot()
         assertTrue("Speed number right edge exceeds 360dp parent", downBounds.right <= 360.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun home_7_day_row_opens_at_end_showing_todays_bar_at_rest() {
+        show()
+        rule.onNodeWithContentDescription("Sunday, 600 megabytes").assertIsDisplayed()
     }
 }

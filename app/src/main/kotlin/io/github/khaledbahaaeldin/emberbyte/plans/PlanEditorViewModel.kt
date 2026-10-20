@@ -10,15 +10,18 @@ import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
 import io.github.khaledbahaaeldin.emberbyte.data.alert.AlertRepository
 import io.github.khaledbahaaeldin.emberbyte.data.source.SimInfoSource
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
+import io.github.khaledbahaaeldin.emberbyte.engine.plan.CycleCalculator
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AddOn
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AlertRule
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.EmberbyteError
+import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.FreeRule
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Plan
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover
 import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import java.time.Clock
 import java.time.LocalDate
@@ -50,6 +53,7 @@ class PlanEditorViewModel(
     private val locale: Locale = Locale.getDefault(),
     private val previewDebounceMillis: Long = 300L,
     private val savedStateHandle: SavedStateHandle,
+    private val widgetRefresh: suspend () -> Unit = {},
 ) : ViewModel() {
     private val hasRestored = savedStateHandle.get<String>(KEY_FORM)?.let { PlanEditorFormJson.decode(it) } != null
     private var isRestoredDirty = hasRestored
@@ -156,6 +160,14 @@ class PlanEditorViewModel(
 
         val hasRestored = savedStateHandle.get<String>(KEY_FORM)?.let { PlanEditorFormJson.decode(it) } != null
         if (!hasRestored) {
+            val (fcChoice, enteredAmt, enteredU) = when (val fc = plan.firstCycle) {
+                is FirstCycle.PhoneRecord -> Triple(FirstCycleChoice.PhoneRecord, "", CapUnit.GB)
+                is FirstCycle.Entered -> {
+                    val (t, u) = textAndUnitOf(fc.usedBytes, system)
+                    Triple(FirstCycleChoice.Entered, t, u)
+                }
+                is FirstCycle.StartsNextCycle -> Triple(FirstCycleChoice.StartNextCycle, "", CapUnit.GB)
+            }
             val form = PlanEditorForm(
                 name = plan.name,
                 subscriptionId = plan.subscriptionId,
@@ -172,6 +184,11 @@ class PlanEditorViewModel(
                 addOns = addOnDrafts,
                 freeRules = freeRuleDrafts,
                 alertThresholds = thresholds,
+                firstCycle = plan.firstCycle,
+                firstCycleChoice = fcChoice,
+                enteredAmount = enteredAmt,
+                enteredUnit = enteredU,
+                pinned = plan.pinned,
             )
             loadedForm = form
             _state.update { it.copy(form = form, loading = false, whatIf = initialWhatIf, isDirty = false) }
@@ -296,10 +313,77 @@ class PlanEditorViewModel(
                     it.copy(alertThresholds = next)
                 }
             }
+            is PlanEditorEvent.SetFirstCycleChoice -> {
+                val cycle = when (_state.value.form.cycleKind) {
+                    CycleKind.Monthly -> Cycle.MonthlyOnDay(_state.value.form.dayOfMonth, _state.value.form.renewalTime, zone)
+                    CycleKind.EveryNDays -> Cycle.EveryNDays(_state.value.form.everyDays, _state.value.form.anchor, _state.value.form.renewalTime, zone)
+                }
+                val now = clock.instant()
+                val window = CycleCalculator.windowAt(cycle, now)
+                val newFirstCycle = when (event.choice) {
+                    FirstCycleChoice.PhoneRecord -> FirstCycle.PhoneRecord
+                    FirstCycleChoice.Entered -> {
+                        val bytes = bytesOf(_state.value.form.enteredAmount, _state.value.form.enteredUnit, _state.value.unitSystem) ?: 0L
+                        FirstCycle.Entered(usedBytes = bytes, enteredAt = now, cycleStart = window.start)
+                    }
+                    FirstCycleChoice.StartNextCycle -> FirstCycle.StartsNextCycle(startsAt = window.end)
+                }
+                updateForm {
+                    val newEnteredAmount = if (event.choice == FirstCycleChoice.PhoneRecord) "" else it.enteredAmount
+                    it.copy(
+                        firstCycleChoice = event.choice,
+                        firstCycle = newFirstCycle,
+                        enteredAmount = newEnteredAmount,
+                    )
+                }
+            }
+            is PlanEditorEvent.SetEnteredAmount -> {
+                val cycle = when (_state.value.form.cycleKind) {
+                    CycleKind.Monthly -> Cycle.MonthlyOnDay(_state.value.form.dayOfMonth, _state.value.form.renewalTime, zone)
+                    CycleKind.EveryNDays -> Cycle.EveryNDays(_state.value.form.everyDays, _state.value.form.anchor, _state.value.form.renewalTime, zone)
+                }
+                val now = clock.instant()
+                val window = CycleCalculator.windowAt(cycle, now)
+                val bytes = bytesOf(event.amount, _state.value.form.enteredUnit, _state.value.unitSystem) ?: 0L
+                val fc = if (_state.value.form.firstCycleChoice == FirstCycleChoice.Entered) {
+                    FirstCycle.Entered(usedBytes = bytes, enteredAt = now, cycleStart = window.start)
+                } else {
+                    _state.value.form.firstCycle
+                }
+                updateForm {
+                    it.copy(
+                        enteredAmount = event.amount,
+                        firstCycle = fc,
+                    )
+                }
+            }
+            is PlanEditorEvent.SetEnteredUnit -> {
+                val cycle = when (_state.value.form.cycleKind) {
+                    CycleKind.Monthly -> Cycle.MonthlyOnDay(_state.value.form.dayOfMonth, _state.value.form.renewalTime, zone)
+                    CycleKind.EveryNDays -> Cycle.EveryNDays(_state.value.form.everyDays, _state.value.form.anchor, _state.value.form.renewalTime, zone)
+                }
+                val now = clock.instant()
+                val window = CycleCalculator.windowAt(cycle, now)
+                val bytes = bytesOf(_state.value.form.enteredAmount, event.unit, _state.value.unitSystem) ?: 0L
+                val fc = if (_state.value.form.firstCycleChoice == FirstCycleChoice.Entered) {
+                    FirstCycle.Entered(usedBytes = bytes, enteredAt = now, cycleStart = window.start)
+                } else {
+                    _state.value.form.firstCycle
+                }
+                updateForm {
+                    it.copy(
+                        enteredUnit = event.unit,
+                        firstCycle = fc,
+                    )
+                }
+            }
             PlanEditorEvent.Save -> {
                 viewModelScope.launch { save() }
             }
             PlanEditorEvent.Archive -> {
+                viewModelScope.launch { archive() }
+            }
+            PlanEditorEvent.Delete -> {
                 viewModelScope.launch { archive() }
             }
         }
@@ -353,6 +437,7 @@ class PlanEditorViewModel(
                 isRestoredDirty = false
                 loadedForm = _state.value.form
                 _state.update { it.copy(planId = res.value, isNew = false, saved = true, saving = false, isDirty = false) }
+                widgetRefresh()
             }
             is Outcome.Failure -> {
                 val err = when (val e = res.error) {
@@ -373,6 +458,7 @@ class PlanEditorViewModel(
                 isRestoredDirty = false
                 loadedForm = _state.value.form
                 _state.update { it.copy(saved = true, isDirty = false) }
+                widgetRefresh()
             }
             is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not archive. Try again.")) }
         }

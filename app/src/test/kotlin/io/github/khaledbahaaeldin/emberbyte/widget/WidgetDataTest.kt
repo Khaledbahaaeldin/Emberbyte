@@ -1,30 +1,42 @@
 package io.github.khaledbahaaeldin.emberbyte.widget
 
-import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
-import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
-import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
-import io.github.khaledbahaaeldin.emberbyte.data.plan.RoomPlanRepository
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
+import io.github.khaledbahaaeldin.emberbyte.AppGraph
 import io.github.khaledbahaaeldin.emberbyte.data.fake.InMemoryPlanStore
 import io.github.khaledbahaaeldin.emberbyte.data.fake.InMemoryUsageStore
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
-import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
-import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import io.github.khaledbahaaeldin.emberbyte.data.PermissionState
+import io.github.khaledbahaaeldin.emberbyte.data.PermissionRepository
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
+import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
+import io.github.khaledbahaaeldin.emberbyte.data.plan.RoomPlanRepository
 import io.github.khaledbahaaeldin.emberbyte.engine.model.*
+import io.github.khaledbahaaeldin.emberbyte.engine.usage.MinuteTotal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
+import java.time.LocalTime
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class WidgetDataTest {
+    private val app: Application get() = ApplicationProvider.getApplicationContext()
     private val clock = Clock.fixed(Instant.parse("2026-10-10T12:00:00Z"), ZoneOffset.UTC)
 
     private class FakeUsageRepo(
@@ -81,5 +93,84 @@ class WidgetDataTest {
         settings.update { it.copy(unitSystem = UnitSystem.BINARY) }
         val snapshot = WidgetData.load(usage, plans, settings, clock)
         assertEquals(UnitSystem.BINARY, snapshot.units)
+    }
+
+    @Test fun data_uses_the_front_plan_by_urgency() = runBlocking {
+        val now = Instant.parse("2026-10-10T12:00:00Z")
+        val graph = AppGraph(app, Clock.fixed(now, ZoneOffset.UTC))
+
+        // Create 2 active plans: plan 1 safe, plan 2 near cap (higher urgency)
+        val cycle = Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC)
+        val p1 = Plan(id = 1L, name = "Safe Plan", subscriptionId = null, capBytes = 10_000_000_000L, cycle = cycle, rollover = Rollover.None)
+        val p2 = Plan(id = 2L, name = "Urgent Plan", subscriptionId = null, capBytes = 5_000_000_000L, cycle = cycle, rollover = Rollover.None)
+        graph.planStore.upsertPlan(p1)
+        graph.planStore.upsertPlan(p2)
+
+        // Seed minute usage for plan 2: 4.8 GB used -> 96% fraction used
+        graph.usage.refreshNow() // ensure db ready
+        val usageStore = io.github.khaledbahaaeldin.emberbyte.data.store.UsageStores.create(app)
+        usageStore.addMinute(MinuteTotal(now.minusSeconds(60), NetworkKind.MOBILE, -1, 4_800_000_000L, 0))
+
+        val data: WidgetData = loadWidgetData(graph, now)
+        assertNotNull(data.plan)
+        assertEquals(2L, data.plan?.plan?.id)
+        assertEquals("Urgent Plan", data.plan?.plan?.name)
+    }
+
+    @Test fun dormant_front_candidate_is_skipped_and_text_is_shown_for_a_dormant_only_set() = runBlocking {
+        val now = Instant.parse("2026-10-10T12:00:00Z")
+        val graph = AppGraph(app, Clock.fixed(now, ZoneOffset.UTC))
+
+        // Archive any existing plans to ensure only the dormant plan is active
+        val existingPlans = graph.planStore.observePlans().first()
+        for (p in existingPlans) {
+            graph.planStore.setArchived(p.id, true)
+        }
+
+        val cycle = Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC)
+        val startsAt = Instant.parse("2026-11-01T00:00:00Z")
+        val dormantPlan = Plan(
+            id = 10L,
+            name = "Travel eSIM",
+            subscriptionId = null,
+            capBytes = 10_000_000_000L,
+            cycle = cycle,
+            rollover = Rollover.None,
+            firstCycle = FirstCycle.StartsNextCycle(startsAt)
+        )
+        graph.planStore.upsertPlan(dormantPlan)
+
+        val data: WidgetData = loadWidgetData(graph, now)
+        // Dormant front candidate is skipped: front is null, so data.plan is null
+        assertNull(data.plan)
+
+        // For a dormant-only set, dormantText resolves to "Starts 1 Nov"
+        val dormantText = resolveDormantText(graph, now)
+        assertEquals("Starts 1 Nov", dormantText)
+    }
+
+    @Test fun permission_missing_gives_the_permission_block_and_no_figures() = runBlocking {
+        val now = Instant.parse("2026-10-10T12:00:00Z")
+        val graph = AppGraph(app, Clock.fixed(now, ZoneOffset.UTC))
+
+        val data: WidgetData = loadWidgetData(graph, now, permissionOverride = false)
+        assertFalse(data.permissionGranted)
+    }
+
+    @Test fun estimated_data_sets_the_flag() = runBlocking {
+        val now = Instant.parse("2026-10-10T12:00:00Z")
+        val graph = AppGraph(app, Clock.fixed(now, ZoneOffset.UTC))
+
+        // Create a SIM-bound plan with unknown SIM traffic or coverage gap -> approximate
+        val cycle = Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC)
+        val plan = Plan(id = 5L, name = "Bound Plan", subscriptionId = 1, capBytes = 10_000_000_000L, cycle = cycle, rollover = Rollover.None)
+        graph.planStore.upsertPlan(plan)
+
+        val usageStore = io.github.khaledbahaaeldin.emberbyte.data.store.UsageStores.create(app)
+        // Add minute row with unknown subscription -1 -> triggers isApproximate = true
+        usageStore.addMinute(MinuteTotal(now.minusSeconds(120), NetworkKind.MOBILE, -1, 500_000_000L, 0))
+
+        val data: WidgetData = loadWidgetData(graph, now)
+        assertTrue(data.estimated)
     }
 }

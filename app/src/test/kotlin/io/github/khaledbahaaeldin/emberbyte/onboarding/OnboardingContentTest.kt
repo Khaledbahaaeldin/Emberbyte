@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -26,7 +27,7 @@ class OnboardingContentTest {
         setUpPlan: () -> Unit = {},
         finish: () -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             OnboardingContent(
                 state = state,
                 onOpenUsageAccess = usage,
@@ -45,28 +46,33 @@ class OnboardingContentTest {
     @Test fun both_step_buttons_report_their_actions() {
         var usage = 0; var notifications = 0
         show(OnboardingUiState(), usage = { usage++ }, notifications = { notifications++ })
-        rule.onNodeWithText("Open settings").performClick()
-        rule.onNodeWithText("Allow notifications").performClick()
+        rule.onNodeWithText("Skip").performClick()
+        rule.onNodeWithText("Open settings").performScrollTo().performClick()
+        rule.onNodeWithText("Allow notifications").performScrollTo().performClick()
         assertEquals(1, usage); assertEquals(1, notifications)
     }
 
     @Test fun granted_steps_show_allowed_instead_of_a_button() {
         show(OnboardingUiState(usageAccess = true, notifications = true))
-        rule.onNodeWithText("Usage access allowed").assertIsDisplayed()
-        rule.onNodeWithText("Notifications allowed").assertIsDisplayed()
+        rule.onNodeWithText("Skip").performClick()
+        rule.onNodeWithText("Usage access allowed").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Notifications allowed").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun continue_and_skip_both_finish() {
         var finished = 0
-        show(OnboardingUiState(), finish = { finished++ })
-        rule.onNodeWithText("Skip for now").performScrollTo().performClick()
-        rule.onNodeWithText("Continue").performScrollTo().performClick()
-        assertEquals(2, finished)
+        show(OnboardingUiState(usageAccess = true), finish = { finished++ })
+        rule.onNodeWithText("Skip").performClick()
+        rule.onNodeWithText("Continue").assertIsDisplayed()
+        rule.onNodeWithText("Skip for now").performClick()
+        assertEquals(1, finished)
     }
 
     @Test fun the_plan_step_offers_to_set_up_a_plan() {
         var setUpPlanCalled = false
         show(OnboardingUiState(), setUpPlan = { setUpPlanCalled = true })
+        rule.onNodeWithText("Next").performClick()
+        rule.onNodeWithText("Next").performClick()
         rule.onNodeWithText("Your data plan").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Set up a plan").performScrollTo().performClick()
         assertTrue(setUpPlanCalled)
@@ -74,6 +80,8 @@ class OnboardingContentTest {
 
     @Test fun a_plan_that_exists_shows_plan_added() {
         show(OnboardingUiState(hasPlan = true))
+        rule.onNodeWithText("Next").performClick()
+        rule.onNodeWithText("Next").performClick()
         rule.onNodeWithText("Plan added").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Set up a plan").assertDoesNotExist()
     }

@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.GapUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -24,7 +25,7 @@ class PermissionPromptTest {
     @Test fun prompt_shows_its_text_and_reports_the_action() {
         var clicks = 0
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 PermissionPrompt(
                     PermissionPromptUi("usage_access", "Allow usage access", "See which apps use your data.", "Open settings"),
                     onAction = { clicks++ },
@@ -39,7 +40,7 @@ class PermissionPromptTest {
 
     @Test fun prompt_action_button_meets_minimum_touch_target_height() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 PermissionPrompt(
                     PermissionPromptUi("usage_access", "Allow usage access", "See which apps use your data.", "Open settings"),
                     onAction = {},
@@ -51,7 +52,7 @@ class PermissionPromptTest {
 
     @Test fun gap_banner_shows_its_message() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 GapBanner(GapUi("Not measured 02:10–03:40 because the app was stopped"))
             }
         }

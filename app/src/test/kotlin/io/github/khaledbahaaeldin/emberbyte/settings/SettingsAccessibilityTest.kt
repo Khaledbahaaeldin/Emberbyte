@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Density
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -41,7 +42,7 @@ class SettingsAccessibilityTest {
 
     private fun show(settings: Settings = Settings(), dataUiState: DataUiState = DataUiState()) {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SettingsContent(
                     settings = settings,
                     onUpdate = {},
@@ -57,7 +58,7 @@ class SettingsAccessibilityTest {
 
     @Test
     fun switches_in_settings_are_merged_with_their_labels_into_one_clickable_node_with_role_switch() {
-        show(Settings(liveNotificationEnabled = true, useDynamicColor = false))
+        show(Settings(liveNotificationEnabled = true, amoledBlack = false))
 
         // "Live notification" should be a single toggleable node merging the text and the switch
         val liveNode = rule.onNodeWithText("Live notification")
@@ -69,11 +70,11 @@ class SettingsAccessibilityTest {
         val unmergedLiveNodes = rule.onAllNodesWithText("Live notification", useUnmergedTree = true)
         unmergedLiveNodes.assertCountEquals(1)
 
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Dynamic colour"))
-        val dynamicColorNode = rule.onNodeWithText("Dynamic colour")
-        dynamicColorNode.assertIsDisplayed()
-        dynamicColorNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
-        dynamicColorNode.assertIsOff()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("AMOLED black"))
+        val amoledBlackNode = rule.onNodeWithText("AMOLED black")
+        amoledBlackNode.assertIsDisplayed()
+        amoledBlackNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        amoledBlackNode.assertIsOff()
     }
 
     @Test
@@ -87,7 +88,7 @@ class SettingsAccessibilityTest {
     fun data_dialogs_touch_targets_are_at_least_48dp() {
         // Passphrase dialog
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CreateBackupPassphraseDialog(onDismiss = {}, onCreate = {})
             }
         }
@@ -97,7 +98,7 @@ class SettingsAccessibilityTest {
     @Test
     fun restore_dialogs_touch_targets_are_at_least_48dp() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 RestoreWarningDialog(onDismiss = {}, onConfirm = {})
             }
         }
@@ -107,7 +108,7 @@ class SettingsAccessibilityTest {
     @Test
     fun csv_range_dialog_touch_targets_are_at_least_48dp() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CsvRangeDialog(onDismiss = {}, onSelectRange = {})
             }
         }
@@ -122,7 +123,7 @@ class SettingsAccessibilityTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density = 2.625f, fontScale = 2f),
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     CreateBackupPassphraseDialog(
                         onDismiss = { dismissed = true },
                         onCreate = { created = true },
@@ -140,7 +141,7 @@ class SettingsAccessibilityTest {
 
         // Cancel button is displayed and clickable above IME
         val cancelButton = rule.onNodeWithText("Cancel")
-        cancelButton.performScrollTo().assertIsDisplayed()
+        cancelButton.assertIsDisplayed()
         val cancelBounds = cancelButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Cancel button bottom (${cancelBounds.bottom}) must be <= IME top ($imeTopPx)",
@@ -151,7 +152,7 @@ class SettingsAccessibilityTest {
 
         // Create button is displayed above IME
         val createButton = rule.onNodeWithText("Create")
-        createButton.performScrollTo().assertIsDisplayed()
+        createButton.assertIsDisplayed()
         val createBounds = createButton.fetchSemanticsNode().boundsInRoot
         assertTrue(
             "Create button bottom (${createBounds.bottom}) must be <= IME top ($imeTopPx)",

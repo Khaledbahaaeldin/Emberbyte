@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -55,7 +56,14 @@ class NavigationStabilityTest {
             val settings by graph.settingsState.collectAsState()
             val current = settings
             if (current != null) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = current.useDynamicColor, amoledBlack = current.amoledBlack) {
+                EmberbyteTheme(
+                    spec = EmberbyteThemeSpec(
+                        presetId = current.themeId,
+                        darkTheme = true,
+                        amoled = current.amoledBlack,
+                        wallpaperColors = current.useWallpaperColors,
+                    ),
+                ) {
                     EmberbyteApp(graph, hapticsEnabled = current.hapticsEnabled)
                 }
             }
@@ -63,7 +71,7 @@ class NavigationStabilityTest {
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("nav_apps").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("nav_apps").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Search apps").fetchSemanticsNodes().isNotEmpty() }
-        runBlocking { graph.settings.update { it.copy(useDynamicColor = false) } }
+        runBlocking { graph.settings.update { it.copy(useWallpaperColors = true) } }
         rule.waitForIdle()
         rule.onNodeWithText("Search apps").assertIsDisplayed()
     }

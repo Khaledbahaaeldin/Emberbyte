@@ -72,4 +72,29 @@ class NoticeCoversDependenciesTest {
             missingComponents.isEmpty()
         )
     }
+
+    @Test
+    fun notice_credits_all_nine_palettes_and_roboto_flex() {
+        val noticeText = findNoticeFile().readText(Charsets.UTF_8)
+        val requiredCredits = listOf(
+            "Roboto Flex",
+            "Catppuccin",
+            "Gruvbox",
+            "Nord",
+            "Rosé Pine",
+            "Solarized",
+            "Dracula",
+            "Tokyo Night",
+            "Everforest",
+            "Kanagawa"
+        )
+        val missing = requiredCredits.filterNot { credit ->
+            noticeText.contains(credit, ignoreCase = true) ||
+                (credit == "Rosé Pine" && noticeText.contains("Rose Pine", ignoreCase = true))
+        }
+        assertTrue(
+            "NOTICE is missing credits for palettes or Roboto Flex: $missing",
+            missing.isEmpty()
+        )
+    }
 }

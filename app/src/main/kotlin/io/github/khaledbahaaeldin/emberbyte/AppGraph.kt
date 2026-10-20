@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte
 
 import android.content.Context
+import android.content.res.Configuration
 import android.text.format.DateFormat
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.ViewModelProvider
@@ -51,6 +52,8 @@ import io.github.khaledbahaaeldin.emberbyte.data.store.UsageStore
 import io.github.khaledbahaaeldin.emberbyte.data.store.UsageStores
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
 import io.github.khaledbahaaeldin.emberbyte.apps.AppsViewModel
 import io.github.khaledbahaaeldin.emberbyte.history.HistoryViewModel
@@ -58,6 +61,7 @@ import io.github.khaledbahaaeldin.emberbyte.home.HomeViewModel
 import io.github.khaledbahaaeldin.emberbyte.onboarding.OnboardingViewModel
 import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorViewModel
 import io.github.khaledbahaaeldin.emberbyte.plans.PlansViewModel
+import io.github.khaledbahaaeldin.emberbyte.settings.AppearanceViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.DataViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.SettingsViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.StreamOpener
@@ -74,7 +78,7 @@ import kotlinx.coroutines.flow.stateIn
  * Hand-written dependency graph (no DI framework). One instance per process, owned by [EmberbyteApplication].
  * Production wiring only: the `Fake*` classes in `:core:data` are for tests and previews.
  */
-class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
+class AppGraph(context: Context, val clock: Clock = AppClock) {
     private val appContext = context.applicationContext
     private val preferences = AppPreferences.create(appContext)
     private val store: UsageStore = UsageStores.create(appContext)
@@ -100,6 +104,7 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
     val restoreStore: RestoreStore = RoomRestoreStore(EmberbyteDatabases.get(appContext))
     val packageResolver: PackageResolver = PackageManagerPackageResolver(appContext)
     val backupService: BackupService = DefaultBackupService(exportService, restoreStore, packageResolver)
+    val appIcons: AppIconProvider = AppIconProvider(appContext)
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -110,6 +115,16 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
     /** Hot cache of the settings. `null` only until the first read; collecting it never restarts the underlying flow. */
     val settingsState: StateFlow<Settings?> =
         settings.observe().map<Settings, Settings?> { it }.stateIn(appScope, SharingStarted.Eagerly, null)
+
+    /** Hot cache of the theme spec derived from settings. `null` only until the first settings read. */
+    val themeSpec: StateFlow<EmberbyteThemeSpec?> =
+        settingsState.map { s ->
+            s?.let {
+                val systemDark = (appContext.resources.configuration.uiMode and
+                    Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                themeSpecOf(it, systemDark)
+            }
+        }.stateIn(appScope, SharingStarted.Eagerly, null)
 
     val sampler = SamplerEngine(
         counters = TrafficStatsCounterSource(appContext, clock),
@@ -181,6 +196,10 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
         initializer { SettingsViewModel(settings) }
     }
 
+    fun appearanceViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
+        initializer { AppearanceViewModel(settings) }
+    }
+
     fun dataViewModelFactory(opener: StreamOpener): ViewModelProvider.Factory = viewModelFactory {
         initializer { DataViewModel(exportService, backupService, opener, clock) }
     }
@@ -204,6 +223,17 @@ class AppGraph(context: Context, val clock: Clock = SystemZoneClock()) {
                 sims = simInfo,
                 clock = clock,
                 savedStateHandle = createSavedStateHandle(),
+            )
+        }
+    }
+
+    fun planFlowViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
+        initializer {
+            io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowViewModel(
+                plans = plans,
+                settings = settings,
+                sims = simInfo,
+                clock = clock,
             )
         }
     }

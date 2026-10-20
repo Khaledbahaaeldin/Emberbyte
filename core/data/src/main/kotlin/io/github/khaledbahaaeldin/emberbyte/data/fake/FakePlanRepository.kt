@@ -67,7 +67,21 @@ class FakePlanRepository(private val clock: Clock = Clock.systemUTC()) : PlanRep
 
     override suspend fun archivePlan(planId: Long): Outcome<Unit> {
         if (plans.value.none { it.id == planId }) return Outcome.Failure(EmberbyteError.NotFound)
-        plans.update { list -> list.map { if (it.id == planId) it.copy(archived = true) else it } }
+        plans.update { list -> list.map { if (it.id == planId) it.copy(archived = true, pinned = false) else it } }
+        return Outcome.Success(Unit)
+    }
+
+    override suspend fun setPinned(id: Long, pinned: Boolean): Outcome<Unit> {
+        if (plans.value.none { it.id == id }) return Outcome.Failure(EmberbyteError.NotFound)
+        plans.update { list ->
+            list.map {
+                when {
+                    it.id == id -> it.copy(pinned = pinned)
+                    pinned -> it.copy(pinned = false)
+                    else -> it
+                }
+            }
+        }
         return Outcome.Success(Unit)
     }
 

@@ -32,7 +32,7 @@ class ReduceMotionObserverTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         setScale(context, 1f)
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 Text(if (LocalReduceMotion.current) "reduced" else "full", Modifier.testTag("probe"))
             }
         }
@@ -51,7 +51,7 @@ class ReduceMotionObserverTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         setScale(context, 0f)
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 Text(if (LocalReduceMotion.current) "reduced" else "full", Modifier.testTag("probe"))
             }
         }
@@ -65,7 +65,7 @@ class ReduceMotionObserverTest {
 
         rule.setContent {
             if (showTheme) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     Text("probe", Modifier.testTag("probe"))
                 }
             }

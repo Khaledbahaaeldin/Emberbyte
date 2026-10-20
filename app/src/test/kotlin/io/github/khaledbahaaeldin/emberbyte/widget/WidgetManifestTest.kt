@@ -18,8 +18,14 @@ class WidgetManifestTest {
         val intent = Intent("android.appwidget.action.APPWIDGET_UPDATE").setPackage(context.packageName)
         val receivers = pm.queryBroadcastReceivers(intent, 0)
         val names = receivers.map { it.activityInfo.name }
+        assertTrue(names.contains("${context.packageName}.widget.TodayWidgetReceiver"))
+        assertTrue(names.contains("${context.packageName}.widget.PlanWidgetReceiver"))
         assertTrue(names.contains("${context.packageName}.widget.HeroWidgetReceiver"))
         assertTrue(names.contains("${context.packageName}.widget.BentoWidgetReceiver"))
+        assertTrue(names.contains("${context.packageName}.widget.DashboardWidgetReceiver"))
+
+        val planReceiver = receivers.find { it.activityInfo.name == "${context.packageName}.widget.PlanWidgetReceiver" }
+        assertTrue(planReceiver?.activityInfo?.exported == true)
         
         val heroReceiver = receivers.find { it.activityInfo.name == "${context.packageName}.widget.HeroWidgetReceiver" }
         assertTrue(heroReceiver?.activityInfo?.exported == true)

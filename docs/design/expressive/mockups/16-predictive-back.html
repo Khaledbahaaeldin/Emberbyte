@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Predictive back: current vs refined</title>
+<style>
+  :root { --bg:#110F19; --surface:#1D1929; --surface2:#2A2440; --text:#EAE6F5; --muted:#A9A3BF; --primary:#D0BCFF; --onPrimary:#2A1858; --accent:#C9F0D3; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0B0A10; color:var(--text); font:15px/1.5 "Roboto Flex", system-ui, sans-serif; padding:22px 14px 60px; display:flex; flex-direction:column; align-items:center; gap:18px; }
+  h2 { margin:0; font-weight:800; font-size:22px; text-align:center; }
+  p.lead { margin:0; max-width:560px; color:var(--muted); text-align:center; }
+  .row { display:flex; gap:26px; flex-wrap:wrap; justify-content:center; }
+  .col { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .col b { font-size:14px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .phone { position:relative; width:230px; height:470px; border-radius:30px; background:#000; overflow:hidden; border:3px solid #26233a; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .edge { position:absolute; left:0; top:0; bottom:0; width:34px; z-index:20; cursor:ew-resize; }
+  .edge::after { content:""; position:absolute; left:0; top:45%; width:4px; height:60px; border-radius:2px; background:rgba(208,188,255,.35); }
+  .screen { position:absolute; inset:0; background:var(--bg); overflow:hidden; will-change:transform; }
+  .screen h3 { margin:34px 16px 10px; font-size:24px; font-weight:800; }
+  .card { margin:8px 14px; padding:12px; border-radius:18px; background:var(--surface2); font-size:12px; color:var(--muted); }
+  .card b { display:block; color:var(--text); font-size:14px; }
+  .big { margin:6px 16px; font-size:46px; font-weight:800; color:var(--primary); line-height:1; }
+  .bar { position:absolute; left:50%; bottom:10px; width:150px; height:44px; margin-left:-75px; border-radius:22px; background:var(--surface2); }
+  .scrim { position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; }
+  .hint { font-size:12px; color:var(--muted); max-width:240px; text-align:center; }
+  .panel { width:100%; max-width:560px; background:var(--surface); border-radius:22px; padding:14px 18px; display:grid; gap:10px; }
+  .r { display:grid; grid-template-columns:130px 1fr 52px; gap:10px; align-items:center; font-size:13px; color:var(--muted); }
+  .r b { color:var(--text); text-align:right; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; accent-color:var(--primary); }
+  button { font:inherit; font-weight:700; border:0; border-radius:999px; padding:9px 16px; background:var(--surface2); color:var(--text); cursor:pointer; }
+  ul { margin:0; padding-left:18px; color:var(--muted); font-size:13px; max-width:560px; }
+  li b { color:var(--text); }
+</style>
+</head>
+<body>
+<h2>Predictive back, current vs refined</h2>
+<p class="lead">Press and drag from the left edge of either phone (the lilac handle), then let go. Past about a third of the way the back commits; before that it springs back. The right phone is the target look: the screen shrinks, rounds and follows your finger while the previous screen waits behind it.</p>
+
+<div class="row">
+  <div class="col"><b>Today (slide)</b>
+    <div class="phone" id="pa"></div>
+    <div class="hint">The old screen is dragged flat across the screen. No depth, no preview, no spring, and the previous screen is not visible until it ends.</div></div>
+  <div class="col"><b>Refined (Android 16 style)</b>
+    <div class="phone" id="pb"></div>
+    <div class="hint">Shrinks to 90%, corners round to 32 dp, slides 28 dp toward the finger, the screen behind scales up from 94% and brightens. Spring on release.</div></div>
+</div>
+
+<div class="panel">
+  <div class="r"><span>Shrink at full swipe</span><input id="shrink" type="range" min="80" max="100" value="90"><b id="shrinkv"></b></div>
+  <div class="r"><span>Corner radius</span><input id="radius" type="range" min="0" max="48" value="32"><b id="radiusv"></b></div>
+  <div class="r"><span>Commit threshold</span><input id="thr" type="range" min="15" max="60" value="35"><b id="thrv"></b></div>
+  <div class="r"><span>Release stiffness</span><input id="k" type="range" min="120" max="900" value="380"><b id="kv"></b></div>
+  <div class="r"><span>Release damping</span><input id="z" type="range" min="40" max="100" value="82"><b id="zv"></b></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button id="auto">Play a full back</button><button id="autocancel">Play a cancelled back</button>
+  </div>
+</div>
+
+<ul>
+  <li><b>What the app does today.</b> The NavHost reuses the tab slide for pop transitions, and the Plan editor, the new-plan flow and onboarding call <code>BackHandler</code> with enabled = true, which turns the system animation off and shows nothing while you swipe.</li>
+  <li><b>What Android gives us.</b> Apps targeting Android 16 get predictive back by default. Navigation Compose 2.8+ drives pop transitions from the gesture progress, so replacing the pop transitions is enough for the in-app animation; the back-to-home swipe works as long as nothing intercepts back at the root.</li>
+  <li><b>Guarded screens.</b> The editor and the flow only intercept back when the form is dirty, and then the swipe previews the screen shrinking, and on commit shows the "Discard changes?" dialog instead of leaving.</li>
+</ul>
+
+<script>
+const P = { shrink:.90, radius:32, thr:.35, k:380, z:.82 };
+const bind = (id, fn, fmt) => { const el = document.getElementById(id), o = document.getElementById(id + 'v'); const u = () => { fn(+el.value); o.textContent = fmt(+el.value); }; el.oninput = u; u(); };
+bind('shrink', v => P.shrink = v/100, v => v + '%'); bind('radius', v => P.radius = v, v => v + ' dp'); bind('thr', v => P.thr = v/100, v => v + '%');
+bind('k', v => P.k = v, v => v); bind('z', v => P.z = v/100, v => (v/100).toFixed(2));
+
+function screens(root, kind) {
+  root.innerHTML = '';
+  const back = document.createElement('div'); back.className = 'screen';
+  back.innerHTML = '<h3>Plans</h3><div class="card"><b>Weekend plan</b>9.5 GB left, 13 days</div><div class="card"><b>Work SIM</b>2.1 GB left, 4 days</div><div class="card"><b>Travel</b>Starts 11 Nov</div><div class="bar"></div>';
+  const scrim = document.createElement('div'); scrim.className = 'scrim';
+  const top = document.createElement('div'); top.className = 'screen'; top.style.background = '#1a1626';
+  top.innerHTML = '<h3>New plan</h3><div class="big">12.4</div><div class="card"><b>Cap</b>20 GB, monthly on day 11</div><div class="card"><b>This cycle</b>I\'ve used some already</div>';
+  const edge = document.createElement('div'); edge.className = 'edge';
+  root.append(back, scrim, top, edge);
+  return { root, back, scrim, top, edge, p:0, v:0, target:null, dragging:false, kind };
+}
+const A = screens(document.getElementById('pa'), 'slide'), B = screens(document.getElementById('pb'), 'refined');
+
+function render(s) {
+  const p = Math.max(0, Math.min(1, s.p)), W = s.root.clientWidth;
+  if (s.kind === 'slide') {
+    s.top.style.transform = 'translateX(' + (p * W) + 'px)'; s.top.style.borderRadius = '0';
+    s.back.style.transform = 'none'; s.scrim.style.opacity = 0;
+  } else {
+    const sc = 1 - (1 - P.shrink) * Math.min(1, p / 0.9);                 // gesture phase: shrink, then flies off on commit
+    const tx = Math.min(p, .9) / .9 * 28 + Math.max(0, p - .9) / .1 * (W);
+    s.top.style.transform = 'translateX(' + tx + 'px) scale(' + sc + ')'; s.top.style.transformOrigin = '100% 50%';
+    s.top.style.borderRadius = (P.radius * Math.min(1, p * 4)) + 'px';
+    s.top.style.boxShadow = p > 0 ? '0 10px 40px rgba(0,0,0,.55)' : 'none';
+    const bsc = 0.94 + 0.06 * Math.min(1, p / .9);
+    s.back.style.transform = 'scale(' + bsc + ')'; s.back.style.transformOrigin = '50% 50%';
+    s.scrim.style.opacity = 0.45 * (1 - Math.min(1, p / .9));
+  }
+}
+function finish(s, commit) {                    // spring p to 0 or 1, carrying the release velocity
+  s.target = commit ? 1 : 0;
+}
+function tick(dt) {
+  [A, B].forEach(s => {
+    if (s.dragging || s.target === null) return;
+    const k = s === A ? 260 : P.k, z = s === A ? 1 : P.z, c = 2 * z * Math.sqrt(k), h = dt / 1000 / 4;
+    for (let i = 0; i < 4; i++) { const a = -k * (s.p - s.target) - c * s.v; s.v += a * h; s.p += s.v * h; }
+    if (Math.abs(s.p - s.target) < .0006 && Math.abs(s.v) < .01) { s.p = s.target; s.v = 0; s.target = null; if (s.p === 1) setTimeout(() => { s.p = 0; render(s); }, 700); }
+    render(s);
+  });
+}
+[A, B].forEach(s => {
+  const r = s.root; let lastX = 0, lastT = 0;
+  s.edge.addEventListener('pointerdown', e => { s.edge.setPointerCapture(e.pointerId); s.dragging = true; s.target = null; s.v = 0; lastX = e.clientX; lastT = performance.now(); });
+  s.edge.addEventListener('pointermove', e => { if (!s.dragging) return; const W = r.clientWidth; s.p = Math.max(0, Math.min(1, (e.clientX - r.getBoundingClientRect().left) / (W * 0.9))); const n = performance.now(); s.v = (e.clientX - lastX) / (W * .9) / Math.max(1, n - lastT) * 1000; lastX = e.clientX; lastT = n; render(s); });
+  s.edge.addEventListener('pointerup', () => { s.dragging = false; finish(s, s.p > P.thr || s.v > 1.4); });
+  render(s);
+});
+function play(commit) { [A, B].forEach(s => { s.dragging = true; let t0 = performance.now(); const end = commit ? 0.62 : 0.24; (function f(t) { const u = Math.min(1, (t - t0) / 700); s.p = end * (1 - Math.pow(1 - u, 2)); render(s); if (u < 1) requestAnimationFrame(f); else { s.dragging = false; finish(s, commit); } })(t0); }); }
+document.getElementById('auto').onclick = () => play(true); document.getElementById('autocancel').onclick = () => play(false);
+let prev = performance.now(); (function loop(t) { tick(t - prev); prev = t; requestAnimationFrame(loop); })(prev);
+</script>
+</body>
+</html>

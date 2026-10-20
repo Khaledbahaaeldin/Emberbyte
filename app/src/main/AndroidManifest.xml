@@ -22,6 +22,8 @@
         android:name=".EmberbyteApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="33"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
@@ -65,6 +67,18 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".sampler.PromotedDismissReceiver"
+            android:exported="false" />
+
+        <receiver android:name=".widget.TodayWidgetReceiver" android:exported="true" android:label="@string/widget_hero_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_widget_info" />
+        </receiver>
+        <receiver android:name=".widget.PlanWidgetReceiver" android:exported="true" android:label="@string/widget_plan_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/plan_widget_info" />
+        </receiver>
         <receiver android:name=".widget.HeroWidgetReceiver" android:exported="true" android:label="@string/widget_hero_label">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/hero_widget_info" />
@@ -72,6 +86,10 @@
         <receiver android:name=".widget.BentoWidgetReceiver" android:exported="true" android:label="@string/widget_bento_label">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/bento_widget_info" />
+        </receiver>
+        <receiver android:name=".widget.DashboardWidgetReceiver" android:exported="true" android:label="@string/widget_dashboard_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/dashboard_widget_info" />
         </receiver>
     </application>
 </manifest>

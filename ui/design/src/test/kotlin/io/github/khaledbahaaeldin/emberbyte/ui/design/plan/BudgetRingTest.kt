@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -23,7 +24,7 @@ import org.robolectric.annotation.Config
 class BudgetRingTest {
     @get:Rule val rule = createComposeRule()
     private fun show(fraction: Float, state: BudgetStateUi) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) { BudgetRing(fraction, state) }
+        EmberbyteTheme(EmberbyteThemeSpec.Default) { BudgetRing(fraction, state) }
     }
 
     @Test fun an_ok_ring_describes_the_percentage() {
@@ -50,7 +51,7 @@ class BudgetRingTest {
 
     @Test fun custom_percent_text_overrides_float_derived_text_and_description() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 BudgetRing(0.49f, BudgetStateUi.Ok, percentText = "49%")
             }
         }
@@ -65,7 +66,7 @@ class BudgetRingTest {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = fontScale)) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     baseSp = androidx.compose.material3.MaterialTheme.typography.labelLarge.fontSize.value
                     BudgetRing(1.37f, BudgetStateUi.Exceeded, percentText = text)
                 }

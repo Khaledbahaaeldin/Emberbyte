@@ -63,6 +63,68 @@ class ReleaseApkVerificationTest {
     }
 
     @Test
+    fun gallery_is_not_in_the_release_manifest() {
+        val apkFile = findReleaseApk()
+        ZipFile(apkFile).use { zip ->
+            val manifestEntry = zip.getEntry("AndroidManifest.xml")
+            assertNotNull("AndroidManifest.xml must exist in APK", manifestEntry)
+            val manifestBytes = zip.getInputStream(manifestEntry).use { it.readBytes() }
+            val manifest = parseBinaryManifest(manifestBytes)
+            assertFalse(
+                "Release manifest must not contain ThemeGalleryActivity; declared activities: ${manifest.activityNames}",
+                manifest.activityNames.any { it.contains("ThemeGalleryActivity") }
+            )
+
+            val dexEntries = zip.entries().asSequence()
+                .filter { it.name.endsWith(".dex") }
+                .toList()
+            for (entry in dexEntries) {
+                val dexBytes = zip.getInputStream(entry).use { it.readBytes() }
+                val definedClasses = extractDefinedClassDescriptors(dexBytes)
+                for (cls in definedClasses) {
+                    assertFalse(
+                        "Release APK must not define ThemeGalleryActivity: $cls",
+                        cls.contains("ThemeGalleryActivity")
+                    )
+                    assertFalse(
+                        "Release APK must not define WidgetPreviewActivity: $cls",
+                        cls.contains("WidgetPreviewActivity")
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun widget_preview_is_not_in_the_release_manifest() {
+        val apkFile = findReleaseApk()
+        ZipFile(apkFile).use { zip ->
+            val manifestEntry = zip.getEntry("AndroidManifest.xml")
+            assertNotNull("AndroidManifest.xml must exist in APK", manifestEntry)
+            val manifestBytes = zip.getInputStream(manifestEntry).use { it.readBytes() }
+            val manifest = parseBinaryManifest(manifestBytes)
+            assertFalse(
+                "Release manifest must not contain WidgetPreviewActivity; declared activities: ${manifest.activityNames}",
+                manifest.activityNames.any { it.contains("WidgetPreviewActivity") }
+            )
+
+            val dexEntries = zip.entries().asSequence()
+                .filter { it.name.endsWith(".dex") }
+                .toList()
+            for (entry in dexEntries) {
+                val dexBytes = zip.getInputStream(entry).use { it.readBytes() }
+                val definedClasses = extractDefinedClassDescriptors(dexBytes)
+                for (cls in definedClasses) {
+                    assertFalse(
+                        "Release APK must not define WidgetPreviewActivity: $cls",
+                        cls.contains("WidgetPreviewActivity")
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
     fun release_apk_exists_and_meets_contract_requirements() {
         val apkFile = findReleaseApk()
         assertTrue("Release APK must exist and be non-empty", apkFile.exists() && apkFile.length() > 0)
@@ -161,6 +223,14 @@ class ReleaseApkVerificationTest {
                         "Release APK must not contain debug classes: $cls",
                         cls.contains("/debug/")
                     )
+                    assertFalse(
+                        "Release APK must not define ThemeGalleryActivity: $cls",
+                        cls.contains("ThemeGalleryActivity")
+                    )
+                    assertFalse(
+                        "Release APK must not define WidgetPreviewActivity: $cls",
+                        cls.contains("WidgetPreviewActivity")
+                    )
                     for (forbidden in forbiddenClassPrefixes) {
                         assertFalse(
                             "Release APK must not contain test class from $forbidden: $cls",
@@ -238,7 +308,8 @@ class ReleaseApkVerificationTest {
         val versionCode: Int?,
         val debuggable: Boolean,
         val allowBackup: Boolean,
-        val permissions: Set<String>
+        val permissions: Set<String>,
+        val activityNames: Set<String> = emptySet(),
     )
 
     private fun parseBinaryManifest(bytes: ByteArray): ParsedManifest {
@@ -253,6 +324,7 @@ class ReleaseApkVerificationTest {
         var debuggable = false
         var allowBackup = true // default in Android if unspecified is true
         val permissions = mutableSetOf<String>()
+        val activityNames = mutableSetOf<String>()
 
         while (buffer.hasRemaining()) {
             val chunkPos = buffer.position()
@@ -310,6 +382,11 @@ class ReleaseApkVerificationTest {
                                 val perm = attrStringVal ?: stringPool.getOrNull(data)
                                 if (perm != null) permissions.add(perm)
                             }
+                        } else if (tagName == "activity") {
+                            if (attrName == "name") {
+                                val act = attrStringVal ?: stringPool.getOrNull(data)
+                                if (act != null) activityNames.add(act)
+                            }
                         }
 
                         currentAttrPos += if (attrSize > 0) attrSize else 20
@@ -327,7 +404,8 @@ class ReleaseApkVerificationTest {
             versionCode = versionCode,
             debuggable = debuggable,
             allowBackup = allowBackup,
-            permissions = permissions
+            permissions = permissions,
+            activityNames = activityNames,
         )
     }
 

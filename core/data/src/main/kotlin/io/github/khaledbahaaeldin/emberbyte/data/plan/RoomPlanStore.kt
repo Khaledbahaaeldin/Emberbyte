@@ -12,9 +12,76 @@ import androidx.room.withTransaction
 
 internal fun maskOf(days: Set<DayOfWeek>): Int = days.fold(0) { mask, day -> mask or (1 shl (day.value - 1)) }
 internal fun daysOf(mask: Int): Set<DayOfWeek> = DayOfWeek.entries.filter { mask and (1 shl (it.value - 1)) != 0 }.toSet()
-internal fun Plan.toEntity() = PlanEntity(id, name, subscriptionId, capBytes, PlanJson.cycleToJson(cycle), PlanJson.rolloverToJson(rollover), archived)
+internal fun Plan.toEntity(): PlanEntity {
+    val mode: String
+    val bytes: Long?
+    val at: Long?
+    val start: Long?
+    when (val fc = firstCycle) {
+        is FirstCycle.PhoneRecord -> {
+            mode = "phone"
+            bytes = null
+            at = null
+            start = null
+        }
+        is FirstCycle.Entered -> {
+            mode = "entered"
+            bytes = fc.usedBytes
+            at = fc.enteredAt.toEpochMilli()
+            start = fc.cycleStart.toEpochMilli()
+        }
+        is FirstCycle.StartsNextCycle -> {
+            mode = "later"
+            bytes = null
+            at = null
+            start = fc.startsAt.toEpochMilli()
+        }
+    }
+    return PlanEntity(
+        id = id,
+        name = name,
+        subscriptionId = subscriptionId,
+        capBytes = capBytes,
+        cycleJson = PlanJson.cycleToJson(cycle),
+        rolloverJson = PlanJson.rolloverToJson(rollover),
+        archived = archived,
+        firstCycleMode = mode,
+        firstCycleBytes = bytes,
+        firstCycleAt = at,
+        firstCycleStart = start,
+        pinned = pinned,
+    )
+}
+
 internal fun PlanEntity.toDomainOrNull(): Plan? = runCatching {
-    Plan(id, name, subscriptionId, capBytes, PlanJson.cycleFromJson(cycleJson), PlanJson.rolloverFromJson(rolloverJson), archived)
+    val fc = when (firstCycleMode) {
+        "entered" -> if (firstCycleBytes != null && firstCycleAt != null && firstCycleStart != null) {
+            FirstCycle.Entered(
+                usedBytes = firstCycleBytes,
+                enteredAt = Instant.ofEpochMilli(firstCycleAt),
+                cycleStart = Instant.ofEpochMilli(firstCycleStart),
+            )
+        } else {
+            FirstCycle.PhoneRecord
+        }
+        "later" -> if (firstCycleStart != null) {
+            FirstCycle.StartsNextCycle(startsAt = Instant.ofEpochMilli(firstCycleStart))
+        } else {
+            FirstCycle.PhoneRecord
+        }
+        else -> FirstCycle.PhoneRecord
+    }
+    Plan(
+        id = id,
+        name = name,
+        subscriptionId = subscriptionId,
+        capBytes = capBytes,
+        cycle = PlanJson.cycleFromJson(cycleJson),
+        rollover = PlanJson.rolloverFromJson(rolloverJson),
+        archived = archived,
+        firstCycle = fc,
+        pinned = pinned,
+    )
 }.getOrNull()
 internal fun AddOn.toEntity() = AddOnEntity(id, planId, label, bytes, validFrom.toEpochMilli(), validUntil.toEpochMilli())
 internal fun AddOnEntity.toDomain() = AddOn(id, planId, label, bytes, Instant.ofEpochMilli(validFrom), Instant.ofEpochMilli(validUntil))
@@ -31,6 +98,15 @@ class RoomPlanStore(private val db: EmberbyteDatabase) : PlanStore {
     override suspend fun plan(id: Long): Plan? = dao.plan(id)?.toDomainOrNull()
     override suspend fun upsertPlan(plan: Plan): Long = dao.putPlan(plan.toEntity())
     override suspend fun setArchived(id: Long, archived: Boolean): Boolean = dao.setArchived(id, archived) > 0
+    override suspend fun setPinned(id: Long, pinned: Boolean): Boolean = db.withTransaction {
+        if (dao.plan(id) == null) return@withTransaction false
+        if (pinned) {
+            dao.clearAllPinned()
+            dao.setPinned(id, true) > 0
+        } else {
+            dao.setPinned(id, false) > 0
+        }
+    }
     override fun observeAddOns(planId: Long): Flow<List<AddOn>> = dao.observeAddOns(planId).map { list -> list.map { it.toDomain() } }
     override suspend fun upsertAddOn(addOn: AddOn): Long = dao.putAddOn(addOn.toEntity())
     override suspend fun deleteAddOn(id: Long) = dao.deleteAddOn(id)

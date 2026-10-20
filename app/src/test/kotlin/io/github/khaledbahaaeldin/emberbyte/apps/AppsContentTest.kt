@@ -6,12 +6,14 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +38,7 @@ class AppsContentTest {
         onOpenApp: (String) -> Unit = {},
         onPrompt: (String) -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) { AppsContent(state, onEvent, onOpenApp, onPrompt) }
+        EmberbyteTheme(EmberbyteThemeSpec.Default) { AppsContent(state, onEvent, onOpenApp, onPrompt) }
     }
 
     @Test fun shows_the_rows_and_the_total() {
@@ -56,9 +58,11 @@ class AppsContentTest {
     @Test fun chips_send_range_and_network_events() {
         val events = mutableListOf<AppsEvent>()
         show(onEvent = { events += it })
+        rule.onNodeWithText("Filters").performClick()
         rule.onNodeWithText("7 days").performClick()
         rule.onNodeWithText("Wi-Fi").performClick()
-        assertEquals(listOf(AppsEvent.SetRange(AppsRange.LAST_7_DAYS), AppsEvent.SetNetwork(AppsNetwork.WIFI)), events)
+        rule.onNodeWithText("Apply").performScrollTo().performClick()
+        assertEquals(listOf(AppsEvent.ApplyFilters(AppsRange.LAST_7_DAYS, AppsNetwork.WIFI, AppSort.BYTES_DESC, false)), events)
     }
 
     @Test fun typing_in_the_search_field_sends_the_query() {
@@ -83,9 +87,10 @@ class AppsContentTest {
     @Test fun selecting_a_sort_option_sends_the_sort_event() {
         val events = mutableListOf<AppsEvent>()
         show(onEvent = { events += it })
-        rule.onNodeWithText("Sort: Most data").performClick()
-        rule.onNodeWithText("Least data").performClick()
-        assertEquals(listOf(AppsEvent.SetSort(AppSort.BYTES_ASC)), events)
+        rule.onNodeWithText("Filters").performClick()
+        rule.onNodeWithText("Name").performClick()
+        rule.onNodeWithText("Apply").performScrollTo().performClick()
+        assertEquals(listOf(AppsEvent.ApplyFilters(AppsRange.TODAY, AppsNetwork.ALL, AppSort.NAME, false)), events)
     }
 
     @Test fun a_search_without_matches_says_so() {
@@ -96,8 +101,8 @@ class AppsContentTest {
     @Test fun range_chip_renders_its_label_in_one_node_matching_text_under_rtl() {
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
-                    AppsContent(state, onEvent = {}, onOpenApp = {}, onPromptAction = {})
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    AppsContent(state.copy(range = AppsRange.LAST_7_DAYS), onEvent = {}, onOpenApp = {}, onPromptAction = {})
                 }
             }
         }

@@ -37,7 +37,7 @@ class Migration3Test {
         val name = "migration3-test.db"
         context.deleteDatabase(name)
         createVersion2(name)
-        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+        val room = Room.databaseBuilder(context, EmberbyteDatabase::class.java, name).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
         assertNotNull(room.planDao().plan(1))
         assertEquals(1, room.usageDao().minuteRows(0L, Long.MAX_VALUE).size)
         val id = room.insightDao().putBudget(AppBudgetEntity(packageName = "com.video", limitBytes = 5, period = "DAILY", planId = null, warnAtPercent = 80, enabled = true))

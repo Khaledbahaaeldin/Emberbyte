@@ -38,8 +38,8 @@ class NoticeVerificationTest {
     @Test
     fun notice_file_only_mentions_haze_if_present_in_runtime_dependencies() {
         val noticeText = findNoticeFile().readText()
-        // Haze is present in :ui:design releaseRuntimeClasspath (dev.chrisbanes.haze:haze)
-        val hazeInDependencies = true
+        // Haze has been removed in task A13
+        val hazeInDependencies = false
         if (!hazeInDependencies) {
             assertFalse("NOTICE must not mention Haze if not in tree", noticeText.contains("Haze", ignoreCase = true))
         } else {

@@ -16,6 +16,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +31,7 @@ class TilesEdgeCaseTest {
 
     @Test fun usageBarRow_with_empty_list_does_not_crash() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UsageBarRow(emptyList(), selectedIndex = null, onSelect = {})
             }
         }
@@ -40,7 +41,7 @@ class TilesEdgeCaseTest {
     @Test fun usageBarRow_with_all_zero_bytes_renders_every_bar() {
         val bars = listOf(BarUi("Mon", 0L, "Monday, 0 bytes"), BarUi("Tue", 0L, "Tuesday, 0 bytes"))
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UsageBarRow(bars, selectedIndex = null, onSelect = {})
             }
         }
@@ -54,7 +55,7 @@ class TilesEdgeCaseTest {
             BarUi("Tue", 2_000_000_000L, "Tuesday, 2.00 gigabytes"),
         )
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UsageBarRow(bars, selectedIndex = 1, onSelect = {})
             }
         }
@@ -70,7 +71,7 @@ class TilesEdgeCaseTest {
         var picked = -1
         val bars = listOf(BarUi("Mon", 5L, "Monday, 5 bytes"), BarUi("Tue", 9L, "Tuesday, 9 bytes"))
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UsageBarRow(bars, selectedIndex = null, onSelect = { picked = it })
             }
         }
@@ -80,7 +81,7 @@ class TilesEdgeCaseTest {
 
     @Test fun appRow_with_zero_total_does_not_crash_and_shows_zero() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppRow(AppRowUi("com.idle", "Idle", 0L, 0L), ByteUnits.DECIMAL, onClick = {})
             }
         }
@@ -89,7 +90,7 @@ class TilesEdgeCaseTest {
 
     @Test fun appRow_with_only_wifi_or_only_mobile_renders() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 androidx.compose.foundation.layout.Column {
                     AppRow(AppRowUi("a", "OnlyWifi", 0L, 5_000_000L), ByteUnits.DECIMAL, onClick = {})
                     AppRow(AppRowUi("b", "OnlyMobile", 5_000_000L, 0L), ByteUnits.DECIMAL, onClick = {})
@@ -103,7 +104,7 @@ class TilesEdgeCaseTest {
     @Test fun appRow_is_at_least_48dp_and_clickable() {
         var clicks = 0
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppRow(AppRowUi("com.yt", "YouTube", 1L, 1L), ByteUnits.DECIMAL, onClick = { clicks++ })
             }
         }
@@ -113,13 +114,13 @@ class TilesEdgeCaseTest {
     }
 
     @Test fun estimatedBadge_says_estimated() {
-        rule.setContent { EmberbyteTheme(darkTheme = true, dynamicColor = false) { EstimatedBadge() } }
+        rule.setContent { EmberbyteTheme(EmberbyteThemeSpec.Default) { EstimatedBadge() } }
         rule.onNodeWithText("Estimated").assertIsDisplayed()
     }
 
     @Test fun speedTile_mobile_label_and_upload_rate() {
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 SpeedTile(rxBps = 1_500_000L, txBps = 350_000L, network = NetworkKindUi.Mobile, units = ByteUnits.DECIMAL)
             }
         }
@@ -130,7 +131,7 @@ class TilesEdgeCaseTest {
     @Test fun tiles_with_very_long_text_do_not_crash() {
         val long = "very long text ".repeat(40)
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 androidx.compose.foundation.layout.Column {
                     ForecastTile(ForecastUi(long, long, long))
                     SpeedTile(Long.MAX_VALUE, Long.MAX_VALUE, NetworkKindUi.Wifi, ByteUnits.BINARY)

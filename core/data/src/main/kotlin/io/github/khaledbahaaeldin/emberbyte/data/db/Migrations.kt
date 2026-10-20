@@ -27,3 +27,14 @@ val MIGRATION_2_3: Migration = object : Migration(2, 3) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `spike_notice` (`packageName` TEXT NOT NULL, `notifiedAt` INTEGER NOT NULL, PRIMARY KEY(`packageName`))")
     }
 }
+
+val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `plan` ADD COLUMN `firstCycleMode` TEXT NOT NULL DEFAULT 'phone'")
+        db.execSQL("ALTER TABLE `plan` ADD COLUMN `firstCycleBytes` INTEGER")
+        db.execSQL("ALTER TABLE `plan` ADD COLUMN `firstCycleAt` INTEGER")
+        db.execSQL("ALTER TABLE `plan` ADD COLUMN `firstCycleStart` INTEGER")
+        db.execSQL("ALTER TABLE `plan` ADD COLUMN `pinned` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+

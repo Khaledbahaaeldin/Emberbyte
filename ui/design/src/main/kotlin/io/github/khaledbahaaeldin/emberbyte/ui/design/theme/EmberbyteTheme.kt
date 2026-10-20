@@ -9,8 +9,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
@@ -25,13 +23,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-
-private const val DYNAMIC_COLOR_MIN_SDK = 31
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.resolvePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.toColorScheme
 
 /** True when the user turned system animations off. Springs become snaps and fades. */
 val LocalReduceMotion: ProvidableCompositionLocal<Boolean> = staticCompositionLocalOf { false }
+
+val LocalEmberbytePalette: ProvidableCompositionLocal<EmberbytePalette> =
+    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
 
 internal fun isReduceMotion(animatorDurationScale: Float): Boolean = animatorDurationScale == 0f
 
@@ -61,46 +62,27 @@ internal fun rememberReduceMotion(): Boolean {
     return reduce
 }
 
-internal fun resolveColorScheme(
-    darkTheme: Boolean,
-    dynamicColor: Boolean,
-    amoledBlack: Boolean,
-    sdkInt: Int,
-    dynamicLight: () -> ColorScheme,
-    dynamicDark: () -> ColorScheme,
-): ColorScheme {
-    val base = when {
-        dynamicColor && sdkInt >= DYNAMIC_COLOR_MIN_SDK -> if (darkTheme) dynamicDark() else dynamicLight()
-        darkTheme -> EmberDarkColors
-        else -> EmberLightColors
-    }
-    return if (darkTheme && amoledBlack) {
-        base.copy(background = Color.Black, surface = Color.Black, surfaceContainerLowest = Color.Black)
-    } else {
-        base
-    }
-}
-
-// The dynamic lambdas are only invoked when resolveColorScheme sees sdkInt >= 31; lint cannot see through it.
+// The dynamic lambdas are only invoked when resolvePalette sees sdkInt >= 31; lint cannot see through it.
 @SuppressLint("NewApi")
 @Composable
 fun EmberbyteTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    amoledBlack: Boolean = false,
+    spec: EmberbyteThemeSpec = EmberbyteThemeSpec.Default,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val scheme = resolveColorScheme(
-        darkTheme = darkTheme,
-        dynamicColor = dynamicColor,
-        amoledBlack = amoledBlack,
+    val palette = resolvePalette(
+        spec = spec,
         sdkInt = Build.VERSION.SDK_INT,
-        dynamicLight = { dynamicLightColorScheme(context) },
-        dynamicDark = { dynamicDarkColorScheme(context) },
+        dynamic = {
+            if (spec.darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        },
     )
+    val scheme = palette.toColorScheme(spec.darkTheme)
     val reduceMotion = rememberReduceMotion()
-    CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
+    CompositionLocalProvider(
+        LocalEmberbytePalette provides palette,
+        LocalReduceMotion provides reduceMotion,
+    ) {
         MaterialExpressiveTheme(
             colorScheme = scheme,
             motionScheme = MotionScheme.expressive(),

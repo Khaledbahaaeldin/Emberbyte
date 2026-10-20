@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -57,6 +58,11 @@ data class PlanEntity(
     val cycleJson: String,
     val rolloverJson: String,
     val archived: Boolean,
+    @ColumnInfo(defaultValue = "'phone'") val firstCycleMode: String = "phone",
+    val firstCycleBytes: Long? = null,
+    val firstCycleAt: Long? = null,
+    val firstCycleStart: Long? = null,
+    @ColumnInfo(defaultValue = "0") val pinned: Boolean = false,
 )
 
 @Entity(tableName = "add_on", indices = [Index("planId")])

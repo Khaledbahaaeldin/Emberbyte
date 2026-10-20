@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -24,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w480dp")
 class NavBarFontScaleTest {
     @get:Rule val rule = createComposeRule()
 
@@ -38,12 +39,12 @@ class NavBarFontScaleTest {
     @Test fun at_200_percent_font_every_item_stays_inside_the_bar() {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 2f, fontScale = 2f)) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
-                    Box(Modifier.width(360.dp)) { FloatingPillNavBar(items, "home", {}, visible = true) }
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    Box(Modifier.width(360.dp)) { CompactNavBar(items, "home", {}, visible = true) }
                 }
             }
         }
-        val bar = rule.onNodeWithTag("pill_nav_bar").getBoundsInRoot()
+        val bar = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
         for (item in items) {
             val bounds = rule.onNodeWithTag("nav_${item.id}").getBoundsInRoot()
             assertTrue("${item.id} right=${bounds.right} bar=${bar.right}", bounds.right <= bar.right)

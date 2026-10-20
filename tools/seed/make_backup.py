@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""
+Emberbyte Seeded Backup Tool
+Generates encrypted .emberbyte backups adhering to docs/backup-format.md.
+
+Usage:
+    python tools/seed/make_backup.py --out FILE --passphrase TEXT [--days N] [--scenario basic|midcycle] [--selftest]
+"""
+
+import argparse
+from datetime import datetime, timedelta, timezone
+import gzip
+import json
+import os
+import struct
+import sys
+
+try:
+    from argon2 import low_level
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except ImportError:
+    print(
+        "Missing required dependencies. Install them with:\n"
+        "    pip install argon2-cffi cryptography",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+MAGIC = b"EMBBKP01"
+HEADER_SIZE = 48
+TAG_SIZE = 16
+
+DEFAULT_MEMORY_KIB = 65536
+DEFAULT_ITERATIONS = 3
+DEFAULT_PARALLELISM = 1
+
+FAKE_PACKAGES = [
+    "com.fake.browser",
+    "com.fake.video",
+    "com.fake.social",
+    "com.fake.music",
+    "com.fake.chat",
+    "com.fake.cloud",
+]
+
+
+def generate_backup_payload(
+    days: int = 7,
+    scenario: str = "basic",
+    packages: list[str] | None = None,
+    pseudo_uid: bool = False,
+    end_time_str: str = "2026-10-17T00:00:00Z",
+    contract: int = 1,
+) -> dict:
+    pkg_list = list(packages) if packages is not None else list(FAKE_PACKAGES)
+    if pseudo_uid and "uid:10001" not in pkg_list:
+        pkg_list.append("uid:10001")
+    # 1 plan: cap 20 GB (21474836480 bytes), monthly on day 1
+    plan = {
+        "id": 1,
+        "name": "Primary Plan",
+        "subscriptionId": 1,
+        "capBytes": 21474836480,
+        "cycle": {
+            "type": "monthlyOnDay",
+            "dayOfMonth": 1,
+            "time": "00:00",
+            "zone": "UTC",
+        },
+        "rollover": {
+            "type": "none",
+        },
+        "archived": False,
+        "addOns": [],
+        "freeRules": [],
+        "alertRules": [
+            {
+                "id": 1,
+                "planId": 1,
+                "thresholdPercent": 80,
+                "enabled": True,
+            }
+        ],
+    }
+    if contract >= 2:
+        plan["firstCycle"] = {"mode": "phone"}
+        plan["pinned"] = False
+
+    # 1 budget: daily limit on video package
+    budget_pkg = pkg_list[1] if len(pkg_list) > 1 else pkg_list[0]
+    budget = {
+        "id": 1,
+        "package": budget_pkg,
+        "limitBytes": 5368709120,
+        "period": "DAILY",
+        "planId": None,
+        "warnAtPercent": 80,
+        "enabled": True,
+    }
+
+    # Hourly usage across N days
+    end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
+    start_time = end_time - timedelta(days=days)
+    total_hours = days * 24
+
+    usage_hourly = []
+    for h in range(total_hours):
+        hour_dt = start_time + timedelta(hours=h)
+        hour_str = hour_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        for pkg_idx, pkg in enumerate(pkg_list):
+            rx = 100_000 + ((h * 7 + pkg_idx * 31) % 500) * 10_000
+            tx = rx // 8
+            usage_hourly.append({
+                "hourStart": hour_str,
+                "package": pkg,
+                "network": "MOBILE",
+                "subscriptionId": 1,
+                "rxBytes": rx,
+                "txBytes": tx,
+            })
+
+    return {
+        "contractVersion": contract,
+        "exportedAt": end_time_str,
+        "plans": [plan],
+        "appBudgets": [budget],
+        "usageHourly": usage_hourly,
+    }
+
+
+def encrypt_backup(
+    payload: dict,
+    passphrase: str,
+    memory_kib: int = DEFAULT_MEMORY_KIB,
+    iterations: int = DEFAULT_ITERATIONS,
+    parallelism: int = DEFAULT_PARALLELISM,
+) -> bytes:
+    salt = os.urandom(16)
+    nonce = os.urandom(12)
+
+    header = (
+        MAGIC
+        + salt
+        + struct.pack(">3i", memory_kib, iterations, parallelism)
+        + nonce
+    )
+
+    key = low_level.hash_secret_raw(
+        secret=passphrase.encode("utf-8"),
+        salt=salt,
+        time_cost=iterations,
+        memory_cost=memory_kib,
+        parallelism=parallelism,
+        hash_len=32,
+        type=low_level.Type.ID,
+    )
+
+    json_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    compressed = gzip.compress(json_bytes)
+
+    aesgcm = AESGCM(key)
+    ciphertext_and_tag = aesgcm.encrypt(nonce, compressed, header)
+
+    return header + ciphertext_and_tag
+
+
+def decrypt_backup(data: bytes, passphrase: str) -> dict:
+    if len(data) < HEADER_SIZE + TAG_SIZE:
+        raise ValueError("File is too small to be an Emberbyte backup")
+
+    if data[:8] != MAGIC:
+        raise ValueError(f"Invalid magic header: expected {MAGIC!r}, got {data[:8]!r}")
+
+    header = data[:HEADER_SIZE]
+    salt = data[8:24]
+    memory_kib, iterations, parallelism = struct.unpack(">3i", data[24:36])
+    nonce = data[36:48]
+    ciphertext_and_tag = data[48:]
+
+    key = low_level.hash_secret_raw(
+        secret=passphrase.encode("utf-8"),
+        salt=salt,
+        time_cost=iterations,
+        memory_cost=memory_kib,
+        parallelism=parallelism,
+        hash_len=32,
+        type=low_level.Type.ID,
+    )
+
+    aesgcm = AESGCM(key)
+    compressed_plaintext = aesgcm.decrypt(nonce, ciphertext_and_tag, header)
+    json_bytes = gzip.decompress(compressed_plaintext)
+    return json.loads(json_bytes.decode("utf-8"))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Generate Emberbyte seed backups")
+    parser.add_argument("--out", help="Output .emberbyte file path")
+    parser.add_argument("--passphrase", default="test-passphrase", help="Passphrase for encryption")
+    parser.add_argument("--days", type=int, default=7, help="Number of days of usage history (default: 7)")
+    parser.add_argument("--scenario", choices=["basic", "midcycle"], default="basic", help="Scenario to generate")
+    parser.add_argument("--packages", help="Comma-separated package names")
+    parser.add_argument("--pseudo-uid", action="store_true", help="Include a pseudo-uid row (e.g. uid:10001)")
+    parser.add_argument("--end-time", default="2026-10-17T00:00:00Z", help="End time ISO-8601 (default: 2026-10-17T00:00:00Z)")
+    parser.add_argument("--contract", type=int, default=1, choices=[1, 2], help="Contract version (1 or 2, default: 1)")
+    parser.add_argument("--selftest", action="store_true", help="Run self-test verifying decryption")
+
+    args = parser.parse_args()
+
+    if not args.out and not args.selftest:
+        parser.error("--out FILE is required unless --selftest is specified")
+
+    pkgs = [p.strip() for p in args.packages.split(",") if p.strip()] if args.packages else None
+    payload = generate_backup_payload(
+        days=args.days,
+        scenario=args.scenario,
+        packages=pkgs,
+        pseudo_uid=args.pseudo_uid,
+        end_time_str=args.end_time,
+        contract=args.contract,
+    )
+    row_count = len(payload["usageHourly"])
+    print(f"rows={row_count}")
+
+    encrypted = encrypt_backup(payload, args.passphrase)
+
+    if args.out:
+        out_dir = os.path.dirname(os.path.abspath(args.out))
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+        with open(args.out, "wb") as f:
+            f.write(encrypted)
+        print(f"Wrote {len(encrypted)} bytes to {args.out}")
+
+    if args.selftest:
+        decrypted = decrypt_backup(encrypted, args.passphrase)
+        assert decrypted["contractVersion"] == 1, "contractVersion mismatch"
+        assert len(decrypted["plans"]) == 1, "plans count mismatch"
+        assert len(decrypted["appBudgets"]) == 1, "budgets count mismatch"
+        assert len(decrypted["usageHourly"]) == row_count, "usage rows mismatch"
+        assert decrypted["plans"][0]["capBytes"] == 21474836480, "plan capBytes mismatch"
+        print("Self-test passed!")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

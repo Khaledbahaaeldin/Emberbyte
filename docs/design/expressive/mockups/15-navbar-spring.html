@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navbar: expanding pill with spring physics</title>
+<style>
+  :root { --bg:#110F19; --surface:#1D1929; --surface2:#2A2440; --text:#EAE6F5; --muted:#A9A3BF; --primary:#D0BCFF; --onPrimary:#2A1858; --accent:#C9F0D3; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "Roboto Flex", system-ui, sans-serif; padding:24px 16px 64px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+  h2 { margin:0; font-weight:800; font-size:22px; }
+  p.lead { margin:0; max-width:520px; color:var(--muted); text-align:center; }
+  .stage { width:100%; max-width:420px; height:150px; border-radius:28px; background:var(--surface); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; touch-action:none; }
+  /* The bar: fixed width, never resizes. 2 collapsed cells + 1 expanded cell. */
+  .bar { position:relative; width:216px; height:64px; border-radius:32px; background:var(--surface2); user-select:none; -webkit-user-select:none; cursor:pointer; }
+  .pill { position:absolute; top:6px; height:52px; border-radius:26px; background:var(--primary); }
+  .item { position:absolute; top:6px; height:52px; display:flex; align-items:center; justify-content:center; gap:6px; color:var(--muted); pointer-events:none; white-space:nowrap; }
+  .item svg { width:24px; height:24px; flex:none; fill:currentColor; }
+  .item .label { font-weight:700; font-size:13px; overflow:hidden; }
+  .item.sel { color:var(--onPrimary); }
+  .panel { width:100%; max-width:420px; background:var(--surface); border-radius:24px; padding:16px 18px; display:grid; gap:12px; }
+  .row { display:grid; grid-template-columns:130px 1fr 54px; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+  .row b { color:var(--text); font-variant-numeric:tabular-nums; text-align:right; }
+  input[type=range] { width:100%; accent-color:var(--primary); }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  button { font:inherit; font-weight:700; border:0; border-radius:999px; padding:10px 16px; background:var(--surface2); color:var(--text); cursor:pointer; }
+  button.on { background:var(--primary); color:var(--onPrimary); }
+  .note { max-width:520px; color:var(--muted); font-size:13px; }
+  .note b { color:var(--text); }
+</style>
+</head>
+<body>
+<h2>Expanding pill with spring physics</h2>
+<p class="lead">Tap a tab or drag across the bar. The pill's two edges are separate springs: the leading edge shoots ahead, the trailing edge follows, so it stretches and then settles. The bar itself never changes size.</p>
+
+<div class="stage"><div class="bar" id="bar"><div class="pill" id="pill"></div></div></div>
+
+<div class="chips" id="presets"></div>
+
+<div class="panel">
+  <div class="row"><span>Stiffness</span><input id="k" type="range" min="80" max="900" value="420"><b id="kv"></b></div>
+  <div class="row"><span>Damping ratio</span><input id="z" type="range" min="25" max="100" value="58"><b id="zv"></b></div>
+  <div class="row"><span>Edge lead (stretch)</span><input id="lead" type="range" min="100" max="260" value="170"><b id="leadv"></b></div>
+  <div class="row"><span>Slow motion</span><input id="slow" type="range" min="1" max="8" value="1"><b id="slowv"></b></div>
+  <div class="row"><span>Overshoot</span><span></span><b id="over">0.0 px</b></div>
+</div>
+
+<p class="note"><b>How it maps to Compose.</b> Each pill edge is an <code>Animatable&lt;Float&gt;</code> animated with <code>spring(dampingRatio, stiffness)</code>; the leading edge uses a higher stiffness than the trailing one. Dragging sets the edges directly (no animation) and on release the finger velocity is handed to the springs (<code>animateTo(target, initialVelocity)</code>), so a flick carries on with its own momentum. Retargeting mid-flight keeps position and velocity, so it never jumps. With "Remove animations" on, the pill just moves to its place.</p>
+
+<script>
+const ICONS = {
+  Home: 'M12 3 3 10.5V21h6v-6h6v6h6V10.5z',
+  Apps: 'M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z',
+  Plans: 'M3 6a2 2 0 0 1 2-2h14v3H5v1h16v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm14 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z'
+};
+const NAMES = ['Home','Apps','Plans'];
+const W = 216, PAD = 6, ICON_CELL = 56, SEL_CELL = 92;           // 56 + 56 + 92 + 2*6 = 216
+const bar = document.getElementById('bar'), pill = document.getElementById('pill');
+const items = NAMES.map(n => {
+  const d = document.createElement('div'); d.className = 'item';
+  d.innerHTML = '<svg viewBox="0 0 24 24"><path d="'+ICONS[n]+'"/></svg><span class="label">'+n+'</span>';
+  bar.appendChild(d); return d;
+});
+function cellsFor(sel) {                  // left edge and width of every cell for a selection
+  let x = PAD; return NAMES.map((_, i) => { const w = i === sel ? SEL_CELL : ICON_CELL; const c = {x, w}; x += w; return c; });
+}
+// spring state
+const s = { L:{x:0,v:0,t:0}, R:{x:0,v:0,t:0}, items: NAMES.map(()=>({x:0,v:0,t:0,w:0,wv:0,wt:0})) };
+let sel = 0, dragging = false, maxOver = 0, dir = 1;
+const p = { k:420, z:.58, lead:1.7, slow:1, reduce:false };
+
+function setTargets(i, snap) {
+  sel = i; const c = cellsFor(i); dir = c[i].x >= s.L.x ? 1 : -1;
+  s.L.t = c[i].x; s.R.t = c[i].x + c[i].w;
+  c.forEach((cell, j) => { s.items[j].t = cell.x; s.items[j].wt = cell.w; });
+  items.forEach((el, j) => el.classList.toggle('sel', j === i));
+  if (snap || p.reduce) { s.L.x = s.L.t; s.R.x = s.R.t; s.L.v = s.R.v = 0; s.items.forEach(o => { o.x = o.t; o.w = o.wt; o.v = o.wv = 0; }); }
+  maxOver = 0;
+}
+function step(o, k, dt) {                // unit mass: a = -k x' - c v,  c = 2 z sqrt(k)
+  const c = 2 * p.z * Math.sqrt(k), a = -k * (o.x - o.t) - c * o.v;
+  o.v += a * dt; o.x += o.v * dt;
+}
+function stepW(o, k, dt) {
+  const c = 2 * p.z * Math.sqrt(k), a = -k * (o.w - o.wt) - c * o.wv;
+  o.wv += a * dt; o.w += o.wv * dt;
+}
+function tick(dtMs) {
+  const dt = Math.min(dtMs, 32) / 1000 / p.slow, n = 4;
+  for (let i = 0; i < n; i++) {
+    const h = dt / n;
+    if (!dragging) {
+      const movingRight = s.R.t > s.R.x - 0.01 && s.L.t > s.L.x - 0.01;
+      const kR = movingRight ? p.k * p.lead : p.k / p.lead * 1.0 + p.k * 0.3;   // leading edge stiffer
+      const kL = movingRight ? p.k / p.lead * 1.0 + p.k * 0.3 : p.k * p.lead;
+      step(s.L, kL, h); step(s.R, kR, h);
+    }
+    s.items.forEach(o => { step(o, p.k * 0.9, h); stepW(o, p.k * 0.9, h); });
+  }
+  render();
+}
+function render() {
+  const l = Math.max(2, s.L.x), r = Math.min(W - 2, s.R.x);          // the pill squashes against the bar's wall instead of leaving it
+  const left = l, width = Math.max(40, r - l);
+  pill.style.transform = 'translateX(' + left + 'px)'; pill.style.width = width + 'px';
+  items.forEach((el, j) => {
+    const o = s.items[j]; el.style.transform = 'translateX(' + o.x + 'px)'; el.style.width = Math.max(40, o.w) + 'px';
+    const f = Math.max(0, Math.min(1, (o.w - ICON_CELL) / (SEL_CELL - ICON_CELL)));      // label follows the cell's growth
+    const lab = el.querySelector('.label'); lab.style.opacity = Math.max(0, (f - .35) / .65); lab.style.maxWidth = (f * 44) + 'px';
+    lab.style.marginLeft = (f > .02 ? 0 : -6) + 'px';
+  });
+  const over = dir > 0 ? s.R.x - s.R.t : s.L.t - s.L.x;            // how far the leading edge flew past its target
+  maxOver = Math.max(maxOver, over); document.getElementById('over').textContent = maxOver.toFixed(1) + ' px';
+}
+// input: tap and drag
+function cellAt(x) { const c = cellsFor(sel); for (let i = 0; i < 3; i++) if (x < c[i].x + c[i].w) return i; return 2; }
+let lastX = 0, lastT = 0, vel = 0, startX = 0, startSelL = 0, moved = false;
+bar.addEventListener('pointerdown', e => {
+  bar.setPointerCapture(e.pointerId); const r = bar.getBoundingClientRect();
+  startX = e.clientX - r.left; lastX = startX; lastT = performance.now(); vel = 0; moved = false; dragging = false; startSelL = s.L.x;
+});
+bar.addEventListener('pointermove', e => {
+  if (!bar.hasPointerCapture(e.pointerId)) return;
+  const r = bar.getBoundingClientRect(), x = e.clientX - r.left, now = performance.now();
+  if (!dragging && Math.abs(x - startX) > 6) { dragging = true; moved = true; }
+  if (dragging) {
+    const w = s.R.x - s.L.x, nl = Math.max(PAD, Math.min(W - PAD - w, startSelL + (x - startX)));
+    const dx = nl - s.L.x; s.L.x += dx; s.R.x += dx; s.L.v = s.R.v = 0;
+    vel = (x - lastX) / Math.max(1, now - lastT) * 1000; lastX = x; lastT = now;
+  }
+});
+bar.addEventListener('pointerup', e => {
+  const r = bar.getBoundingClientRect(), x = e.clientX - r.left;
+  if (dragging) {
+    dragging = false; const centre = (s.L.x + s.R.x) / 2 + vel * 0.08;      // momentum decides the landing tab
+    const target = Math.max(0, Math.min(2, Math.round((centre - PAD - ICON_CELL / 2) / ((W - 2 * PAD) / 3 + 0))));
+    const i = Math.max(0, Math.min(2, Math.floor((centre - PAD) / ((W - 2 * PAD) / 3))));
+    setTargets(i, false); s.L.v = s.R.v = vel;                              // hand the finger velocity to the springs
+  } else if (!moved) { setTargets(cellAt(x), false); }
+});
+// controls
+const bind = (id, fn, fmt) => { const el = document.getElementById(id); const u = () => { fn(+el.value); document.getElementById(id + 'v').textContent = fmt(+el.value); }; el.oninput = u; u(); };
+bind('k', v => p.k = v, v => v.toFixed(0)); bind('z', v => p.z = v / 100, v => (v / 100).toFixed(2));
+bind('lead', v => p.lead = v / 100, v => (v / 100).toFixed(2) + '×'); bind('slow', v => p.slow = v, v => v + '×');
+const presets = {
+  'Snappy': {k:620, z:62, lead:150}, 'Bouncy (default)': {k:420, z:58, lead:170}, 'Gooey stretch': {k:300, z:48, lead:240}, 'Calm': {k:260, z:90, lead:120}
+};
+const pr = document.getElementById('presets');
+Object.keys(presets).concat(['Remove animations']).forEach(name => {
+  const b = document.createElement('button'); b.textContent = name; pr.appendChild(b);
+  b.onclick = () => {
+    if (name === 'Remove animations') { p.reduce = !p.reduce; b.classList.toggle('on', p.reduce); setTargets(sel, true); return; }
+    const v = presets[name]; ['k','z','lead'].forEach(id => { const el = document.getElementById(id); el.value = v[id]; el.oninput(); });
+    [...pr.children].forEach(c => c.classList.remove('on')); b.classList.add('on');
+  };
+});
+pr.children[1].classList.add('on');
+setTargets(0, true); render();
+let prev = performance.now(); (function loop(t) { tick(t - prev); prev = t; requestAnimationFrame(loop); })(prev);
+</script>
+</body>
+</html>

@@ -36,9 +36,30 @@ object ForecastEngine {
         hourCurve: DoubleArray = DEFAULT_HOUR_CURVE,
     ): Forecast {
         require(hourCurve.size == 24 && hourCurve.sum() > 0.0) { "hourCurve needs 24 positive weights" }
+        if (state.isDormant) {
+            return Forecast(
+                planId = state.plan.id,
+                runOutEarliest = null,
+                runOutExpected = null,
+                runOutLatest = null,
+                projectedCycleEndBytes = 0L,
+                confidence = Confidence.LOW,
+                historyDays = 0,
+            )
+        }
         val today = now.atZone(zone).toLocalDate()
         val history = dailyHistory.filter { it.date < today }.sortedBy { it.date }.takeLast(MAX_HISTORY_DAYS)
-        val overall = stat(history.map { it.mobileBytes.toDouble() })
+
+        // For an Entered plan (carrier usage entered mid-cycle), project the daily rate from
+        // (entered + measured) over the elapsed time since cycleStart rather than time since enteredAt.
+        // This keeps the projected burn rate honest for plans entered late in the billing cycle.
+        val overall = if (state.enteredBytes != null && history.isEmpty()) {
+            val elapsedSeconds = maxOf(1L, Duration.between(state.window.start, now).seconds)
+            val dailyRate = (state.usedBytes.toDouble() / elapsedSeconds) * 86_400.0
+            Stat(dailyRate, 0.0)
+        } else {
+            stat(history.map { it.mobileBytes.toDouble() })
+        }
         val profile = DayOfWeek.entries.associateWith { weekday ->
             blended(history.filter { it.date.dayOfWeek == weekday }.map { it.mobileBytes.toDouble() }, overall)
         }

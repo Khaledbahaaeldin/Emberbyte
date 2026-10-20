@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 
 @Composable
@@ -51,7 +56,7 @@ internal fun PlansContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 112.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -69,26 +74,43 @@ internal fun PlansContent(
                 }
             }
         }
-        if (state.loaded && state.cards.isEmpty() && state.archivedCards.isEmpty()) {
+        if (!state.loaded) {
             item {
-                BentoTile(title = "No plans yet", modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "Add your cap and renewal day to see what is left and when it runs out.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-                    )
-                    Button(
-                        onClick = onNewPlan,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("Set up your first plan")
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading plans")
                 }
             }
-        } else {
-            items(state.cards, key = { it.id }) { card ->
-                PlanCard(model = card, onClick = { onOpenPlan(card.id) })
+        } else if (state.cards.isEmpty() && state.archivedCards.isEmpty()) {
+            item {
+                EmptyState(
+                    icon = Icons.Rounded.AccountBalanceWallet,
+                    title = "No plans yet",
+                    body = "Add your cap and renewal day to see what is left and when it runs out.",
+                    action = {
+                        Button(
+                            onClick = onNewPlan,
+                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                        ) {
+                            Text("Set up your first plan")
+                        }
+                    },
+                )
             }
+        } else {
+            item {
+                PlansBento(
+                    cards = state.cards,
+                    onOpenPlan = onOpenPlan,
+                    onPinPlan = { id, pinned -> onEvent(PlansEvent.SetPinned(id, pinned)) },
+                    onArchivePlan = { id -> onEvent(PlansEvent.ArchivePlan(id)) },
+                )
+            }
+
             if (state.archivedCards.isNotEmpty()) {
                 item {
                     TextButton(

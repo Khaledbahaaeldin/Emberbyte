@@ -4,9 +4,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -30,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import io.github.khaledbahaaeldin.emberbyte.nav.BackTransitions
 import io.github.khaledbahaaeldin.emberbyte.nav.DeepLinkPatterns
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailScreen
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
@@ -39,6 +45,7 @@ import io.github.khaledbahaaeldin.emberbyte.history.HistoryScreen
 import io.github.khaledbahaaeldin.emberbyte.history.HistoryViewModel
 import io.github.khaledbahaaeldin.emberbyte.home.HomeScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Destination
+import io.github.khaledbahaaeldin.emberbyte.nav.PredictiveBackSubScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
 import io.github.khaledbahaaeldin.emberbyte.nav.rememberPermissionActions
@@ -51,27 +58,47 @@ import io.github.khaledbahaaeldin.emberbyte.plans.PlansScreen
 import io.github.khaledbahaaeldin.emberbyte.onboarding.OnboardingViewModel
 import io.github.khaledbahaaeldin.emberbyte.placeholder.StartupPlaceholder
 import io.github.khaledbahaaeldin.emberbyte.sampler.ServiceStarter
+import io.github.khaledbahaaeldin.emberbyte.settings.AppearanceScreen
+import io.github.khaledbahaaeldin.emberbyte.settings.AppearanceViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.ContentResolverStreamOpener
 import io.github.khaledbahaaeldin.emberbyte.settings.DataViewModel
 import io.github.khaledbahaaeldin.emberbyte.settings.LicensesScreen
 import io.github.khaledbahaaeldin.emberbyte.settings.SettingsScreen
 import io.github.khaledbahaaeldin.emberbyte.settings.SettingsViewModel
 import io.github.khaledbahaaeldin.emberbyte.ui.design.layout.contentWidth
-import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.FloatingPillNavBar
-import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.glassSource
-import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.rememberGlassSource
+import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.CompactNavBar
+import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.PlusButton
 import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.rememberNavBarVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
 @Composable
 fun EmberbyteApp(graph: AppGraph, hapticsEnabled: Boolean = true) {
-    val completed by graph.onboardingCompleted.collectAsStateWithLifecycle()
-    val value = completed
-    // `null` only before the first read. The scaffold is created ONCE with the right start destination and then stays.
-    if (value != null) {
-        AppScaffold(graph, startOnboarding = !value, hapticsEnabled = hapticsEnabled)
-    } else {
-        StartupPlaceholder()
+    val settings by graph.settingsState.collectAsStateWithLifecycle()
+    val isDark = isSystemInDarkTheme()
+    val spec = settings?.let { themeSpecOf(it, isDark) } ?: themeSpecOf(Settings(), isDark)
+
+    val context = LocalContext.current
+    val activity = remember(context) { context.findComponentActivity() }
+    DisposableEffect(spec.darkTheme, activity) {
+        activity?.enableEdgeToEdge(
+            statusBarStyle = if (spec.darkTheme) {
+                SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+            },
+        )
+        onDispose {}
+    }
+
+    EmberbyteTheme(spec = spec) {
+        val completed by graph.onboardingCompleted.collectAsStateWithLifecycle()
+        val value = completed
+        // `null` only before the first read. The scaffold is created ONCE with the right start destination and then stays.
+        if (value != null) {
+            AppScaffold(graph, startOnboarding = !value, hapticsEnabled = hapticsEnabled)
+        } else {
+            StartupPlaceholder()
+        }
     }
 }
 
@@ -104,7 +131,6 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     }
 
     val visibility = rememberNavBarVisibility()
-    val glass = rememberGlassSource()
     val actions = rememberPermissionActions(graph)
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -115,16 +141,23 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     val items = remember { Destination.entries.map { it.toNavBarItem() } }
     val motion = MaterialTheme.motionScheme
     val reduceMotion = LocalReduceMotion.current
+    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
 
     Box(Modifier.fillMaxSize().nestedScroll(visibility.connection), contentAlignment = Alignment.TopCenter) {
         NavHost(
             navController = navController,
             startDestination = if (startOnboarding) Routes.ONBOARDING else Destination.Home.route,
-            modifier = Modifier.contentWidth().fillMaxHeight().glassSource(glass),
+            modifier = Modifier.contentWidth().fillMaxHeight(),
             enterTransition = { tabEnterTransition(motion, reduceMotion) },
             exitTransition = { tabExitTransition(motion, reduceMotion) },
-            popEnterTransition = { tabEnterTransition(motion, reduceMotion) },
-            popExitTransition = { tabExitTransition(motion, reduceMotion) },
+            popEnterTransition = {
+                if (reduceMotion) BackTransitions.popEnterReducedMotion()
+                else BackTransitions.popEnter(layoutDirection)(this)
+            },
+            popExitTransition = {
+                if (reduceMotion) BackTransitions.popExitReducedMotion()
+                else BackTransitions.popExit(layoutDirection)(this)
+            },
         ) {
             composable(Routes.ONBOARDING) {
                 val viewModel: OnboardingViewModel = viewModel(factory = graph.onboardingViewModelFactory())
@@ -153,6 +186,8 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
                     onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
+                    onNavigateToApps = { navController.navigate(Destination.Apps.route) },
+                    iconProvider = graph.appIcons,
                 )
             }
             composable(
@@ -164,6 +199,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     viewModel,
                     onOpenApp = { packageName -> navController.navigate(Routes.appDetail(packageName)) },
                     onPromptAction = actions::onPrompt,
+                    iconProvider = graph.appIcons,
                 )
             }
             composable(
@@ -171,10 +207,12 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 arguments = listOf(navArgument("packageName") { type = NavType.StringType }),
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.APP_DETAIL }),
             ) { entry ->
-                val packageName = entry.arguments?.getString("packageName").orEmpty()
-                val viewModel: AppDetailViewModel =
-                    viewModel(key = "app-$packageName", factory = graph.appDetailViewModelFactory(packageName))
-                AppDetailScreen(viewModel, onBack = { navController.popBackStack() })
+                PredictiveBackSubScreen {
+                    val packageName = entry.arguments?.getString("packageName").orEmpty()
+                    val viewModel: AppDetailViewModel =
+                        viewModel(key = "app-$packageName", factory = graph.appDetailViewModelFactory(packageName))
+                    AppDetailScreen(viewModel, onBack = { navController.popBackStack() }, iconProvider = graph.appIcons)
+                }
             }
             composable(
                 Destination.Plans.route,
@@ -183,44 +221,93 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 PlansScreen(
                     viewModel(factory = graph.plansViewModelFactory()),
                     onOpenPlan = { navController.navigate(Routes.planEditor(it)) },
-                    onNewPlan = { navController.navigate(Routes.planEditor(0)) },
+                    onNewPlan = { navController.navigate(Routes.PLAN_NEW) },
                 )
+            }
+            composable(Routes.PLAN_NEW) {
+                PredictiveBackSubScreen {
+                    val viewModel: io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowViewModel =
+                        viewModel(factory = graph.planFlowViewModelFactory())
+                    io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowScreen(
+                        viewModel = viewModel,
+                        onPlanCreated = {
+                            navController.popBackStack()
+                        },
+                        onCancel = {
+                            navController.popBackStack()
+                        },
+                    )
+                }
             }
             composable(
                 Routes.PLAN_EDITOR,
                 arguments = listOf(navArgument("planId") { type = NavType.LongType }),
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.PLAN_EDITOR }),
             ) { entry ->
-                val planId = entry.arguments?.getLong("planId") ?: 0L
-                val viewModel: PlanEditorViewModel =
-                    viewModel(key = "plan-$planId", factory = graph.planEditorViewModelFactory(planId))
-                PlanEditorScreen(viewModel, onBack = { navController.popBackStack() }, onPrompt = actions::onPrompt)
+                PredictiveBackSubScreen {
+                    val planId = entry.arguments?.getLong("planId") ?: 0L
+                    val viewModel: PlanEditorViewModel =
+                        viewModel(key = "plan-$planId", factory = graph.planEditorViewModelFactory(planId))
+                    PlanEditorScreen(viewModel, onBack = { navController.popBackStack() }, onPrompt = actions::onPrompt)
+                }
             }
             composable(Routes.HISTORY) {
-                val viewModel: HistoryViewModel = viewModel(factory = graph.historyViewModelFactory())
-                HistoryScreen(viewModel, onBack = { navController.popBackStack() })
+                PredictiveBackSubScreen {
+                    val viewModel: HistoryViewModel = viewModel(factory = graph.historyViewModelFactory())
+                    HistoryScreen(viewModel, onBack = { navController.popBackStack() })
+                }
             }
             composable(
                 Routes.SETTINGS,
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.SETTINGS }),
             ) {
-                val viewModel: SettingsViewModel = viewModel(factory = graph.settingsViewModelFactory())
-                val dataViewModel: DataViewModel = viewModel(
-                    factory = graph.dataViewModelFactory(ContentResolverStreamOpener(context.contentResolver)),
-                )
-                SettingsScreen(
-                    viewModel,
-                    dataViewModel,
-                    onBack = { navController.popBackStack() },
-                    onOpenLicenses = { navController.navigate(Routes.LICENSES) },
-                )
+                PredictiveBackSubScreen {
+                    val viewModel: SettingsViewModel = viewModel(factory = graph.settingsViewModelFactory())
+                    val dataViewModel: DataViewModel = viewModel(
+                        factory = graph.dataViewModelFactory(ContentResolverStreamOpener(context.contentResolver)),
+                    )
+                    SettingsScreen(
+                        viewModel,
+                        dataViewModel,
+                        onBack = { navController.popBackStack() },
+                        onOpenLicenses = { navController.navigate(Routes.LICENCES) },
+                        onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
+                    )
+                }
+            }
+            composable(Routes.APPEARANCE) {
+                PredictiveBackSubScreen {
+                    val viewModel: AppearanceViewModel = viewModel(factory = graph.appearanceViewModelFactory())
+                    AppearanceScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+            composable(Routes.LICENCES) {
+                PredictiveBackSubScreen {
+                    val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
+                        viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
+                    io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
             composable(Routes.LICENSES) {
-                LicensesScreen(onBack = { navController.popBackStack() })
+                PredictiveBackSubScreen {
+                    val viewModel: io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel =
+                        viewModel(factory = io.github.khaledbahaaeldin.emberbyte.settings.LicencesViewModel.factory(context))
+                    io.github.khaledbahaaeldin.emberbyte.settings.LicencesScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
         }
-        if (route != Routes.ONBOARDING) {
-            FloatingPillNavBar(
+        val isTopLevel = route in setOf(Destination.Home.route, Destination.Apps.route, Destination.Plans.route)
+        if (isTopLevel) {
+            CompactNavBar(
                 items = items,
                 selectedId = selected.id,
                 onSelect = { id ->
@@ -232,12 +319,19 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 },
                 visible = visibility.visible,
                 hapticsEnabled = hapticsEnabled,
-                glass = glass,
+                trailing = if (route == Destination.Plans.route) {
+                    {
+                        PlusButton(
+                            onClick = { navController.navigate(Routes.PLAN_NEW) },
+                            contentDescription = "New plan",
+                        )
+                    }
+                } else null,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .contentWidth()
                     .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                    .padding(bottom = 12.dp),
             )
         }
     }

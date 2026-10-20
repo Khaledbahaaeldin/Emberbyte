@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -20,10 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
@@ -125,22 +130,17 @@ fun MorphingNumber(
                                 text = digit.toString(),
                                 modifier = Modifier.clearAndSetSemantics { },
                                 color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.displayLarge.copy(
+                                style = EmberbyteType.hero(72.sp).copy(
                                     fontFamily = family,
-                                    fontSize = 72.sp,
                                     lineHeight = 72.sp,
-                                    letterSpacing = (-2).sp,
                                 ),
                             )
                         }
                     }
                 }
             }
-            Text(
-                text = formatted.unit,
-                modifier = Modifier.clearAndSetSemantics { },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.headlineMedium,
+            UnitBadge(
+                unit = formatted.unit,
             )
         }
     }

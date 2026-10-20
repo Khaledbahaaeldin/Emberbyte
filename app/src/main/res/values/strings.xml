@@ -11,12 +11,26 @@
     <string name="notification_paused_text">Tap to resume measuring your data usage.</string>
     <string name="channel_alerts_name">Plan alerts</string>
     <string name="channel_alerts_description">Tells you when you have used a set share of a data plan</string>
-    <string name="widget_hero_label">Emberbyte: today</string>
+    <string name="widget_hero_label">Today</string>
     <string name="widget_hero_description">Today\'s data usage and what is left</string>
+    <string name="widget_plan_label">Plan</string>
+    <string name="widget_plan_description">Current data plan usage and remaining allowance</string>
     <string name="widget_bento_label">Emberbyte: overview</string>
     <string name="widget_bento_description">Today, forecast, speed and top apps</string>
+    <string name="widget_dashboard_label">Dashboard</string>
+    <string name="widget_dashboard_description">Full data overview with usage, chart and top apps</string>
     <string name="channel_spikes_name">Spike alerts</string>
     <string name="channel_spikes_description">Tells you when an app used unusually much mobile data</string>
     <string name="notification_action_data_settings">Data settings</string>
+    <string name="widget_preview_usage_1_24_gb">1.24 GB</string>
+    <string name="widget_preview_plan_pct_62">62%</string>
+    <string name="widget_preview_plan_3_8_gb_left">3.8 GB left</string>
+    <string name="widget_preview_dashboard_sim_line">Primary SIM · 3.8 GB left</string>
+    <string name="widget_preview_dashboard_app_line">Browser · 500 MB</string>
+    <string name="widget_preview_plan_name">Primary SIM</string>
+    <string name="widget_preview_today_value">1.38</string>
+    <string name="widget_preview_today_unit">" GB"</string>
+    <string name="widget_preview_today_remaining">12.4 GB left</string>
+    <string name="settings_now_bar_hint">Also allow Emberbyte under Now bar in your phone\'s settings</string>
 </resources>
 

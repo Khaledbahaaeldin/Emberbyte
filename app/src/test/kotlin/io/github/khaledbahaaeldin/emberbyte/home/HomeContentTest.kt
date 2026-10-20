@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -15,6 +16,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.GapUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +38,7 @@ class HomeContentTest {
         onOpenApp: (String) -> Unit = {},
         onSetUpPlan: () -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             HomeContent(
                 state = state,
                 onEvent = onEvent,
@@ -111,7 +113,7 @@ class HomeContentTest {
         val subtitle1 = "3.80 GB left · won't run out this cycle"
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     HomeContent(
                         state = HomeUiState(subtitle = subtitle1),
                         onEvent = {},
@@ -133,7 +135,7 @@ class HomeContentTest {
         val subtitle2 = "No data left"
         rule.setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     HomeContent(
                         state = HomeUiState(subtitle = subtitle2),
                         onEvent = {},
@@ -193,5 +195,10 @@ class HomeContentTest {
     @Test fun without_a_spike_the_spike_detected_tile_is_not_shown() {
         show(HomeUiState(spike = null))
         rule.onNodeWithText("Spike detected").assertDoesNotExist()
+    }
+
+    @Test fun loading_shows_loading_state() {
+        show(HomeUiState(isLoading = true))
+        rule.onNodeWithContentDescription("Loading today's usage").assertIsDisplayed()
     }
 }

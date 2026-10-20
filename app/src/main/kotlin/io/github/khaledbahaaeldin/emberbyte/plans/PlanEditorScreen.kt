@@ -1,7 +1,10 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.ui.graphics.graphicsLayer
+import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,7 +21,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.AlertDialog
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,14 +50,18 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
 import java.time.DayOfWeek
 
@@ -86,68 +94,62 @@ internal fun PlanEditorContent(
     onPrompt: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showDiscardDialog by rememberSaveable { mutableStateOf(false) }
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val backRequester = remember { FocusRequester() }
-    val discardRequester = remember { FocusRequester() }
 
-    val handleBack = {
+    val handleBack: () -> Unit = {
         if (state.isDirty) {
-            showDiscardDialog = true
+            backDispatcher?.onBackPressed() ?: onBack()
         } else {
             onBack()
         }
     }
 
-    BackHandler(enabled = true) {
-        handleBack()
-    }
+    GuardedBack(
+        dirty = state.isDirty,
+        onConfirmLeave = onBack,
+        onDismiss = { backRequester.requestFocus() },
+    ) { shrink ->
+        var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
 
-    if (showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showDiscardDialog = false
-                backRequester.requestFocus()
-            },
-            title = { Text("Discard changes?") },
-            dismissButton = {
-                TextButton(
+        if (showDeleteDialog) {
+            EmberbyteDialog(
+                onDismiss = { showDeleteDialog = false },
+                title = "Delete plan?",
+                icon = Icons.Rounded.Delete,
+                destructive = true,
+                confirm = DialogAction(
+                    label = "Delete",
                     onClick = {
-                        showDiscardDialog = false
-                        backRequester.requestFocus()
+                        showDeleteDialog = false
+                        onEvent(PlanEditorEvent.Delete)
                     },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("Keep editing")
-                }
-            },
-            confirmButton = {
-                LaunchedEffect(Unit) {
-                    kotlinx.coroutines.yield()
-                    discardRequester.requestFocus()
-                }
-                TextButton(
-                    onClick = {
-                        showDiscardDialog = false
-                        onBack()
-                    },
-                    modifier = Modifier
-                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        .focusRequester(discardRequester),
-                ) {
-                    Text("Discard")
-                }
-            },
-        )
-    }
+                ),
+                dismiss = DialogAction(
+                    label = "Cancel",
+                    onClick = { showDeleteDialog = false },
+                ),
+            ) {
+                Text(
+                    text = "Are you sure you want to delete this plan? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, bottom = 112.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        ScreenHeader(
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = shrink
+                    scaleY = shrink
+                }
+                .verticalScroll(rememberScrollState())
+                .padding(start = 16.dp, end = 16.dp, bottom = 112.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ScreenHeader(
             if (state.isNew) "New plan" else "Edit plan",
             handleBack,
             backModifier = Modifier.focusRequester(backRequester),
@@ -155,8 +157,16 @@ internal fun PlanEditorContent(
 
         when {
             state.loading -> {
-                Text("Loading plan")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading plan")
+                }
             }
+
             state.notFound -> {
                 Text("This plan no longer exists")
                 Button(onClick = onBack) {
@@ -210,6 +220,12 @@ internal fun PlanEditorContent(
                         }
                     }
                 }
+
+                Text(
+                    text = "Basics",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
 
                 val nameError = state.errors["name"]
                 OutlinedTextField(
@@ -266,6 +282,12 @@ internal fun PlanEditorContent(
                         Text(sim.label, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
+
+                Text(
+                    text = "Cap and cycle",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
 
                 val capError = state.errors["capBytes"]
                 OutlinedTextField(
@@ -643,7 +665,69 @@ internal fun PlanEditorContent(
                     Text("Add free window")
                 }
 
-                Text("Alert me at", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "This cycle",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+
+                val choices = listOf(
+                    Triple(FirstCycleChoice.PhoneRecord, "Use my phone's record", "Counts usage recorded by Android for this cycle."),
+                    Triple(FirstCycleChoice.Entered, "I've used some already", "Enter the data you already consumed this cycle:"),
+                    Triple(FirstCycleChoice.StartNextCycle, "Start tracking from the next cycle", "Starts on the next cycle reset. No alerts until then."),
+                )
+
+                for ((choice, title, helper) in choices) {
+                    val isSelected = state.form.firstCycleChoice == choice
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp)
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = { onEvent(PlanEditorEvent.SetFirstCycleChoice(choice)) },
+                            )
+                            .semantics(mergeDescendants = true) {}
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                        )
+                        Column(modifier = Modifier.padding(start = 8.dp)) {
+                            Text(title, style = MaterialTheme.typography.bodyLarge)
+                            Text(helper, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                if (state.form.firstCycleChoice == FirstCycleChoice.Entered) {
+                    OutlinedTextField(
+                        value = state.form.enteredAmount,
+                        onValueChange = { onEvent(PlanEditorEvent.SetEnteredAmount(it)) },
+                        label = { Text("Entered usage") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (unit in listOf(CapUnit.MB, CapUnit.GB)) {
+                            EmberbyteFilterChip(
+                                selected = state.form.enteredUnit == unit,
+                                onClick = { onEvent(PlanEditorEvent.SetEnteredUnit(unit)) },
+                                label = { Text(unit.label, softWrap = false) },
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Alerts",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (percent in listOf(50, 80, 90, 100)) {
                         EmberbyteFilterChip(
@@ -690,14 +774,28 @@ internal fun PlanEditorContent(
                 }
 
                 if (!state.isNew) {
+                    Text(
+                        text = "Danger zone",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
+
                     TextButton(
                         onClick = { onEvent(PlanEditorEvent.Archive) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
                         Text("Archive plan")
                     }
+
+                    TextButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) {
+                        Text("Delete plan")
+                    }
                 }
             }
         }
     }
+}
 }

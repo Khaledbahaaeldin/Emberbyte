@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import androidx.activity.addCallback
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.performTextInput
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -47,7 +50,7 @@ class PlanEditorContentTest {
         onBack: () -> Unit = {},
         onPrompt: (String) -> Unit = {},
     ) = rule.setContent {
-        EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+        EmberbyteTheme(EmberbyteThemeSpec.Default) {
             PlanEditorContent(state = state, onEvent = onEvent, onBack = onBack, onPrompt = onPrompt)
         }
     }
@@ -182,6 +185,7 @@ class PlanEditorContentTest {
     @Test fun the_loading_state() {
         show(state.copy(loading = true))
         rule.onNodeWithText("Plan name").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Loading plan").assertIsDisplayed()
     }
 
     @Test fun the_time_field_opens_a_dialog_that_can_be_cancelled() {
@@ -255,7 +259,7 @@ class PlanEditorContentTest {
     @Test fun free_window_day_chips_in_320dp_container_wrap_and_keep_min_width() {
         val draft = FreeRuleDraft(label = "Night", days = DayOfWeek.entries.toSet())
         rule.setContent {
-            EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 Box(modifier = Modifier.width(320.dp)) {
                     PlanEditorContent(
                         state = state.copy(form = state.form.copy(freeRules = listOf(draft))),
@@ -281,7 +285,7 @@ class PlanEditorContentTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(LocalDensity.current.density, fontScale = 2f)
             ) {
-                EmberbyteTheme(darkTheme = true, dynamicColor = false) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlanEditorContent(state = state, onEvent = {}, onBack = {}, onPrompt = {})
                 }
             }
@@ -374,6 +378,7 @@ class PlanEditorContentTest {
 
     @Test fun when_not_dirty_system_back_leaves_immediately() {
         var backCount = 0
+        (rule as? androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>)?.activity?.onBackPressedDispatcher?.addCallback { backCount++ }
         show(state.copy(isDirty = false), onBack = { backCount++ })
         (rule as? androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>)?.activity?.onBackPressedDispatcher?.onBackPressed()
         assertEquals(1, backCount)

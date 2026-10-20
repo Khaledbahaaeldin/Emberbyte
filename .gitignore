@@ -14,3 +14,7 @@ local.properties
 captures/
 *.apk
 *.aab
+
+# Python
+__pycache__/
+tools/__pycache__/
