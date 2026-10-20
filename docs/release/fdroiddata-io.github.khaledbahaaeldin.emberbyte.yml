@@ -20,12 +20,12 @@ Categories:
 License: GPL-3.0-or-later
 AuthorName: Khaled Bahaaeldin
 AuthorWebSite: https://github.com/Khaledbahaaeldin
-SourceCode: https://github.com/Khaledbahaaeldin/DataKB
-IssueTracker: https://github.com/Khaledbahaaeldin/DataKB/issues
-Changelog: https://github.com/Khaledbahaaeldin/DataKB/blob/main/CHANGELOG.md
+SourceCode: https://github.com/Khaledbahaaeldin/Emberbyte
+IssueTracker: https://github.com/Khaledbahaaeldin/Emberbyte/issues
+Changelog: https://github.com/Khaledbahaaeldin/Emberbyte/blob/main/CHANGELOG.md
 
 RepoType: git
-Repo: https://github.com/Khaledbahaaeldin/DataKB.git
+Repo: https://github.com/Khaledbahaaeldin/Emberbyte.git
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags

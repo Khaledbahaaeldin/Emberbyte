@@ -69,7 +69,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import java.time.LocalDate
 
-private const val SOURCE_URL = "https://github.com/Khaledbahaaeldin/DataKB"
+private const val SOURCE_URL = "https://github.com/Khaledbahaaeldin/Emberbyte"
 
 @Composable
 fun SettingsScreen(

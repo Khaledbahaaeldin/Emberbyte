@@ -63,7 +63,7 @@ The Emberbyte Expressive Redesign upgrades Emberbyte from a functional utility m
 Adding a new theme to Emberbyte is fully automated and guarded by compile-time generators and contrast tests.
 
 ### Step 1: Define Color Tokens in `palettes.json`
-Open [`tools/palettes/palettes.json`](file:///c:/Users/Khaled/Documents/Personal%20Projects/DataKB/tools/palettes/palettes.json). Add your theme entry specifying light and dark hex color definitions for all 18 semantic roles:
+Open [`tools/palettes/palettes.json`](../tools/palettes/palettes.json). Add your theme entry specifying light and dark hex color definitions for all 18 semantic roles:
 
 ```json
 {

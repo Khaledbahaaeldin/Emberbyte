@@ -1,4 +1,4 @@
-# Emberbyte (DataKB)
+# Emberbyte (formerly codenamed DataKB)
 
 Native Android mobile data-usage monitor and policy manager with Material 3 UI, providing real-time cellular and Wi-Fi accounting, period tracking, and quota alerts.
 

@@ -6,7 +6,7 @@ per-SIM binding, add-on packs, free windows, rollover, personalized quota run-ou
 alerts, home-screen widgets, per-app budgets, spike detection, "what if" planning, data export, and
 encrypted local backups.
 
-> "DataKB" is the project codename; the repository retains that name.
+> "DataKB" was the project codename; the repository is now named Emberbyte.
 
 ---
 
@@ -95,7 +95,7 @@ Every permission declared in [`AndroidManifest.xml`](app/src/main/AndroidManifes
 ## Installation
 
 - **F-Droid**: Coming soon once listed in the official F-Droid repository. See [F-Droid draft recipe](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
-- **GitHub Releases**: Download maintainer-signed APKs or inspect reproducible unsigned release APK artifacts on the [Releases](https://github.com/Khaledbahaaeldin/DataKB/releases) page. (Unsigned APKs are reproducible build verification artifacts and cannot be directly installed on Android devices without signing).
+- **GitHub Releases**: Download maintainer-signed APKs or inspect reproducible unsigned release APK artifacts on the [Releases](https://github.com/Khaledbahaaeldin/Emberbyte/releases) page. (Unsigned APKs are reproducible build verification artifacts and cannot be directly installed on Android devices without signing).
 
 ---
 
