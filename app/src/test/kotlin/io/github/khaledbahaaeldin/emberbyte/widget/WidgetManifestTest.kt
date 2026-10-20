@@ -22,6 +22,7 @@ class WidgetManifestTest {
         assertTrue(names.contains("${context.packageName}.widget.PlanWidgetReceiver"))
         assertTrue(names.contains("${context.packageName}.widget.HeroWidgetReceiver"))
         assertTrue(names.contains("${context.packageName}.widget.BentoWidgetReceiver"))
+        assertTrue(names.contains("${context.packageName}.widget.DashboardWidgetReceiver"))
 
         val planReceiver = receivers.find { it.activityInfo.name == "${context.packageName}.widget.PlanWidgetReceiver" }
         assertTrue(planReceiver?.activityInfo?.exported == true)

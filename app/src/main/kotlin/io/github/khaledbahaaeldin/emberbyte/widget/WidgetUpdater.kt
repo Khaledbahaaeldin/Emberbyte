@@ -9,5 +9,6 @@ object WidgetUpdater {
         PlanWidget().updateAll(context)
         HeroWidget().updateAll(context)
         BentoWidget().updateAll(context)
+        DashboardWidget().updateAll(context)
     }
 }

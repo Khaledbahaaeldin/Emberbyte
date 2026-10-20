@@ -17,6 +17,8 @@
     <string name="widget_plan_description">Current data plan usage and remaining allowance</string>
     <string name="widget_bento_label">Emberbyte: overview</string>
     <string name="widget_bento_description">Today, forecast, speed and top apps</string>
+    <string name="widget_dashboard_label">Dashboard</string>
+    <string name="widget_dashboard_description">Full data overview with usage, chart and top apps</string>
     <string name="channel_spikes_name">Spike alerts</string>
     <string name="channel_spikes_description">Tells you when an app used unusually much mobile data</string>
     <string name="notification_action_data_settings">Data settings</string>
