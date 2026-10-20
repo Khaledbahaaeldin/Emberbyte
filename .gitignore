@@ -18,3 +18,4 @@ captures/
 # Python
 __pycache__/
 tools/__pycache__/
+dist/

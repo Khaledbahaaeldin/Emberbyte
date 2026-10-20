@@ -51,13 +51,12 @@ The release build configuration is defined in [`app/build.gradle.kts`](../../app
 Emberbyte is built as an open-source, reproducible Android application ready for F-Droid inclusion:
 - **Build from Source**: F-Droid build recipes fetch source code from tagged git releases and execute `./gradlew :app:assembleRelease`.
 - **Reproducible Builds**: F-Droid build recipes build the application from source in an isolated environment and sign the binary with the F-Droid signing key (or verify binary reproducibility against maintainer builds when reproducible build metadata is published).
-- **Signing**: F-Droid signs the resulting APK with the official F-Droid signing key for F-Droid client users. For standalone GitHub releases, maintainers sign the unsigned release APK using `apksigner`:
+- **Signing**: F-Droid signs the resulting APK with the official F-Droid signing key for F-Droid client users. For GitHub releases the maintainer signs the unsigned release APK with `tools/release/sign.sh`, which aligns, signs with `apksigner`, verifies, writes a SHA-256 file and prints the certificate fingerprint:
   ```bash
-  apksigner sign --ks <release-keystore.jks> \
-    --ks-key-alias <alias> \
-    --in app/build/outputs/apk/release/app-release-unsigned.apk \
-    --out emberbyte-1.0.0-signed.apk
+  ./gradlew :app:assembleRelease
+  tools/release/sign.sh <path-to-release-keystore.jks>
   ```
+  The keystore must live outside the repository (the script refuses otherwise). Passwords are read from a silent prompt or from `EMBERBYTE_KS_PASS` / `EMBERBYTE_KEY_PASS`, never from arguments or files. The result is `dist/emberbyte-<versionName>.apk` (git-ignored). Back the keystore up in two places: a lost key means users can never update.
 
 ---
 
