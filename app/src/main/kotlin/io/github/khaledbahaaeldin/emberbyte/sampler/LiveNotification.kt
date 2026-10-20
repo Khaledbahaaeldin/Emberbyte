@@ -12,11 +12,13 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import kotlin.math.roundToInt
 
 import android.content.res.Configuration
@@ -89,7 +91,11 @@ fun formatProgressChip(bytes: Long, units: ByteUnits): String {
     return "$valueStr $finalUnit"
 }
 
-fun liveProgressOf(planState: PlanState?, units: ByteUnits): LiveProgress? {
+fun liveProgressOf(
+    planState: PlanState?,
+    units: ByteUnits,
+    todayBytes: Long? = null,
+): LiveProgress? {
     if (planState == null) return null
     val isExhausted = planState.remainingBytes <= 0L
     val fraction = if (isExhausted) {
@@ -98,7 +104,15 @@ fun liveProgressOf(planState: PlanState?, units: ByteUnits): LiveProgress? {
         val clamped = planState.fractionUsed.coerceIn(0f, 1f)
         (kotlin.math.round(clamped * 1000f) / 1000f)
     }
-    val chip = if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
+    val chip = if (todayBytes != null) {
+        val state = liveNotificationStateOf(planState)
+        val formattedToday = formatBytes(todayBytes, units)
+        val usedToday = "${formattedToday.value} ${formattedToday.unit}"
+        val remaining = if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
+        ChipText.forState(state, usedToday, remaining)
+    } else {
+        if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
+    }
     return LiveProgress(fractionUsed = fraction, chip = chip)
 }
 
@@ -212,6 +226,9 @@ open class LiveNotificationBuilder(
     private val isNight: () -> Boolean = {
         (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
     },
+    private val promotedGate: PromotedGate = PromotedGate(context, { sdkInt }, { sdkIntFull }),
+    private val promotedDismissedOnSupplier: () -> String? = { settingsSupplier().promotedDismissedOn },
+    private val todaySupplier: () -> String = { LocalDate.now().toString() },
 ) {
     private fun resolveActivePalette(): EmberbytePalette {
         val settings = settingsSupplier()
@@ -257,6 +274,12 @@ open class LiveNotificationBuilder(
             DeepLinks.intent(context, DeepLinks.HOME),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val deleteIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, PromotedDismissReceiver::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         return NotificationCompat.Builder(context, NotificationChannels.LIVE)
             .setSmallIcon(R.drawable.ic_stat_ember)
             .setColor(colorArgb)
@@ -269,6 +292,7 @@ open class LiveNotificationBuilder(
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(open)
+            .setDeleteIntent(deleteIntent)
             .build()
     }
 
@@ -284,6 +308,12 @@ open class LiveNotificationBuilder(
             DeepLinks.intent(context, DeepLinks.HOME),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val deleteIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, PromotedDismissReceiver::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
         val builder = Notification.Builder(context, NotificationChannels.LIVE)
             .setSmallIcon(R.drawable.ic_stat_ember)
             .setColor(colorArgb)
@@ -295,6 +325,7 @@ open class LiveNotificationBuilder(
             .setShowWhen(false)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setContentIntent(open)
+            .setDeleteIntent(deleteIntent)
 
         if (Build.VERSION.SDK_INT >= 31) {
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
@@ -302,8 +333,21 @@ open class LiveNotificationBuilder(
 
         platformCaller.setProgressStyle(builder, progress.fractionUsed, colorArgb)
         platformCaller.setShortCriticalText(builder, progress.chip)
-        if (style == LiveNotificationStyle.PROMOTED) {
-            platformCaller.setRequestPromotedOngoing(builder, true)
+
+        val settings = settingsSupplier()
+        val isDismissedToday = promotedDismissedOnSupplier() == todaySupplier()
+        val shouldPromote = settings.liveNotificationEnabled &&
+            promotedGate.mayPost() &&
+            !isDismissedToday
+
+        if (shouldPromote) {
+            if (promotedGate.usesExtraForPromotion()) {
+                val extras = android.os.Bundle()
+                extras.putBoolean("android.requestPromotedOngoing", true)
+                builder.addExtras(extras)
+            } else {
+                platformCaller.setRequestPromotedOngoing(builder, true)
+            }
         }
         return builder.build()
     }

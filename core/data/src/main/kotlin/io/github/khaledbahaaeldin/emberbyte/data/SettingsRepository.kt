@@ -17,6 +17,7 @@ data class Settings(
     val useWallpaperColors: Boolean = false,
     val unitSystem: UnitSystem = UnitSystem.DECIMAL,
     val hapticsEnabled: Boolean = true,
+    val promotedDismissedOn: String? = null,
 )
 
 interface SettingsRepository {

@@ -89,6 +89,7 @@ fun SettingsScreen(
     }
 
     val pendingState = rememberSaveable(saver = SettingsPendingState.Saver) { SettingsPendingState() }
+    val promotedGate = remember(context) { io.github.khaledbahaaeldin.emberbyte.sampler.PromotedGate(context) }
 
     val createCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         uri?.let { dataViewModel.exportCsv(pendingState.pendingRange, it) }
@@ -159,6 +160,12 @@ fun SettingsScreen(
             pendingState.pendingRestoreUri = null
         },
         onOpenAppearance = onOpenAppearance,
+        mayPostLiveUpdates = promotedGate.mayPost(),
+        onOpenLiveUpdatesSettings = {
+            runCatching {
+                context.startActivity(promotedGate.settingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        },
         modifier = modifier,
     )
 }
@@ -210,6 +217,8 @@ internal fun SettingsContent(
     restoreFileChosen: Boolean = false,
     onDismissRestorePassphrase: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
+    mayPostLiveUpdates: Boolean = true,
+    onOpenLiveUpdatesSettings: () -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
@@ -243,7 +252,11 @@ internal fun SettingsContent(
                     iconShape = AppShape.Cookie,
                     iconVector = Icons.Rounded.Notifications,
                     iconText = null,
-                    onCheckedChange = { onUpdate { s -> s.copy(liveNotificationEnabled = it) } },
+                    onCheckedChange = { onUpdate { s -> s.copy(liveNotificationEnabled = it, promotedDismissedOn = null) } },
+                )
+                LiveUpdatesRow(
+                    mayPost = mayPostLiveUpdates,
+                    onClick = onOpenLiveUpdatesSettings,
                 )
                 SettingsSwitchRow(
                     title = "Show speed",

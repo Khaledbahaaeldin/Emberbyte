@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
@@ -32,6 +35,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ExpressiveSwitch
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.ShapedBox
@@ -121,6 +125,7 @@ fun SettingsRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    secondarySubtitle: String? = null,
     value: String? = null,
     iconShape: AppShape = AppShape.Cookie,
     iconColor: Color = LocalEmberbytePalette.current.surface2,
@@ -179,6 +184,13 @@ fun SettingsRow(
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (enabled) palette.muted else palette.muted.copy(alpha = 0.38f),
+                    )
+                }
+                if (secondarySubtitle != null) {
+                    Text(
+                        text = secondarySubtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = if (enabled) palette.muted else palette.muted.copy(alpha = 0.38f),
                     )
@@ -309,3 +321,24 @@ fun SettingsSwitchRow(
         }
     }
 }
+
+@Composable
+fun LiveUpdatesRow(
+    mayPost: Boolean,
+    modifier: Modifier = Modifier,
+    isSamsung: Boolean = Build.MANUFACTURER.equals("samsung", ignoreCase = true),
+    onClick: () -> Unit,
+) {
+    SettingsRow(
+        title = "Live updates",
+        subtitle = if (mayPost) "Allowed" else "Turned off in system settings",
+        secondarySubtitle = if (isSamsung) stringResource(R.string.settings_now_bar_hint) else null,
+        iconVector = Icons.Rounded.Notifications,
+        iconText = null,
+        iconShape = AppShape.Squircle,
+        showChevron = true,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+

@@ -31,5 +31,6 @@
     <string name="widget_preview_today_value">1.38</string>
     <string name="widget_preview_today_unit">" GB"</string>
     <string name="widget_preview_today_remaining">12.4 GB left</string>
+    <string name="settings_now_bar_hint">Also allow Emberbyte under Now bar in your phone\'s settings</string>
 </resources>
 

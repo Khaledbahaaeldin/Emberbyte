@@ -29,6 +29,7 @@ internal object SettingsKeys {
     val THEME_MIGRATED = booleanPreferencesKey("theme_migrated")
     val UNIT_SYSTEM = stringPreferencesKey("unit_system")
     val HAPTICS = booleanPreferencesKey("haptics_enabled")
+    val PROMOTED_DISMISSED_ON = stringPreferencesKey("promoted_dismissed_on")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     val LEGACY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
 }
@@ -47,6 +48,7 @@ internal fun Preferences.toSettings(): Settings {
         unitSystem = this[SettingsKeys.UNIT_SYSTEM]
             ?.let { name -> runCatching { UnitSystem.valueOf(name) }.getOrNull() } ?: d.unitSystem,
         hapticsEnabled = this[SettingsKeys.HAPTICS] ?: d.hapticsEnabled,
+        promotedDismissedOn = this[SettingsKeys.PROMOTED_DISMISSED_ON],
     )
 }
 
@@ -60,6 +62,11 @@ internal fun MutablePreferences.write(settings: Settings) {
     this[SettingsKeys.USE_WALLPAPER_COLORS] = settings.useWallpaperColors
     this[SettingsKeys.UNIT_SYSTEM] = settings.unitSystem.name
     this[SettingsKeys.HAPTICS] = settings.hapticsEnabled
+    if (settings.promotedDismissedOn != null) {
+        this[SettingsKeys.PROMOTED_DISMISSED_ON] = settings.promotedDismissedOn
+    } else {
+        this.remove(SettingsKeys.PROMOTED_DISMISSED_ON)
+    }
 }
 
 private fun Flow<Preferences>.safe(): Flow<Preferences> = catch { error ->
