@@ -111,8 +111,14 @@ class WidgetPreviewActivity : ComponentActivity() {
 
         val bgHex = if (dark && amoled) 0xFF000000.toInt() else if (dark) 0xFF141218.toInt() else 0xFFF5F5F7.toInt()
         rootContainer.setBackgroundColor(bgHex)
-        infoText.setTextColor(if (dark) AndroidColor.WHITE else AndroidColor.DKGRAY)
-        infoText.text = "Widget: $widgetName | Theme: ${preset.name} (${if (dark) "Dark" else "Light"}${if (amoled) " AMOLED" else ""}) | ${widthDp}x${heightDp}dp"
+        val hideInfo = intent.getBooleanExtra("hideInfo", false) || widgetName.equals("showcase", ignoreCase = true)
+        if (hideInfo) {
+            infoText.visibility = android.view.View.GONE
+        } else {
+            infoText.visibility = android.view.View.VISIBLE
+            infoText.setTextColor(if (dark) AndroidColor.WHITE else AndroidColor.DKGRAY)
+            infoText.text = "Widget: $widgetName | Theme: ${preset.name} (${if (dark) "Dark" else "Light"}${if (amoled) " AMOLED" else ""}) | ${widthDp}x${heightDp}dp"
+        }
 
         val density = resources.displayMetrics.density
         val pixelWidth = (widthDp * density).toInt()
@@ -130,18 +136,124 @@ class WidgetPreviewActivity : ComponentActivity() {
             try {
                 val budget = ImageBudget()
                 val glanceRemoteViews = GlanceRemoteViews()
-                val rv = glanceRemoteViews.compose(this@WidgetPreviewActivity, size) {
-                    when (widgetName.lowercase()) {
-                        "plan" -> PlanWidget().PlanContent(data, palette, budget, size)
-                        "bento" -> BentoWidget().BentoContent(data, palette, budget, size)
-                        "dashboard" -> DashboardWidget().DashboardContent(data, palette, budget, size)
-                        "hero" -> HeroWidget().HeroContent(data, palette, budget, size)
-                        else -> TodayWidget().TodayContent(data, palette, budget, size)
+
+                when (widgetName.lowercase()) {
+                    "today_plan" -> {
+                        val col = android.widget.LinearLayout(this@WidgetPreviewActivity).apply {
+                            orientation = android.widget.LinearLayout.VERTICAL
+                            gravity = Gravity.CENTER_HORIZONTAL
+                        }
+                        val todaySize = DpSize(340.dp, 120.dp)
+                        val rvToday = glanceRemoteViews.compose(this@WidgetPreviewActivity, todaySize) {
+                            TodayWidget().TodayContent(data, palette, budget, todaySize)
+                        }
+                        val vToday = rvToday.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vToday, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (120 * density).toInt()).apply {
+                            bottomMargin = (16 * density).toInt()
+                        })
+
+                        val planSize = DpSize(340.dp, 160.dp)
+                        val rvPlan = glanceRemoteViews.compose(this@WidgetPreviewActivity, planSize) {
+                            PlanWidget().PlanContent(data, palette, budget, planSize)
+                        }
+                        val vPlan = rvPlan.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vPlan, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (160 * density).toInt()))
+
+                        widgetContainer.layoutParams = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            Gravity.CENTER
+                        )
+                        widgetContainer.removeAllViews()
+                        widgetContainer.addView(col)
+                    }
+                    "bento_dashboard" -> {
+                        val col = android.widget.LinearLayout(this@WidgetPreviewActivity).apply {
+                            orientation = android.widget.LinearLayout.VERTICAL
+                            gravity = Gravity.CENTER_HORIZONTAL
+                        }
+                        val bentoSize = DpSize(340.dp, 160.dp)
+                        val rvBento = glanceRemoteViews.compose(this@WidgetPreviewActivity, bentoSize) {
+                            BentoWidget().BentoContent(data, palette, budget, bentoSize)
+                        }
+                        val vBento = rvBento.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vBento, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (160 * density).toInt()).apply {
+                            bottomMargin = (16 * density).toInt()
+                        })
+
+                        val dashSize = DpSize(340.dp, 300.dp)
+                        val rvDash = glanceRemoteViews.compose(this@WidgetPreviewActivity, dashSize) {
+                            DashboardWidget().DashboardContent(data, palette, budget, dashSize)
+                        }
+                        val vDash = rvDash.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vDash, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (300 * density).toInt()))
+
+                        widgetContainer.layoutParams = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            Gravity.CENTER
+                        )
+                        widgetContainer.removeAllViews()
+                        widgetContainer.addView(col)
+                    }
+                    "showcase" -> {
+                        val col = android.widget.LinearLayout(this@WidgetPreviewActivity).apply {
+                            orientation = android.widget.LinearLayout.VERTICAL
+                            gravity = Gravity.CENTER_HORIZONTAL
+                        }
+                        val todaySize = DpSize(340.dp, 100.dp)
+                        val vToday = glanceRemoteViews.compose(this@WidgetPreviewActivity, todaySize) {
+                            TodayWidget().TodayContent(data, palette, budget, todaySize)
+                        }.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vToday, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (100 * density).toInt()).apply {
+                            bottomMargin = (12 * density).toInt()
+                        })
+
+                        val planSize = DpSize(340.dp, 130.dp)
+                        val vPlan = glanceRemoteViews.compose(this@WidgetPreviewActivity, planSize) {
+                            PlanWidget().PlanContent(data, palette, budget, planSize)
+                        }.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vPlan, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (130 * density).toInt()).apply {
+                            bottomMargin = (12 * density).toInt()
+                        })
+
+                        val bentoSize = DpSize(340.dp, 140.dp)
+                        val vBento = glanceRemoteViews.compose(this@WidgetPreviewActivity, bentoSize) {
+                            BentoWidget().BentoContent(data, palette, budget, bentoSize)
+                        }.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vBento, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (140 * density).toInt()).apply {
+                            bottomMargin = (12 * density).toInt()
+                        })
+
+                        val dashSize = DpSize(340.dp, 240.dp)
+                        val vDash = glanceRemoteViews.compose(this@WidgetPreviewActivity, dashSize) {
+                            DashboardWidget().DashboardContent(data, palette, budget, dashSize)
+                        }.remoteViews.apply(this@WidgetPreviewActivity, col)
+                        col.addView(vDash, android.widget.LinearLayout.LayoutParams((340 * density).toInt(), (240 * density).toInt()))
+
+                        widgetContainer.layoutParams = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            Gravity.CENTER
+                        )
+                        widgetContainer.removeAllViews()
+                        widgetContainer.addView(col)
+                    }
+                    else -> {
+                        val rv = glanceRemoteViews.compose(this@WidgetPreviewActivity, size) {
+                            when (widgetName.lowercase()) {
+                                "plan" -> PlanWidget().PlanContent(data, palette, budget, size)
+                                "bento" -> BentoWidget().BentoContent(data, palette, budget, size)
+                                "dashboard" -> DashboardWidget().DashboardContent(data, palette, budget, size)
+                                "hero" -> HeroWidget().HeroContent(data, palette, budget, size)
+                                else -> TodayWidget().TodayContent(data, palette, budget, size)
+                            }
+                        }
+                        val view = rv.remoteViews.apply(this@WidgetPreviewActivity, widgetContainer)
+                        widgetContainer.removeAllViews()
+                        widgetContainer.addView(view)
                     }
                 }
-                val view = rv.remoteViews.apply(this@WidgetPreviewActivity, widgetContainer)
-                widgetContainer.removeAllViews()
-                widgetContainer.addView(view)
             } catch (e: Exception) {
                 widgetContainer.removeAllViews()
                 val errorView = TextView(this@WidgetPreviewActivity).apply {

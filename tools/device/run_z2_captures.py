@@ -258,8 +258,19 @@ def main():
 
     # --- Widgets Preview ---
     print("Capturing Widgets Preview...")
+    run_adb(["shell", "am", "start", "-W", "-n", f"{PKG}/.WidgetPreviewActivity",
+             "--es", "widget", "today_plan", "--es", "theme", "dusk", "--ez", "dark", "true"])
+    time.sleep(1.5)
     capture_png(os.path.join(PROOF_DIR, "30_widgets_today_plan.png"))
+
+    run_adb(["shell", "am", "start", "-W", "-n", f"{PKG}/.WidgetPreviewActivity",
+             "--es", "widget", "bento_dashboard", "--es", "theme", "dusk", "--ez", "dark", "true"])
+    time.sleep(1.5)
     capture_png(os.path.join(PROOF_DIR, "31_widgets_bento_dashboard.png"))
+
+    run_adb(["shell", "am", "start", "-W", "-n", f"{PKG}/.WidgetPreviewActivity",
+             "--es", "widget", "showcase", "--es", "theme", "dusk", "--ez", "dark", "true"])
+    time.sleep(1.5)
     capture_png(os.path.join(STORE_DIR, "07_widgets_preview.png"))
 
     reset_device()
