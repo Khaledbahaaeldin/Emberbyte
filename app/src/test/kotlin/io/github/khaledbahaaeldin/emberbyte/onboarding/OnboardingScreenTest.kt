@@ -74,6 +74,13 @@ class OnboardingScreenTest {
     }
 
     @Test
+    fun onboarding_page_2_does_not_show_stale_step_1_of_3() {
+        show()
+        rule.onNodeWithText("Next").performClick()
+        rule.onNodeWithText("STEP 1 OF 3").assertDoesNotExist()
+    }
+
+    @Test
     fun four_pages_with_page_n_of_4_descriptions() {
         show()
         rule.onNodeWithContentDescription("Page 1 of 4").assertIsDisplayed()

@@ -27,11 +27,46 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+import org.robolectric.annotation.GraphicsMode
+
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HeroNumberTest {
     @get:Rule
     val rule = createComposeRule()
+
+    @Test
+    fun decimal_point_loosens_spacing_after_dot_and_digits_do_not_intersect() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                val density = LocalDensity.current
+                val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+
+                val withoutFix = textMeasurer.measure(
+                    text = androidx.compose.ui.text.AnnotatedString("1.48"),
+                    style = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType.hero(96.sp),
+                    density = density,
+                )
+                val withFix = textMeasurer.measure(
+                    text = formatHeroValue("1.48"),
+                    style = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType.hero(96.sp),
+                    density = density,
+                )
+
+                val dotBounds = withFix.getBoundingBox(1) // '.' is index 1
+                val nextDigitBounds = withFix.getBoundingBox(2) // '4' is index 2
+                assertTrue(
+                    "Rendered width with fix (${withFix.size.width}) must be larger than without (${withoutFix.size.width})",
+                    withFix.size.width > withoutFix.size.width
+                )
+                assertTrue(
+                    "Dot bounds right (${dotBounds.right}) must not exceed next digit left (${nextDigitBounds.left})",
+                    dotBounds.right <= nextDigitBounds.left
+                )
+            }
+        }
+    }
 
     @Test
     fun exposes_one_node_with_the_description() {

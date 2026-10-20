@@ -98,6 +98,15 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun settings_group_and_row_icons_do_not_render_placeholder_letters() {
+        show()
+        rule.onAllNodesWithText("N", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithText("L", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithText("S", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithText("A", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
     fun every_setting_row_is_one_node_with_label_and_state() {
         show(
             settings = Settings(

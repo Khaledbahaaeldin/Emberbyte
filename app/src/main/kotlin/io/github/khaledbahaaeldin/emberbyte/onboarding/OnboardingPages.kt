@@ -151,12 +151,6 @@ internal fun SeeYourDataOnboardingPage(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "STEP 1 OF 3",
-            style = EmberbyteType.badge(12.sp),
-            color = palette.muted,
-        )
-
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = mixedCorners(large = 32.dp, small = 12.dp, smallCorner = Corner.BottomEnd),
@@ -219,12 +213,6 @@ internal fun StayUnderYourCapOnboardingPage(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "STEP 2 OF 3",
-            style = EmberbyteType.badge(12.sp),
-            color = palette.muted,
-        )
-
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = mixedCorners(large = 32.dp, small = 12.dp, smallCorner = Corner.TopEnd),
@@ -326,12 +314,6 @@ internal fun AllowUsageAccessOnboardingPage(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "STEP 3 OF 3",
-            style = EmberbyteType.badge(12.sp),
-            color = palette.muted,
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()

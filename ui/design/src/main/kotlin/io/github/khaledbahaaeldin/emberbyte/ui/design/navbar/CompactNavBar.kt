@@ -40,7 +40,9 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -513,7 +515,15 @@ private fun NavBarSlots(
             items.forEachIndexed { index, item ->
                 val isSelected = (index == selectedIndex)
                 val cellSpring = cellSprings[index]
-                val tintColor = if (isSelected) palette.onPrimary else palette.muted
+                val iconLeftInBar = cellSpring.xAnim.value + (cellSpring.widthAnim.value - iconSizePx) / 2f
+                val tintColor = interpolateIconColor(
+                    iconLeft = iconLeftInBar,
+                    iconWidth = iconSizePx,
+                    pillLeft = pillSpring.left,
+                    pillRight = pillSpring.right,
+                    unselectedColor = palette.muted,
+                    selectedColor = palette.onPrimary,
+                )
 
                 Layout(
                     modifier = Modifier
@@ -626,4 +636,21 @@ private fun NavBarSlots(
             }
         }
     }
+}
+
+internal fun interpolateIconColor(
+    iconLeft: Float,
+    iconWidth: Float,
+    pillLeft: Float,
+    pillRight: Float,
+    unselectedColor: Color,
+    selectedColor: Color,
+): Color {
+    if (iconWidth <= 0f) return unselectedColor
+    val iconRight = iconLeft + iconWidth
+    val overlapStart = maxOf(pillLeft, iconLeft)
+    val overlapEnd = minOf(pillRight, iconRight)
+    val overlapWidth = (overlapEnd - overlapStart).coerceAtLeast(0f)
+    val coverage = (overlapWidth / iconWidth).coerceIn(0f, 1f)
+    return lerp(unselectedColor, selectedColor, coverage)
 }

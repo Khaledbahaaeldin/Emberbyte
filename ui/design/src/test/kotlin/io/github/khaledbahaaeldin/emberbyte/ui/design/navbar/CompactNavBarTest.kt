@@ -27,6 +27,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -106,6 +108,48 @@ class CompactNavBarTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun unselected_icon_color_interpolates_by_pill_coverage() {
+        val muted = Color(0xFF888888)
+        val onPrimary = Color(0xFF001133)
+
+        // Case 1: Pill has not reached icon at all (0% coverage) -> returns muted
+        val colorNoCoverage = interpolateIconColor(
+            iconLeft = 100f,
+            iconWidth = 24f,
+            pillLeft = 0f,
+            pillRight = 60f,
+            unselectedColor = muted,
+            selectedColor = onPrimary,
+        )
+        assertEquals(muted, colorNoCoverage)
+
+        // Case 2: Pill completely covers icon (100% coverage) -> returns onPrimary
+        val colorFullCoverage = interpolateIconColor(
+            iconLeft = 100f,
+            iconWidth = 24f,
+            pillLeft = 80f,
+            pillRight = 150f,
+            unselectedColor = muted,
+            selectedColor = onPrimary,
+        )
+        assertEquals(onPrimary, colorFullCoverage)
+
+        // Case 3: Pill covers half the icon (50% coverage) -> returns lerp(muted, onPrimary, 0.5f)
+        val colorHalfCoverage = interpolateIconColor(
+            iconLeft = 100f,
+            iconWidth = 24f,
+            pillLeft = 80f,
+            pillRight = 112f,
+            unselectedColor = muted,
+            selectedColor = onPrimary,
+        )
+        val expectedMid = lerp(muted, onPrimary, 0.5f)
+        assertEquals(expectedMid.red, colorHalfCoverage.red, 0.01f)
+        assertEquals(expectedMid.green, colorHalfCoverage.green, 0.01f)
+        assertEquals(expectedMid.blue, colorHalfCoverage.blue, 0.01f)
     }
 
     @Test

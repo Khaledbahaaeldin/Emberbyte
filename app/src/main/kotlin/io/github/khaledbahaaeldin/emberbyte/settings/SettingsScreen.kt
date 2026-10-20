@@ -23,6 +23,12 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -227,14 +233,16 @@ internal fun SettingsContent(
                 iconShape = AppShape.Cookie,
                 iconColor = palette.primary,
                 onIconColor = palette.onPrimary,
-                iconText = "N",
+                iconVector = Icons.Rounded.Notifications,
+                iconText = null,
             ) {
                 SettingsSwitchRow(
                     title = "Live notification",
                     subtitle = "Today's usage in the notification shade",
                     checked = settings.liveNotificationEnabled,
                     iconShape = AppShape.Cookie,
-                    iconText = "L",
+                    iconVector = Icons.Rounded.Notifications,
+                    iconText = null,
                     onCheckedChange = { onUpdate { s -> s.copy(liveNotificationEnabled = it) } },
                 )
                 SettingsSwitchRow(
@@ -243,7 +251,8 @@ internal fun SettingsContent(
                     checked = settings.notificationShowsSpeed,
                     enabled = settings.liveNotificationEnabled,
                     iconShape = AppShape.Squircle,
-                    iconText = "S",
+                    iconVector = Icons.Rounded.Speed,
+                    iconText = null,
                     onCheckedChange = { onUpdate { s -> s.copy(notificationShowsSpeed = it) } },
                 )
             }
@@ -255,14 +264,16 @@ internal fun SettingsContent(
                 iconShape = AppShape.Burst,
                 iconColor = palette.warn,
                 onIconColor = palette.onWarn,
-                iconText = "!",
+                iconVector = Icons.Rounded.Warning,
+                iconText = null,
             ) {
                 SettingsSwitchRow(
                     title = "Spike alerts",
                     subtitle = "Tell me when an app suddenly uses a lot of mobile data",
                     checked = settings.spikeAlertsEnabled,
                     iconShape = AppShape.Burst,
-                    iconText = "!",
+                    iconVector = Icons.Rounded.Warning,
+                    iconText = null,
                     onCheckedChange = { onUpdate { s -> s.copy(spikeAlertsEnabled = it) } },
                 )
             }
@@ -284,7 +295,8 @@ internal fun SettingsContent(
                 iconShape = AppShape.Sunny,
                 iconColor = palette.warn,
                 onIconColor = palette.onWarn,
-                iconText = "U",
+                iconVector = Icons.Rounded.Tune,
+                iconText = null,
             ) {
                 val unitIndex = if (settings.unitSystem == UnitSystem.DECIMAL) 0 else 1
                 ConnectedButtonGroup(
@@ -307,7 +319,8 @@ internal fun SettingsContent(
                 iconShape = AppShape.Burst,
                 iconColor = palette.accent,
                 onIconColor = palette.onAccent,
-                iconText = "D",
+                iconVector = Icons.Rounded.History,
+                iconText = null,
             ) {
                 DataSection(
                     uiState = dataUiState,
@@ -336,7 +349,8 @@ internal fun SettingsContent(
                 iconShape = AppShape.Burst,
                 iconColor = palette.primary,
                 onIconColor = palette.onPrimary,
-                iconText = "A",
+                iconVector = Icons.Rounded.Info,
+                iconText = null,
             ) {
                 AboutGroupContent(
                     versionName = versionName,

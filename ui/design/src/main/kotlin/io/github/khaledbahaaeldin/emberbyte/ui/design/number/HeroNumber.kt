@@ -12,7 +12,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
+
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -22,6 +24,21 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
+
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.unit.em
+
+internal fun formatHeroValue(value: String): AnnotatedString {
+    val dotIndex = value.indexOf('.')
+    if (dotIndex == -1 || dotIndex == value.lastIndex) {
+        return AnnotatedString(value)
+    }
+    return buildAnnotatedString {
+        append(value)
+        addStyle(SpanStyle(letterSpacing = 0.08.em), dotIndex, dotIndex + 1)
+    }
+}
 
 internal val HERO_NUMBER_MIN_SIZE: TextUnit = 36.sp
 internal val HERO_NUMBER_BADGE_SIZE: Dp = 62.dp
@@ -44,10 +61,11 @@ internal fun calculateHeroNumberSize(
     }
 
     val availableTextWidthPx = (availableWidthPx - badgeWidthPx - spacingPx).coerceAtLeast(0f)
+    val annotatedValue = formatHeroValue(value)
 
     // Check if targetSize fits
     val maxLayout = textMeasurer.measure(
-        text = value,
+        text = annotatedValue,
         style = EmberbyteType.hero(maxSp.sp),
         maxLines = 1,
         density = density,
@@ -58,7 +76,7 @@ internal fun calculateHeroNumberSize(
 
     // Check if minSize fits: if even minSize doesn't fit, clamp to minSize ("never below 36sp")
     val minLayout = textMeasurer.measure(
-        text = value,
+        text = annotatedValue,
         style = EmberbyteType.hero(minSp.sp),
         maxLines = 1,
         density = density,
@@ -74,7 +92,7 @@ internal fun calculateHeroNumberSize(
     for (i in 0 until 14) {
         val mid = (low + high) / 2f
         val layout = textMeasurer.measure(
-            text = value,
+            text = annotatedValue,
             style = EmberbyteType.hero(mid.sp),
             maxLines = 1,
             density = density,
@@ -134,12 +152,13 @@ fun HeroNumber(
 
             onSizeResolved?.invoke(chosenSize)
 
+            val annotatedValue = formatHeroValue(value)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(HERO_NUMBER_SPACING),
             ) {
                 Text(
-                    text = value,
+                    text = annotatedValue,
                     modifier = Modifier.clearAndSetSemantics { },
                     color = color,
                     style = EmberbyteType.hero(chosenSize),
