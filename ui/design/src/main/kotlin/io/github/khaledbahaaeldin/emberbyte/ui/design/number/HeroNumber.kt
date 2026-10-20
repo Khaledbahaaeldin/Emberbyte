@@ -30,13 +30,13 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.em
 
 internal fun formatHeroValue(value: String): AnnotatedString {
-    val dotIndex = value.indexOf('.')
-    if (dotIndex == -1 || dotIndex == value.lastIndex) {
-        return AnnotatedString(value)
-    }
     return buildAnnotatedString {
         append(value)
-        addStyle(SpanStyle(letterSpacing = 0.08.em), dotIndex, dotIndex + 1)
+        addStyle(SpanStyle(letterSpacing = 0.04.em), 0, value.length)
+        val dotIndex = value.indexOf('.')
+        if (dotIndex != -1 && dotIndex < value.lastIndex) {
+            addStyle(SpanStyle(letterSpacing = 0.08.em), dotIndex, dotIndex + 1)
+        }
     }
 }
 

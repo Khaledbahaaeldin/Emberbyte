@@ -69,6 +69,44 @@ class HeroNumberTest {
     }
 
     @Test
+    fun adjacent_digit_bounds_do_not_intersect_for_hero_numbers() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                val density = LocalDensity.current
+                val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+                val testValues = listOf("29.9", "1.48", "88.8")
+
+                for (value in testValues) {
+                    val tightLayout = textMeasurer.measure(
+                        text = androidx.compose.ui.text.AnnotatedString(value),
+                        style = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType.hero(96.sp),
+                        density = density,
+                    )
+                    val loosenedLayout = textMeasurer.measure(
+                        text = formatHeroValue(value),
+                        style = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType.hero(96.sp),
+                        density = density,
+                    )
+
+                    assertTrue(
+                        "In '$value', loosened width (${loosenedLayout.size.width}) must be larger than tight width (${tightLayout.size.width})",
+                        loosenedLayout.size.width > tightLayout.size.width,
+                    )
+
+                    for (i in 0 until value.length - 1) {
+                        val b1 = loosenedLayout.getBoundingBox(i)
+                        val b2 = loosenedLayout.getBoundingBox(i + 1)
+                        assertTrue(
+                            "In '$value', bounds of '${value[i]}' at $i (right=${b1.right}) must not exceed '${value[i+1]}' at ${i+1} (left=${b2.left})",
+                            b1.right <= b2.left,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun exposes_one_node_with_the_description() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
