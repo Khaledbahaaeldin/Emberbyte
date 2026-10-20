@@ -35,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import io.github.khaledbahaaeldin.emberbyte.nav.BackTransitions
 import io.github.khaledbahaaeldin.emberbyte.nav.DeepLinkPatterns
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailScreen
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
@@ -147,8 +148,14 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             modifier = Modifier.contentWidth().fillMaxHeight(),
             enterTransition = { tabEnterTransition(motion, reduceMotion) },
             exitTransition = { tabExitTransition(motion, reduceMotion) },
-            popEnterTransition = { tabEnterTransition(motion, reduceMotion) },
-            popExitTransition = { tabExitTransition(motion, reduceMotion) },
+            popEnterTransition = {
+                if (reduceMotion) BackTransitions.popEnterReducedMotion()
+                else BackTransitions.popEnter(this)
+            },
+            popExitTransition = {
+                if (reduceMotion) BackTransitions.popExitReducedMotion()
+                else BackTransitions.popExit(this)
+            },
         ) {
             composable(Routes.ONBOARDING) {
                 val viewModel: OnboardingViewModel = viewModel(factory = graph.onboardingViewModelFactory())

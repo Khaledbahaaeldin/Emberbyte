@@ -1,6 +1,9 @@
 package io.github.khaledbahaaeldin.emberbyte.plans.flow
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.ui.graphics.graphicsLayer
+import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -75,45 +78,51 @@ fun PlanFlowContent(
     var showDiscardConfirm by remember { mutableStateOf(false) }
 
     val hasEnteredData = state.name.isNotBlank() || state.capText.isNotBlank() || state.enteredAmount.isNotBlank()
+    val isDirty = state.step > 1 || hasEnteredData
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
-    BackHandler {
-        if (state.step > 1) {
-            onEvent(PlanFlowEvent.PreviousStep)
-        } else if (hasEnteredData) {
-            showDiscardConfirm = true
-        } else {
-            onBack()
-        }
+    BackHandler(enabled = state.step > 1) {
+        onEvent(PlanFlowEvent.PreviousStep)
     }
 
-    if (showDiscardConfirm) {
-        EmberbyteDialog(
-            onDismiss = { showDiscardConfirm = false },
-            title = "Discard plan?",
-            icon = Icons.Rounded.Delete,
-            destructive = true,
-            confirm = DialogAction(
-                label = "Discard",
-                onClick = {
-                    showDiscardConfirm = false
-                    onBack()
-                },
-            ),
-            dismiss = DialogAction(
-                label = "Cancel",
-                onClick = { showDiscardConfirm = false },
-            ),
-        ) {
-            Text(
-                text = "You have entered details for this plan. Are you sure you want to exit without creating it?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    GuardedBack(
+        dirty = state.step == 1 && hasEnteredData,
+        onConfirmLeave = onBack,
+    ) { shrink ->
+        if (showDiscardConfirm) {
+            EmberbyteDialog(
+                onDismiss = { showDiscardConfirm = false },
+                title = "Discard plan?",
+                icon = Icons.Rounded.Delete,
+                destructive = true,
+                confirm = DialogAction(
+                    label = "Discard",
+                    onClick = {
+                        showDiscardConfirm = false
+                        onBack()
+                    },
+                ),
+                dismiss = DialogAction(
+                    label = "Cancel",
+                    onClick = { showDiscardConfirm = false },
+                ),
+            ) {
+                Text(
+                    text = "You have entered details for this plan. Are you sure you want to exit without creating it?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-    }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize().imePadding(),
+        Scaffold(
+            modifier = modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = shrink
+                    scaleY = shrink
+                }
+                .imePadding(),
         bottomBar = {
             Row(
                 modifier = Modifier
@@ -210,4 +219,5 @@ fun PlanFlowContent(
             }
         }
     }
+}
 }

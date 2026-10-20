@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import androidx.activity.addCallback
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -376,6 +378,7 @@ class PlanEditorContentTest {
 
     @Test fun when_not_dirty_system_back_leaves_immediately() {
         var backCount = 0
+        (rule as? androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>)?.activity?.onBackPressedDispatcher?.addCallback { backCount++ }
         show(state.copy(isDirty = false), onBack = { backCount++ })
         (rule as? androidx.compose.ui.test.junit4.AndroidComposeTestRule<*, *>)?.activity?.onBackPressedDispatcher?.onBackPressed()
         assertEquals(1, backCount)
