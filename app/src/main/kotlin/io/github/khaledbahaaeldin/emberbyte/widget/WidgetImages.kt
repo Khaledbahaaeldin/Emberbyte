@@ -195,6 +195,7 @@ object WidgetImages {
         state: BudgetStateUi,
         palette: EmberbytePalette,
         sizePx: Int,
+        percentText: String? = null,
     ): Bitmap {
         val bitmap = createBitmap(sizePx, sizePx)
         val canvas = Canvas(bitmap)
@@ -243,6 +244,19 @@ object WidgetImages {
             }
             val arcPath = buildWavyCirclePath(cx, cy, baseRadius, amplitude, waves, startAngle, clampedFraction * 2f * Math.PI.toFloat())
             canvas.drawPath(arcPath, arcPaint)
+        }
+
+        if (!percentText.isNullOrEmpty()) {
+            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = arcColor
+                this.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                this.textSize = sizePx * 0.22f
+                this.textAlign = Paint.Align.CENTER
+            }
+            val textBounds = Rect()
+            textPaint.getTextBounds(percentText, 0, percentText.length, textBounds)
+            val textY = cy + textBounds.height() / 2f
+            canvas.drawText(percentText, cx, textY, textPaint)
         }
 
         return bitmap
@@ -366,24 +380,27 @@ object WidgetImages {
 
         val maxValue = (values.maxOrNull() ?: 1L).coerceAtLeast(1L).toFloat()
         val barCount = values.size
-        val barGap = (widthPx * 0.05f / barCount).coerceAtLeast(2f)
-        val totalGaps = barGap * (barCount - 1)
-        val barWidth = ((widthPx - totalGaps) / barCount).coerceAtLeast(2f)
+        val gapRatio = 0.40f
+        val barWidth = (widthPx.toFloat() / (barCount + (barCount - 1) * gapRatio)).coerceAtLeast(4f)
+        val barGap = barWidth * gapRatio
 
         val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = palette.primary.toArgb()
             this.style = Paint.Style.FILL
         }
 
+        val minHeight = heightPx * 0.12f
+        val maxAvailableHeight = heightPx * 0.88f
+
         for (i in 0 until barCount) {
             val value = values[i]
-            val barHeight = ((value.toFloat() / maxValue) * (heightPx * 0.85f)).coerceAtLeast(2f)
+            val barHeight = (minHeight + (value.toFloat() / maxValue) * (maxAvailableHeight - minHeight)).coerceAtLeast(4f)
             val left = i * (barWidth + barGap)
             val right = left + barWidth
             val bottom = heightPx.toFloat()
             val top = bottom - barHeight
             val rect = RectF(left, top, right, bottom)
-            val radius = barWidth / 2f
+            val radius = (barWidth / 2f).coerceAtMost(barHeight / 2f)
             canvas.drawRoundRect(rect, radius, radius, barPaint)
         }
 

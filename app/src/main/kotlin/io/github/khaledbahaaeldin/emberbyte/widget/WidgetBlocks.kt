@@ -17,6 +17,8 @@ import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
+import io.github.khaledbahaaeldin.emberbyte.R
 import androidx.glance.background
 import androidx.glance.color.ColorProviders
 import androidx.glance.layout.Alignment
@@ -63,6 +65,21 @@ fun glanceColorProviders(palette: EmberbytePalette): ColorProviders =
     )
 
 /**
+ * Applies rounded corner styling (API 31+ Glance cornerRadius, rounded drawable fallback below API 31).
+ */
+internal fun GlanceModifier.tileShape(
+    palette: EmberbytePalette,
+    cornerRadius: Dp = 20.dp,
+    fallbackDrawableRes: Int = R.drawable.widget_tile_rounded,
+): GlanceModifier {
+    return if (android.os.Build.VERSION.SDK_INT >= 31) {
+        this.cornerRadius(cornerRadius).background(ColorProvider(palette.surface))
+    } else {
+        this.background(ImageProvider(fallbackDrawableRes))
+    }
+}
+
+/**
  * Hero block: renders the hero usage number, unit badge, and front plan status line.
  * Root clickable opens Home.
  */
@@ -94,8 +111,8 @@ fun HeroBlock(
             text = formattedToday.value,
             unit = formattedToday.unit,
             palette = palette,
-            widthPx = 280,
-            heightPx = 140,
+            widthPx = 260,
+            heightPx = 108,
             context = context,
         )
         if (budget.add(bmp)) bmp else null
@@ -105,10 +122,9 @@ fun HeroBlock(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .background(ColorProvider(palette.surface))
+            .tileShape(palette, 20.dp, R.drawable.widget_tile_mixed_hero)
             .clickable(click)
-            .padding(12.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .semantics { contentDescription = heroDesc },
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -116,13 +132,13 @@ fun HeroBlock(
             text = "Today",
             style = TextStyle(color = ColorProvider(palette.muted), fontSize = 12.sp, fontWeight = FontWeight.Medium)
         )
-        Spacer(GlanceModifier.height(4.dp))
+        Spacer(GlanceModifier.height(2.dp))
 
         if (heroBitmap != null) {
             Image(
                 provider = ImageProvider(heroBitmap),
                 contentDescription = "${formattedToday.value} ${formattedToday.unit}",
-                modifier = GlanceModifier.width(140.dp).height(70.dp)
+                modifier = GlanceModifier.width(130.dp).height(54.dp)
             )
         } else {
             // Bold system font fallback
@@ -139,7 +155,7 @@ fun HeroBlock(
             }
         }
 
-        Spacer(GlanceModifier.height(4.dp))
+        Spacer(GlanceModifier.height(2.dp))
         Text(
             text = planCaption,
             style = TextStyle(color = ColorProvider(palette.primary), fontSize = 13.sp, fontWeight = FontWeight.Medium),
@@ -176,7 +192,7 @@ fun RingBlock(
     val ringDesc = if (plan == null) "No active plan" else "${plan.plan.name}, $percent% used, ${remainingText(plan.remainingBytes, units)}"
 
     val ringBitmap = try {
-        val bmp = WidgetImages.ring(fraction, ringState, palette, sizePx = 160)
+        val bmp = WidgetImages.ring(fraction, ringState, palette, sizePx = 160, percentText = "$percent%")
         if (budget.add(bmp)) bmp else null
     } catch (_: Throwable) {
         null
@@ -184,10 +200,9 @@ fun RingBlock(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .background(ColorProvider(palette.surface))
+            .tileShape(palette, 20.dp, R.drawable.widget_tile_mixed_plan)
             .clickable(click)
-            .padding(12.dp)
+            .padding(8.dp)
             .semantics { contentDescription = ringDesc },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
@@ -196,7 +211,7 @@ fun RingBlock(
             Image(
                 provider = ImageProvider(ringBitmap),
                 contentDescription = "$percent percent used ring",
-                modifier = GlanceModifier.size(80.dp)
+                modifier = GlanceModifier.size(72.dp)
             )
         } else {
             Text(
@@ -205,7 +220,7 @@ fun RingBlock(
             )
         }
 
-        Spacer(GlanceModifier.height(6.dp))
+        Spacer(GlanceModifier.height(4.dp))
         Text(
             text = plan?.plan?.name ?: "No plan",
             style = TextStyle(color = ColorProvider(palette.text), fontSize = 12.sp, fontWeight = FontWeight.Bold),
@@ -321,9 +336,9 @@ fun NetworkBlock(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(ColorProvider(palette.surface))
+            .tileShape(palette, 20.dp, R.drawable.widget_tile_rounded)
             .clickable(click)
-            .padding(10.dp)
+            .padding(8.dp)
             .semantics { contentDescription = desc }
     ) {
         Row(
@@ -340,7 +355,7 @@ fun NetworkBlock(
                 style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp)
             )
         }
-        Spacer(GlanceModifier.height(6.dp))
+        Spacer(GlanceModifier.height(4.dp))
         if (barBitmap != null) {
             Image(
                 provider = ImageProvider(barBitmap),
@@ -369,8 +384,8 @@ fun ChartBlock(
         val bmp = WidgetImages.chart(
             values = data.dailyBytes,
             palette = palette,
-            widthPx = 240,
-            heightPx = 60
+            widthPx = 360,
+            heightPx = 90
         )
         if (budget.add(bmp)) bmp else null
     } catch (_: Throwable) {
@@ -382,9 +397,9 @@ fun ChartBlock(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(ColorProvider(palette.surface))
+            .tileShape(palette, 20.dp, R.drawable.widget_tile_rounded)
             .clickable(click)
-            .padding(10.dp)
+            .padding(8.dp)
             .semantics { contentDescription = desc }
     ) {
         Text(

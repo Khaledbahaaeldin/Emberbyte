@@ -19,6 +19,7 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -144,6 +145,7 @@ fun DashboardLayout(
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
+            .cornerRadius(24.dp)
             .background(ColorProvider(palette.surface))
             .clickable(rootClick)
             .padding(12.dp)

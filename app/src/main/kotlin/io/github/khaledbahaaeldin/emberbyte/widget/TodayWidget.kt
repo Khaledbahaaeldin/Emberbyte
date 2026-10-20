@@ -18,6 +18,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -106,7 +107,13 @@ fun TodayLayout(
     if (isCompact) {
         CompactTodayBlock(data = data, palette = palette, budget = budget, action = action)
     } else {
-        HeroBlock(data = data, palette = palette, budget = budget, action = action)
+        HeroBlock(
+            data = data,
+            palette = palette,
+            budget = budget,
+            modifier = GlanceModifier.fillMaxSize().cornerRadius(24.dp),
+            action = action,
+        )
     }
 }
 
@@ -141,6 +148,7 @@ private fun CompactTodayBlock(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .cornerRadius(24.dp)
             .background(ColorProvider(palette.surface))
             .clickable(click)
             .padding(8.dp)

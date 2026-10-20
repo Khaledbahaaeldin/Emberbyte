@@ -131,6 +131,21 @@ class BentoWidgetTest {
     }
 
     @Test
+    fun bento_widget_at_280x180_dp_shows_hero_tile_and_two_stacked_tiles() {
+        val data = sampleData()
+        val budget = ImageBudget()
+        val root = renderGlanceTree(context, BentoWidget.SIZE_4X2) {
+            BentoWidget().BentoContent(data, palette, budget, BentoWidget.SIZE_4X2)
+        }
+
+        val texts = findAllTexts(root)
+        assertTrue("Hero tile should show 'Today': $texts", texts.any { it == "Today" || it.contains("Today") })
+        assertTrue("Plan tile should show plan name: $texts", texts.any { it.contains("Primary SIM") })
+        assertTrue("Network bar should show Mobile: $texts", texts.any { it.contains("Mobile") })
+        assertTrue("Network bar should show Wi-Fi: $texts", texts.any { it.contains("Wi-Fi") })
+    }
+
+    @Test
     fun compact_width_shows_hero_and_one_tile() {
         val data = sampleData()
         val budget = ImageBudget()

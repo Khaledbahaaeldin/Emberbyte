@@ -75,6 +75,73 @@ class WidgetImagesTest {
     }
 
     @Test
+    fun ring_draws_percentage_text_in_the_center_when_percent_text_is_provided() {
+        val bitmapWithText = WidgetImages.ring(
+            fraction = 0.62f,
+            state = BudgetStateUi.Ok,
+            palette = duskPalette,
+            sizePx = 160,
+            percentText = "62%",
+        )
+        // Center area inside the ring track (radius ~ 40px around center (80, 80))
+        var centerPixels = 0
+        for (y in 65..95) {
+            for (x in 65..95) {
+                if (bitmapWithText.getPixel(x, y) != Color.TRANSPARENT) {
+                    centerPixels++
+                }
+            }
+        }
+        assertTrue("Expected non-transparent text pixels in the center of the ring: $centerPixels", centerPixels > 0)
+    }
+
+    @Test
+    fun chart_draws_rounded_bars_with_clear_gaps_and_visible_height_differences() {
+        val bitmap = WidgetImages.chart(
+            values = listOf(400L, 1600L),
+            palette = duskPalette,
+            widthPx = 200,
+            heightPx = 100,
+        )
+        // Check for visible gap between bar 0 and bar 1
+        var hasColumnGap = false
+        // Search columns in the middle third for a completely transparent column
+        for (x in 80..120) {
+            var colHasPixel = false
+            for (y in 0 until 100) {
+                if (bitmap.getPixel(x, y) != Color.TRANSPARENT) {
+                    colHasPixel = true
+                    break
+                }
+            }
+            if (!colHasPixel) {
+                hasColumnGap = true
+                break
+            }
+        }
+        assertTrue("Chart must have a distinct visible gap between adjacent bars", hasColumnGap)
+
+        // Find height of bar 0 (left quarter) vs bar 1 (right quarter)
+        var bar0Top = 100
+        var bar1Top = 100
+        for (y in 0 until 100) {
+            for (x in 10..50) {
+                if (bitmap.getPixel(x, y) != Color.TRANSPARENT && y < bar0Top) {
+                    bar0Top = y
+                }
+            }
+            for (x in 140..180) {
+                if (bitmap.getPixel(x, y) != Color.TRANSPARENT && y < bar1Top) {
+                    bar1Top = y
+                }
+            }
+        }
+        val bar0Height = 100 - bar0Top
+        val bar1Height = 100 - bar1Top
+        assertTrue("Bar 1 (1600L) height ($bar1Height) must be significantly taller than Bar 0 (400L) ($bar0Height)", bar1Height >= bar0Height * 1.8f)
+    }
+
+    @Test
     fun bar_fraction_clamps() {
         // Negative fraction should draw empty (or 0 fraction)
         val bitmapUnder = WidgetImages.bar(

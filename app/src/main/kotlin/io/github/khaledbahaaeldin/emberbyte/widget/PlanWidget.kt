@@ -17,6 +17,7 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -100,6 +101,7 @@ fun PlanLayout(
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
+                .cornerRadius(24.dp)
                 .background(ColorProvider(palette.surface))
                 .clickable(click)
                 .padding(12.dp)
@@ -124,6 +126,7 @@ fun PlanLayout(
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
+                .cornerRadius(24.dp)
                 .background(ColorProvider(palette.surface))
                 .clickable(click)
                 .padding(12.dp)
@@ -172,7 +175,7 @@ fun PlanLayout(
     }
 
     val ringBitmap = try {
-        val bmp = WidgetImages.ring(plan.fractionUsed, ringState, palette, sizePx = 160)
+        val bmp = WidgetImages.ring(plan.fractionUsed, ringState, palette, sizePx = 160, percentText = "$percent%")
         if (budget.add(bmp)) bmp else null
     } catch (_: Throwable) {
         null
@@ -181,6 +184,7 @@ fun PlanLayout(
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
+            .cornerRadius(24.dp)
             .background(ColorProvider(palette.surface))
             .clickable(click)
             .padding(12.dp)

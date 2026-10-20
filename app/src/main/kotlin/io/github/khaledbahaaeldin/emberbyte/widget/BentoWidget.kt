@@ -12,6 +12,7 @@ import androidx.glance.action.Action
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -39,10 +40,11 @@ import java.time.Instant
 class BentoWidget : GlanceAppWidget() {
     companion object {
         val SIZE_COMPACT = DpSize(180.dp, 110.dp)
-        val SIZE_STANDARD = DpSize(260.dp, 110.dp)
+        val SIZE_STANDARD = DpSize(260.dp, 140.dp)
+        val SIZE_4X2 = DpSize(280.dp, 180.dp)
     }
 
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(SIZE_COMPACT, SIZE_STANDARD))
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(SIZE_COMPACT, SIZE_STANDARD, SIZE_4X2))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val graph = (context.applicationContext as EmberbyteApplication).graph
@@ -91,6 +93,7 @@ fun BentoLayout(
     Row(
         modifier = GlanceModifier
             .fillMaxSize()
+            .cornerRadius(24.dp)
             .background(ColorProvider(palette.surface2))
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically
