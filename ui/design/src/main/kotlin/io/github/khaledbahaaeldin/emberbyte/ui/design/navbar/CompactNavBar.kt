@@ -37,13 +37,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -515,15 +518,7 @@ private fun NavBarSlots(
             items.forEachIndexed { index, item ->
                 val isSelected = (index == selectedIndex)
                 val cellSpring = cellSprings[index]
-                val iconLeftInBar = cellSpring.xAnim.value + (cellSpring.widthAnim.value - iconSizePx) / 2f
-                val tintColor = interpolateIconColor(
-                    iconLeft = iconLeftInBar,
-                    iconWidth = iconSizePx,
-                    pillLeft = pillSpring.left,
-                    pillRight = pillSpring.right,
-                    unselectedColor = palette.muted,
-                    selectedColor = palette.onPrimary,
-                )
+                val painter = rememberVectorPainter(item.icon)
 
                 Layout(
                     modifier = Modifier
@@ -545,15 +540,32 @@ private fun NavBarSlots(
                             contentDescription = item.label
                         },
                     content = {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = null,
-                            tint = tintColor,
-                            modifier = Modifier.size(24.dp),
+                        Spacer(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .drawWithCache {
+                                    onDrawWithContent {
+                                        val iconLeftInBar = cellSpring.xAnim.value + (cellSpring.widthAnim.value - iconSizePx) / 2f
+                                        val tint = interpolateIconColor(
+                                            iconLeft = iconLeftInBar,
+                                            iconWidth = size.width,
+                                            pillLeft = pillSpring.left,
+                                            pillRight = pillSpring.right,
+                                            unselectedColor = palette.muted,
+                                            selectedColor = palette.onPrimary,
+                                        )
+                                        with(painter) {
+                                            draw(
+                                                size = size,
+                                                colorFilter = ColorFilter.tint(tint),
+                                            )
+                                        }
+                                    }
+                                },
                         )
                         Text(
                             text = item.label,
-                            color = tintColor,
+                            color = palette.onPrimary,
                             style = labelStyle,
                             maxLines = 1,
                             softWrap = false,
