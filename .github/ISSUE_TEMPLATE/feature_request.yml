@@ -1,0 +1,19 @@
+name: Feature request
+description: An idea that would make Emberbyte better
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the situation, not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Emberbyte to do?
+  - type: markdown
+    attributes:
+      value: |
+        Emberbyte will not add network access, accounts or tracking, so ideas that need them cannot be accepted.

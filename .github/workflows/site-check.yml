@@ -1,0 +1,21 @@
+name: Website check
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/site-check.yml']
+  pull_request:
+    paths: ['site/**', '.github/workflows/site-check.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build the site from the committed release snapshot and check its links
+        run: node site/tools/build-site.mjs --offline

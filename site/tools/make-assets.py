@@ -5,6 +5,7 @@ Builds the generated assets of the website from the app's own sources, so the si
   * assets/fonts/roboto-flex.woff2   the app's Roboto Flex, subset to Latin (keeps the weight and width axes)
   * assets/screens/*.webp            the store screenshots, resized for the web
   * assets/themes.js                 the 12 themes (dark and light) read from the generated Kotlin palettes
+  * assets/og.png, apple-touch-icon.png   the link preview image and the home-screen icon
 
 Run from the repository root:  python site/tools/make-assets.py
 Needs: pip install fonttools brotli pillow
@@ -66,7 +67,82 @@ def themes():
     print("themes", len(out))
 
 
+def flame_points(cx, cy, h, w_ratio=0.46, steps=120):
+    import math
+    pts = []
+    for i in range(steps):
+        t = 2 * math.pi * i / steps
+        x = math.sin(t) * math.sin(t / 2) ** 1.0
+        y = -math.cos(t)
+        pts.append((cx + x * h * w_ratio, cy + y * h / 2))
+    return pts
+
+
+def draw_flame(draw, cx, cy, h):
+    draw.polygon(flame_points(cx, cy, h), fill="#FF7A33")
+    draw.polygon(flame_points(cx, cy + h * 0.2, h * 0.5, 0.5), fill="#FFD5B8")
+
+
+def cookie_points(cx, cy, r, bumps=9, depth=0.045, steps=360):
+    import math
+    return [(cx + r * (1 + depth * math.cos(bumps * 2 * math.pi * i / steps)) * math.cos(2 * math.pi * i / steps),
+             cy + r * (1 + depth * math.cos(bumps * 2 * math.pi * i / steps)) * math.sin(2 * math.pi * i / steps)) for i in range(steps)]
+
+
+def variable_font(size, weight=800, width=40):
+    from PIL import ImageFont
+    font = ImageFont.truetype(str(FONT_SRC), size)
+    values = []
+    for axis in font.get_variation_axes():
+        name = axis["name"].decode() if isinstance(axis["name"], bytes) else axis["name"]
+        v = axis["default"]
+        if name == "Weight": v = weight
+        elif name == "Width": v = width
+        elif name == "Optical Size": v = min(axis["maximum"], 144)
+        values.append(v)
+    font.set_variation_by_axes(values)
+    return font
+
+
+def social_images():
+    from PIL import Image, ImageDraw
+    bg, primary, onp, text, muted = "#110F19", "#D0BCFF", "#2A1858", "#E8E1F5", "#B3A9CC"
+    # 1200 x 630 link preview
+    img = Image.new("RGB", (1200, 630), bg)
+    d = ImageDraw.Draw(img)
+    big = variable_font(210, 800, 40)
+    d.text((70, 90), "1.89", font=big, fill=primary)
+    bw = d.textlength("1.89", font=big)
+    cx, cy = 70 + bw + 78, 215
+    d.polygon(cookie_points(cx, cy, 62), fill=primary)
+    d.text((cx, cy), "GB", font=variable_font(54, 850, 110), fill=onp, anchor="mm")
+    head = variable_font(104, 800, 40)
+    d.text((70, 300), "Counted.", font=head, fill=text)
+    d.text((70, 400), "Never shared.", font=head, fill=text)
+    d.text((72, 535), "Emberbyte  ·  free, open source, no internet permission", font=variable_font(30, 600, 100), fill=muted)
+    shot = Image.open(SHOTS / "1_home.png").convert("RGB")
+    ph = 520
+    shot = shot.resize((round(shot.width * ph / shot.height), ph), Image.LANCZOS)
+    frame = Image.new("RGB", (shot.width + 16, shot.height + 16), "#2A2440")
+    mask = Image.new("L", shot.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, shot.width, shot.height), radius=34, fill=255)
+    fmask = Image.new("L", frame.size, 0)
+    ImageDraw.Draw(fmask).rounded_rectangle((0, 0, frame.width, frame.height), radius=42, fill=255)
+    frame.paste(shot, (8, 8), mask)
+    img.paste(frame, (1200 - frame.width - 90, 63), fmask)
+    out = SITE / "assets/og.png"
+    img.save(out, optimize=True)
+    print("og", out.name, out.stat().st_size // 1024, "KB")
+    # 180 x 180 home-screen icon
+    icon = Image.new("RGB", (180, 180), "#17141f")
+    draw_flame(ImageDraw.Draw(icon), 90, 92, 120)
+    out = SITE / "assets/apple-touch-icon.png"
+    icon.save(out, optimize=True)
+    print("icon", out.name, out.stat().st_size // 1024, "KB")
+
+
 if __name__ == "__main__":
     font()
     screens()
     themes()
+    social_images()

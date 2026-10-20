@@ -1,0 +1,25 @@
+name: Rebuild the website
+
+# The website shows the latest release (version, size, changelog). A tag push does not redeploy it, so a
+# published or edited release pings Vercel's deploy hook. Pushes to main are deployed by Vercel itself.
+on:
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Vercel to rebuild
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::notice::VERCEL_DEPLOY_HOOK is not set, so the website was not asked to rebuild."
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST "$HOOK" > /dev/null
+          echo "Vercel asked to rebuild."

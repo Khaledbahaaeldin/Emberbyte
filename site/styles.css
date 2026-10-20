@@ -176,3 +176,14 @@ footer a { color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } .btn:hover { transform: none; } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Generated changelog and news */
+.notes h4, .notes h5, .notes h6 { margin: 18px 0 6px; font-size: 1.05rem; font-stretch: 100%; letter-spacing: 0; color: var(--text); }
+.notes p { margin: 8px 0; color: var(--muted); }
+.notes ul { margin: 0 0 12px; }
+.notes code { background: var(--bg); padding: 2px 7px; border-radius: 6px; font-size: .85em; }
+.older-h { margin: 26px 0 8px; font-size: 1rem; font-stretch: 100%; color: var(--muted); letter-spacing: 0; }
+.news .t { font-weight: 700; color: var(--text); }
+.news .body { margin-top: 4px; color: var(--muted); font-size: .96rem; }
+.news .body p { margin: 4px 0; }
+.news code { background: var(--bg); padding: 1px 6px; border-radius: 6px; }

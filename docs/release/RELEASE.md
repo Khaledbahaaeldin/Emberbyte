@@ -139,12 +139,12 @@ When cutting a new production release:
 Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`:
 
 1. **build** (no secrets): checks the tag is on `main` and matches `versionName`, runs the full gate, rebuilds from scratch and compares the two APKs (`tools/compare-apks.py`).
-2. **sign** (environment `release`, manual approval): signs the unsigned APK with `tools/release/sign.sh`, checks the certificate fingerprint equals the maintainer's published one, attests provenance and creates a **draft** GitHub Release from `docs/release/RELEASE-NOTES-X.Y.Z.md` with the signed APK and its SHA-256. The maintainer reviews and publishes the draft.
+2. **sign** (environment `release`, which holds the signing secrets): signs the unsigned APK with `tools/release/sign.sh`, checks the certificate fingerprint equals the maintainer's published one, attests provenance and creates a **draft** GitHub Release from `docs/release/RELEASE-NOTES-X.Y.Z.md` with the signed APK and its SHA-256. The maintainer reviews and publishes the draft.
 
 A manual run (Actions, "Release", `dry_run` on) builds and signs but publishes nothing.
 
 ### One-time setup (maintainer)
-- GitHub, Settings, Environments, New environment `release`: add **required reviewers** (yourself), limit deployment to tags matching `v*`, and add two **environment secrets**: `EMBERBYTE_KEYSTORE_B64` (the keystore, base64) and `EMBERBYTE_KS_PASS` (its password; the key password is the same). Use environment secrets, not repository secrets, so only the signing job can read them.
+- GitHub, Settings, Environments, New environment `release`: limit deployment to tags matching `v*` (a **required reviewer** is optional and was left off by the maintainer, so a tag push signs and drafts the release by itself), and add two **environment secrets**: `EMBERBYTE_KEYSTORE_B64` (the keystore, base64) and `EMBERBYTE_KS_PASS` (its password; the key password is the same). Use environment secrets, not repository secrets, so only the signing job can read them.
 - Settings, Rules: protect tags `v*` (only maintainers can create them, nobody can move or delete them) and protect `main` against force pushes and deletion.
 - Settings, Actions, General: default workflow permissions "Read repository contents", and require approval for workflows from outside collaborators.
 - Turn on two-factor authentication (a passkey or security key) for the GitHub account.
@@ -152,4 +152,13 @@ A manual run (Actions, "Release", `dry_run` on) builds and signs but publishes n
 
 ### Rotating or revoking
 If the secrets might have leaked, delete them from the environment first, then assess. A leaked signing key cannot be revoked for already installed apps, so protect the account and the environment accordingly.
+
+---
+
+## 10. The website
+
+`site/` holds the project's website (see `site/README.md`). It shows the latest release (version, size, changelog), so
+after publishing a release the site must rebuild. The workflow `.github/workflows/site-rebuild.yml` does it by calling
+a Vercel deploy hook (repository secret `VERCEL_DEPLOY_HOOK`). News posts are Markdown files in `site/news/`.
+When F-Droid or Google Play go live, add their badge to the Download section of `site/index.html`.
 

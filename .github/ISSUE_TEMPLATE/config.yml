@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read what the app can and cannot do
+    url: https://github.com/Khaledbahaaeldin/Emberbyte#readme
+    about: Features, permissions, known limitations and how to verify a download.

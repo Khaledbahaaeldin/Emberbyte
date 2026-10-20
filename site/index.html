@@ -9,6 +9,13 @@
   <meta property="og:title" content="Emberbyte: your data, counted and never shared">
   <meta property="og:description" content="A free, open-source Android data monitor with twelve themes, flexible plans and widgets. No internet permission.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="{{site_url}}/">
+  <meta property="og:image" content="{{site_url}}/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="{{site_url}}/">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="assets/fonts/roboto-flex.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
@@ -142,7 +149,7 @@
     <div class="dl">
       <div class="stores">
         <a class="store" href="https://github.com/Khaledbahaaeldin/Emberbyte/releases/latest">
-          <span aria-hidden="true">⬇</span><span>GitHub Releases<small>Signed APK · version 1.0.0 · 6.4 MB</small></span><span class="tag">Available</span>
+          <span aria-hidden="true">⬇</span><span>GitHub Releases<small>Signed APK · version {{version}} · {{apk_size}}</small></span><span class="tag">Available</span>
         </a>
         <a class="store" aria-disabled="true" href="#download" tabindex="-1">
           <span aria-hidden="true">▣</span><span>F-Droid<small>Submission in preparation</small></span><span class="tag">Coming soon</span>
@@ -152,8 +159,8 @@
       <div>
         <h3>Verify your download</h3>
         <p class="lead" style="font-size:1rem;margin:8px 0 14px">Compare the file's checksum, then its signing certificate with Android's own tool.</p>
-<pre><code id="cmd">sha256sum -c emberbyte-1.0.0.apk.sha256
-apksigner verify --print-certs emberbyte-1.0.0.apk</code></pre>
+<pre><code id="cmd">sha256sum -c {{sha_name}}
+apksigner verify --print-certs {{apk_name}}</code></pre>
         <button class="btn ghost copy" type="button" data-copy="cmd">Copy commands</button>
         <p style="margin:16px 0 6px;color:var(--muted);font-size:.95rem">The certificate SHA-256 must be:</p>
         <code class="fp" id="fp">72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef</code><br>
@@ -196,23 +203,14 @@ apksigner verify --print-certs emberbyte-1.0.0.apk</code></pre>
     <h2>Changelog and news</h2>
     <p class="lead">What changed, and anything we want you to know.</p>
     <div class="cols">
-      <article class="card">
-        <div class="ver"><h3>Emberbyte 1.0.0</h3><time datetime="2026-10-20">20 October 2026</time></div>
-        <ul>
-          <li><b>Today's number first</b>, with a forecast of whether you will run out.</li>
-          <li><b>Twelve themes</b> in light, dark and pure black.</li>
-          <li><b>Plans</b> with a mid-cycle start, pinning, alerts and per-app budgets.</li>
-          <li><b>Four widgets</b>, a live notification and predictive back.</li>
-          <li><b>Encrypted backup</b> and CSV/JSON export.</li>
-          <li>No internet permission, no tracking.</li>
-        </ul>
-        <a href="https://github.com/Khaledbahaaeldin/Emberbyte/releases">All releases and full notes on GitHub</a>
-      </article>
+      <div>
+        {{changelog}}
+        {{older}}
+      </div>
       <aside class="card">
         <h3 style="margin-bottom:14px">News</h3>
         <ul class="news">
-          <li><time datetime="2026-10-20">20 October 2026</time><a href="https://github.com/Khaledbahaaeldin/Emberbyte/releases/tag/v1.0.0">Emberbyte 1.0.0 is out</a></li>
-          <li><time datetime="2026-10-20">Coming next</time><span style="color:var(--muted)">An F-Droid listing, more languages, and refinements to the widgets.</span></li>
+          {{news}}
         </ul>
       </aside>
     </div>
