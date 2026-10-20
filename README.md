@@ -12,9 +12,11 @@ encrypted local backups.
 
 ## Screenshots
 
-| Home | Apps | Plans | Settings |
+| Home (Dark) | Home (Light) | Apps | Plans |
 |:---:|:---:|:---:|:---:|
-| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" width="200" alt="Home Screen" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_apps.png" width="200" alt="Apps Screen" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_plans.png" width="200" alt="Plans Screen" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_settings.png" width="200" alt="Settings Screen" /> |
+| <img src="docs/store/screenshots/01_home_dusk_dark.png" width="200" alt="Home Screen Dark" /> | <img src="docs/store/screenshots/02_home_dusk_light.png" width="200" alt="Home Screen Light" /> | <img src="docs/store/screenshots/03_apps_dusk_dark.png" width="200" alt="Apps Screen" /> | <img src="docs/store/screenshots/04_plans_dusk_dark.png" width="200" alt="Plans Screen" /> |
+
+See [`docs/store/README.md`](docs/store/README.md) for the full screenshot catalog and specifications.
 
 ---
 
@@ -22,9 +24,13 @@ encrypted local backups.
 
 - **Live Speed Indicator**: Ongoing foreground notification displaying real-time download speed and remaining plan data.
 - **Totals by Mobile & Wi-Fi**: Clear separation of cellular mobile data and Wi-Fi network consumption.
-- **Per-App History**: Breakdown of data usage per application across daily and 2-hour measurement windows.
-- **Flexible Data Plans with Forecast & Alerts**: Custom billing cycles (monthly or every N days), SIM binding, add-on quota packs, free data windows (e.g. night data), and usage rollover (capped or uncapped). Predicts run-out dates based on your learned hourly usage curve over the last 28 days and alerts at 50%, 80%, 90%, and 100% quota.
-- **Home-Screen Widgets**: Jetpack Glance widgets (Hero and Bento). Hero shows today's usage and the remaining data; Bento adds the run-out forecast caption, the download speed as of the last refresh, and the top apps.
+- **Per-App History**: Breakdown of data usage per application across daily and 2-hour measurement windows with real application icons.
+- **Flexible Data Plans with Forecast & Alerts**: Custom billing cycles (monthly or every N days), SIM binding, add-on quota packs, free data windows (e.g. night data), and usage rollover (capped or uncapped). Supports mid-cycle plan creation with three start modes: *From phone record*, *Entered usage*, or *Start later*, alongside plan pinning. Predicts run-out dates based on your learned hourly usage curve over the last 28 days and alerts at 50%, 80%, 90%, and 100% quota.
+- **Four Home-Screen Widgets**: Jetpack Glance widgets adhering to a strict < 1.5 MiB image budget:
+  - **Today (2x1)**: Real-time today usage metrics and plan status.
+  - **Plan (2x2)**: Wavy progress ring, remaining data, and days left in the cycle.
+  - **Bento (4x2)**: Data consumption, live transfer speed, run-out forecast, and dual-tone network bar.
+  - **Dashboard (4x4)**: Comprehensive view with hero consumption, plan progress, 7-day bar chart, top 3 apps, and direct app deep links.
 - **Per-App Data Budgets**: Set daily or billing-cycle cellular budgets per application with warning notifications.
 - **Spike Detector**: Alerts when an app consumes an unusual surge of mobile data against a 14-day median baseline.
 - **"What If" Scenario Planner**: Explore how hypothetical extra daily usage alters your projected run-out date.
@@ -39,6 +45,8 @@ encrypted local backups.
 ## Themes & Typography
 
 Emberbyte features an expressive design foundation powered by variable **Roboto Flex** typography and **12 hand-tuned themes**: three original palettes (*Dusk*, *Ember*, *Monochrome*) and nine popular community themes (*Catppuccin*, *Gruvbox*, *Nord*, *Rosé Pine*, *Solarized*, *Dracula*, *Tokyo Night*, *Everforest*, and *Kanagawa*). Every theme supports light mode, dark mode, and pure-black AMOLED mode with verified WCAG contrast (at least 4.5:1 text, 7:1 hero numbers, 3:1 marks), alongside dynamic wallpaper-derived Material You theming on supported Android versions.
+
+For architectural design details and instructions on authoring custom palettes, see the [Expressive Redesign Summary](docs/redesign-summary.md).
 
 ---
 

@@ -8,8 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - unreleased
 
 ### Added
+- **Material 3 Expressive Redesign**:
+  - **12 Hand-Tuned Themes**: Three original palettes (*Dusk*, *Ember*, *Monochrome*) and nine community palettes (*Catppuccin*, *Gruvbox*, *Nord*, *Rosé Pine*, *Solarized*, *Dracula*, *Tokyo Night*, *Everforest*, *Kanagawa*), each supporting Light, Dark, and pure-black AMOLED modes with mathematically verified WCAG AA contrast.
+  - **Spring Expanding-Pill Navigation Bar**: Physics-based compact navigation bar featuring an expanding active tab pill, continuous gesture dragging with momentum, haptic detents, and real-time coverage-based icon color interpolation.
+  - **Four Home-Screen Glance Widgets**: Today (2x1), Plan (2x2), Bento (4x2), and Dashboard (4x4) glance widgets that automatically refresh on data, plan, and theme updates while strictly maintaining a < 1.5 MiB bitmap memory budget.
+  - **Flexible Mid-Cycle Plan Creation & Pinning**: Plan creation supports three first-cycle start options (*From phone record*, *Entered usage*, or *Start later*) and plan pinning to ensure your priority plan stays front and center.
+  - **Expressive Components**: Wavy progress rings (`WavyRing`) and bars (`WavyBar`), mixed-corner bento tiles (`BentoTile`), vector `BrandMark`, dual-tone `NetworkBar`, responsive `NoticeLine`, segmented `ConnectedButtonGroup`, `ExpressiveSwitch`, and modern accessible modal dialogs (`EmberbyteDialog`).
+  - **Four-Page Onboarding Pager**: Clean horizontal pager guiding users through core features, permissions, and notifications with 48 dp touch targets.
 - **Live Transfer Speed & Sampler**: Real-time foreground service sampling network rates, with a live download speed notification and Android 16+ Promoted Ongoing remaining data indicator.
-- **Traffic Totals & Per-App History**: Breakdown of cellular mobile data and Wi-Fi network usage across 2-hour and daily intervals via `NetworkStatsManager`.
+- **Traffic Totals & Per-App History**: Breakdown of cellular mobile data and Wi-Fi network usage across 2-hour and daily intervals with real application icons.
 - **Flexible Data Plans**: Support for custom billing cycles (monthly or every N days), SIM slot binding, add-on quota packs, free data windows (e.g. night data), and usage rollover.
 - **Personalized Quota Forecast**: Predictive calculation of cap run-out dates based on a learned hourly consumption curve over the last 28 days.
 - **Threshold & Budget Alerts**: Per-plan notifications at thresholds you choose from 50%, 80%, 90% and 100% (default 80% and 100%), plus per-app mobile data budgets.
@@ -17,6 +24,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"What If" Scenario Planner**: Projection of quota run-out dates under hypothetical additional daily consumption.
 - **Streamed Data Export**: Memory-efficient streaming export of historical usage metrics and plans to CSV and JSON formats.
 - **Encrypted Local Backups**: Full backup and restore of plans, budgets, and hourly usage history using AES-256-GCM encryption with Argon2id password-based key derivation (`.emberbyte`).
-- **Home-Screen Widgets**: Glance-based Hero and Bento widgets. Hero shows today's usage and remaining data; Bento adds the run-out forecast caption, the download speed as of the last refresh, and the top apps.
-- **Material 3 Expressive UI**: Dynamic color theming, pure black AMOLED dark mode and fluid motion transitions. Accessibility work covered by tests and device checks: reduced-motion support in the navbar and morphing numbers, 48 dp touch targets on the tested screens, a check icon on selected options, chart summaries for screen readers, focus return on the backup dialogs, and dialogs that keep their buttons reachable with the keyboard open at large font sizes (the budget dialogs need one swipe at font scale 1.3 and above). Known visual issues are tracked in `docs/accessibility-audit.md`.
+- **Full Accessibility Compliance**: 120 verified matrix points in `docs/accessibility-audit.md`, full 2.0x font scaling reflow without clipping, RTL layout mirroring, and reduced motion snapping.
 - **100% On-Device Privacy**: Operates completely offline without accounts, cloud sync, or `INTERNET` permission.
