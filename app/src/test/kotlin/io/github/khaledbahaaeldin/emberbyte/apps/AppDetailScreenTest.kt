@@ -93,6 +93,15 @@ class AppDetailScreenTest {
     }
 
     @Test
+    fun foreground_background_tiles_are_hidden_when_the_split_is_not_measured() {
+        // The app does not measure a foreground/background split yet, so both values are 0. Showing
+        // "0 B" for every app would claim a measurement that does not exist.
+        show(sampleState.copy(foregroundBytes = 0L, backgroundBytes = 0L))
+        rule.onNodeWithText("Foreground").assertDoesNotExist()
+        rule.onNodeWithText("Background").assertDoesNotExist()
+    }
+
+    @Test
     fun font_scale_2_no_clip() {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2.0f)) {

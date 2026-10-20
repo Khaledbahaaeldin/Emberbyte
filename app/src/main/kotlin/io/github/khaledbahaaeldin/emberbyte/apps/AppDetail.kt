@@ -420,8 +420,9 @@ fun AppDetailContent(
             }
         }
 
-        // Foreground vs Background split as two BentoTiles
-        item {
+        // Foreground vs Background split as two BentoTiles. Android's per-app statistics are not split
+        // this way by the app yet, so both values stay 0 and the tiles are hidden instead of showing "0 B".
+        if (state.foregroundBytes + state.backgroundBytes > 0L) item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
