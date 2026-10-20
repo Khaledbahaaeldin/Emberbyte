@@ -106,7 +106,7 @@ val verifyReleaseApk = tasks.register("verifyReleaseApk") {
         if (!apkFile.exists() || apkFile.length() == 0L) {
             throw GradleException("Release APK does not exist or is empty at ${apkFile.absolutePath}")
         }
-        val forbiddenStrings = listOf("debug_fake_now")
+        val forbiddenStrings = listOf("debug_fake_now", "WidgetPreviewActivity")
         ZipFile(apkFile).use { zip ->
             val dexEntries = zip.entries().asSequence().filter { it.name.endsWith(".dex") }.toList()
             if (dexEntries.isEmpty()) {

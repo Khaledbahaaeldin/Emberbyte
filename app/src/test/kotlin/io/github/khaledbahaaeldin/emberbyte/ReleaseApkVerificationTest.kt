@@ -86,6 +86,39 @@ class ReleaseApkVerificationTest {
                         "Release APK must not define ThemeGalleryActivity: $cls",
                         cls.contains("ThemeGalleryActivity")
                     )
+                    assertFalse(
+                        "Release APK must not define WidgetPreviewActivity: $cls",
+                        cls.contains("WidgetPreviewActivity")
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun widget_preview_is_not_in_the_release_manifest() {
+        val apkFile = findReleaseApk()
+        ZipFile(apkFile).use { zip ->
+            val manifestEntry = zip.getEntry("AndroidManifest.xml")
+            assertNotNull("AndroidManifest.xml must exist in APK", manifestEntry)
+            val manifestBytes = zip.getInputStream(manifestEntry).use { it.readBytes() }
+            val manifest = parseBinaryManifest(manifestBytes)
+            assertFalse(
+                "Release manifest must not contain WidgetPreviewActivity; declared activities: ${manifest.activityNames}",
+                manifest.activityNames.any { it.contains("WidgetPreviewActivity") }
+            )
+
+            val dexEntries = zip.entries().asSequence()
+                .filter { it.name.endsWith(".dex") }
+                .toList()
+            for (entry in dexEntries) {
+                val dexBytes = zip.getInputStream(entry).use { it.readBytes() }
+                val definedClasses = extractDefinedClassDescriptors(dexBytes)
+                for (cls in definedClasses) {
+                    assertFalse(
+                        "Release APK must not define WidgetPreviewActivity: $cls",
+                        cls.contains("WidgetPreviewActivity")
+                    )
                 }
             }
         }
@@ -193,6 +226,10 @@ class ReleaseApkVerificationTest {
                     assertFalse(
                         "Release APK must not define ThemeGalleryActivity: $cls",
                         cls.contains("ThemeGalleryActivity")
+                    )
+                    assertFalse(
+                        "Release APK must not define WidgetPreviewActivity: $cls",
+                        cls.contains("WidgetPreviewActivity")
                     )
                     for (forbidden in forbiddenClassPrefixes) {
                         assertFalse(
