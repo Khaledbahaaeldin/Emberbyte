@@ -160,8 +160,6 @@ val verifyReleaseApk = tasks.register("verifyReleaseApk") {
     }
 }
 
-kotlin { jvmToolchain(17) }
-
 dependencies {
     implementation(project(":ui:design"))
     implementation(project(":core:engine"))

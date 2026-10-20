@@ -15,8 +15,6 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
-kotlin { jvmToolchain(17) }
-
 dependencies {
     // `api(platform(...))`: a BOM declared as `implementation` does not constrain `api` dependencies.
     api(platform(libs.androidx.compose.bom))

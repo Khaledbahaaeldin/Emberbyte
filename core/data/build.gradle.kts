@@ -17,8 +17,6 @@ android {
     }
 }
 
-kotlin { jvmToolchain(17) }
-
 dependencies {
     api(project(":core:engine"))
     api(libs.kotlinx.coroutines.core)
