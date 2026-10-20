@@ -161,7 +161,7 @@ class SamplerService : Service() {
                     showSpeed = settings.notificationShowsSpeed,
                     offline = speed != null && speed.network == null,
                     remainingBytes = active?.remainingBytes,
-                    progress = liveProgressOf(active, units),
+                    progress = liveProgressOf(active, units, today.totalBytes),
                     state = liveNotificationStateOf(active),
                 )
             } else {

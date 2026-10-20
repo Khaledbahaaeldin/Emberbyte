@@ -371,41 +371,42 @@ class LiveNotificationTest {
 
     @Test
     fun live_progress_of_pure_function() {
-        assertNull(liveProgressOf(null, ByteUnits.DECIMAL))
+        val today = 1_400_000_000L
+        assertNull(liveProgressOf(null, ByteUnits.DECIMAL, today))
 
         // Normal active plan
         val normal = samplePlanState(remainingBytes = 3_200_000_000L, fractionUsed = 0.63f)
-        val normalProgress = liveProgressOf(normal, ByteUnits.DECIMAL)
+        val normalProgress = liveProgressOf(normal, ByteUnits.DECIMAL, today)
         assertEquals(0.63f, normalProgress?.fractionUsed)
-        assertEquals("3.2 GB", normalProgress?.chip)
+        assertEquals("1.4 GB", normalProgress?.chip)
 
         // Fraction clamped between 0 and 1
         val underflow = samplePlanState(remainingBytes = 3_200_000_000L, fractionUsed = -0.2f)
-        assertEquals(0f, liveProgressOf(underflow, ByteUnits.DECIMAL)?.fractionUsed)
+        assertEquals(0f, liveProgressOf(underflow, ByteUnits.DECIMAL, today)?.fractionUsed)
 
         val overflow = samplePlanState(remainingBytes = 100L, fractionUsed = 1.4f)
-        assertEquals(1f, liveProgressOf(overflow, ByteUnits.DECIMAL)?.fractionUsed)
+        assertEquals(1f, liveProgressOf(overflow, ByteUnits.DECIMAL, today)?.fractionUsed)
 
         // Quantisation kills mutant D4a
         val quant = samplePlanState(remainingBytes = 3_200_000_000L, fractionUsed = 0.634f)
-        assertEquals(0.634f, liveProgressOf(quant, ByteUnits.DECIMAL)?.fractionUsed)
+        assertEquals(0.634f, liveProgressOf(quant, ByteUnits.DECIMAL, today)?.fractionUsed)
 
-        // Exhausted plan gives fraction 1 and chip "0 B"
+        // Exhausted plan gives fraction 1 and chip "Over"
         val exhaustedZero = samplePlanState(remainingBytes = 0L, fractionUsed = 1.0f)
-        val exhaustedProgress = liveProgressOf(exhaustedZero, ByteUnits.DECIMAL)
+        val exhaustedProgress = liveProgressOf(exhaustedZero, ByteUnits.DECIMAL, today)
         assertEquals(1f, exhaustedProgress?.fractionUsed)
-        assertEquals("0 B", exhaustedProgress?.chip)
+        assertEquals("Over", exhaustedProgress?.chip)
 
         val exhaustedNegative = samplePlanState(remainingBytes = -500_000L, fractionUsed = 1.1f)
-        val negativeProgress = liveProgressOf(exhaustedNegative, ByteUnits.DECIMAL)
+        val negativeProgress = liveProgressOf(exhaustedNegative, ByteUnits.DECIMAL, today)
         assertEquals(1f, negativeProgress?.fractionUsed)
-        assertEquals("0 B", negativeProgress?.chip)
+        assertEquals("Over", negativeProgress?.chip)
 
         // Estimated / approximate plan still shows progress
         val estimated = samplePlanState(remainingBytes = 3_200_000_000L, fractionUsed = 0.63f, isApproximate = true)
-        val estimatedProgress = liveProgressOf(estimated, ByteUnits.DECIMAL)
+        val estimatedProgress = liveProgressOf(estimated, ByteUnits.DECIMAL, today)
         assertEquals(0.63f, estimatedProgress?.fractionUsed)
-        assertEquals("3.2 GB", estimatedProgress?.chip)
+        assertEquals("1.4 GB", estimatedProgress?.chip)
     }
 
     @Test
@@ -439,7 +440,7 @@ class LiveNotificationTest {
             units = ByteUnits.DECIMAL,
             showSpeed = true,
             remainingBytes = okPlan.remainingBytes,
-            progress = liveProgressOf(okPlan, ByteUnits.DECIMAL),
+            progress = liveProgressOf(okPlan, ByteUnits.DECIMAL, 1_000_000L),
             state = liveNotificationStateOf(okPlan),
         )
         val okNotification = builder.build(okText)
@@ -454,7 +455,7 @@ class LiveNotificationTest {
             units = ByteUnits.DECIMAL,
             showSpeed = true,
             remainingBytes = warnPlan.remainingBytes,
-            progress = liveProgressOf(warnPlan, ByteUnits.DECIMAL),
+            progress = liveProgressOf(warnPlan, ByteUnits.DECIMAL, 1_000_000L),
             state = liveNotificationStateOf(warnPlan),
         )
         val warnNotification = builder.build(warnText)
@@ -469,7 +470,7 @@ class LiveNotificationTest {
             units = ByteUnits.DECIMAL,
             showSpeed = true,
             remainingBytes = dangerPlan.remainingBytes,
-            progress = liveProgressOf(dangerPlan, ByteUnits.DECIMAL),
+            progress = liveProgressOf(dangerPlan, ByteUnits.DECIMAL, 1_000_000L),
             state = liveNotificationStateOf(dangerPlan),
         )
         val dangerNotification = builder.build(dangerText)
@@ -507,7 +508,7 @@ class LiveNotificationTest {
             units = ByteUnits.DECIMAL,
             showSpeed = true,
             remainingBytes = plan.remainingBytes,
-            progress = liveProgressOf(plan, ByteUnits.DECIMAL),
+            progress = liveProgressOf(plan, ByteUnits.DECIMAL, 1_000_000L),
             state = liveNotificationStateOf(plan),
         )
 
@@ -530,7 +531,7 @@ class LiveNotificationTest {
             units = ByteUnits.DECIMAL,
             showSpeed = true,
             remainingBytes = okPlan.remainingBytes,
-            progress = liveProgressOf(okPlan, ByteUnits.DECIMAL),
+            progress = liveProgressOf(okPlan, ByteUnits.DECIMAL, 1_240_000_000L),
             state = liveNotificationStateOf(okPlan),
         )
         assertEquals("3.80 GB left · ↓ 4.20 MB/s", okText.text)
@@ -542,7 +543,7 @@ class LiveNotificationTest {
             units = ByteUnits.DECIMAL,
             showSpeed = false,
             remainingBytes = exceededPlan.remainingBytes,
-            progress = liveProgressOf(exceededPlan, ByteUnits.DECIMAL),
+            progress = liveProgressOf(exceededPlan, ByteUnits.DECIMAL, 1_240_000_000L),
             state = liveNotificationStateOf(exceededPlan),
         )
         assertEquals("No data left", exceededText.text)

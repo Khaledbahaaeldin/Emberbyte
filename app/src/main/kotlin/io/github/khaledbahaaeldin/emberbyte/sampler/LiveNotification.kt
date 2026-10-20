@@ -94,7 +94,7 @@ fun formatProgressChip(bytes: Long, units: ByteUnits): String {
 fun liveProgressOf(
     planState: PlanState?,
     units: ByteUnits,
-    todayBytes: Long? = null,
+    todayBytes: Long,
 ): LiveProgress? {
     if (planState == null) return null
     val isExhausted = planState.remainingBytes <= 0L
@@ -104,15 +104,10 @@ fun liveProgressOf(
         val clamped = planState.fractionUsed.coerceIn(0f, 1f)
         (kotlin.math.round(clamped * 1000f) / 1000f)
     }
-    val chip = if (todayBytes != null) {
-        val state = liveNotificationStateOf(planState)
-        val formattedToday = formatBytes(todayBytes, units)
-        val usedToday = "${formattedToday.value} ${formattedToday.unit}"
-        val remaining = if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
-        ChipText.forState(state, usedToday, remaining)
-    } else {
-        if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
-    }
+    val state = liveNotificationStateOf(planState)
+    val usedToday = formatProgressChip(todayBytes, units)
+    val remaining = if (isExhausted) "0 B" else formatProgressChip(planState.remainingBytes, units)
+    val chip = ChipText.forState(state, usedToday, remaining)
     return LiveProgress(fractionUsed = fraction, chip = chip)
 }
 

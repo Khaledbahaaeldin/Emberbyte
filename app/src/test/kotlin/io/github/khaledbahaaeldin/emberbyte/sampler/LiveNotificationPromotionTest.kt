@@ -246,4 +246,62 @@ class LiveNotificationPromotionTest {
         val nDanger = builder.build(LiveNotificationText("1.4 GB today", "over", progress = LiveProgress(1.0f, "Over"), state = BudgetStateUi.Exceeded))
         assertEquals(dusk.danger.toArgb(), caller.color)
     }
+
+    @Test
+    fun sampler_service_passes_today_bytes_to_live_progress() {
+        val samplerSource = java.io.File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/sampler/SamplerService.kt").readText()
+        assertTrue(
+            "SamplerService must pass today.totalBytes to liveProgressOf",
+            samplerSource.contains("liveProgressOf(active, units, today.totalBytes)")
+        )
+        assertFalse(
+            "SamplerService must not use 2-arg liveProgressOf without todayBytes",
+            samplerSource.contains("liveProgressOf(active, units)")
+        )
+    }
+
+    @Test
+    fun sampler_service_path_wires_chip_text_for_ok_warning_and_exceeded() {
+        val todayBytes = 1_400_000_000L // 1.4 GB
+        val units = io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits.DECIMAL
+
+        val okPlan = samplePlanState(remainingBytes = 8_000_000_000L, fractionUsed = 0.20f)
+        val okProgress = liveProgressOf(okPlan, units, todayBytes)
+        assertNotNull(okProgress)
+        assertEquals("1.4 GB", okProgress?.chip)
+
+        val warnPlan = samplePlanState(remainingBytes = 1_200_000_000L, fractionUsed = 0.88f)
+        val warnProgress = liveProgressOf(warnPlan, units, todayBytes)
+        assertNotNull(warnProgress)
+        assertEquals("!1.2 GB", warnProgress?.chip)
+
+        val exceededPlan = samplePlanState(remainingBytes = 0L, fractionUsed = 1.0f)
+        val exceededProgress = liveProgressOf(exceededPlan, units, todayBytes)
+        assertNotNull(exceededProgress)
+        assertEquals("Over", exceededProgress?.chip)
+    }
+
+    private fun samplePlanState(
+        remainingBytes: Long,
+        fractionUsed: Float,
+    ) = io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState(
+        plan = io.github.khaledbahaaeldin.emberbyte.engine.model.Plan(
+            id = 1L,
+            name = "Primary",
+            subscriptionId = null,
+            capBytes = 10_000_000_000L,
+            cycle = io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle.MonthlyOnDay(1, java.time.LocalTime.MIDNIGHT, java.time.ZoneId.of("UTC")),
+            rollover = io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover.None,
+        ),
+        window = io.github.khaledbahaaeldin.emberbyte.engine.model.CycleWindow(java.time.Instant.EPOCH, java.time.Instant.EPOCH.plusSeconds(86400 * 30)),
+        effectiveCapBytes = 10_000_000_000L,
+        usedBytes = (10_000_000_000L * fractionUsed).toLong(),
+        remainingBytes = remainingBytes,
+        rolledOverBytes = 0L,
+        addOnBytes = 0L,
+        freeBytes = 0L,
+        daysLeft = 10,
+        fractionUsed = fractionUsed,
+        isApproximate = false,
+    )
 }
