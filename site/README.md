@@ -38,5 +38,5 @@ python -m http.server 5188 --directory site/dist
 2. Settings, Git, Deploy Hooks: create a hook for `main` and save its URL as the repository secret
    `VERCEL_DEPLOY_HOOK` (GitHub, Settings, Secrets and variables, Actions). The workflow
    `.github/workflows/site-rebuild.yml` then rebuilds the site whenever a release is published or edited.
-3. Optional: set `SITE_URL` (for example `https://emberbyte.app`) in the Vercel environment variables so the preview
+3. Optional: set `SITE_URL` (for example `https://emberbyte.app`; on Vercel the production address is detected automatically, currently `https://emberbyte-site.vercel.app`) in the Vercel environment variables so the preview
    image, canonical link and sitemap use your own domain.

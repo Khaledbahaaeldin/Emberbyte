@@ -16,7 +16,7 @@ const OUT = join(SITE, "dist");
 const REPO = "Khaledbahaaeldin/Emberbyte";
 const offline = process.argv.includes("--offline");
 const siteUrl = (process.env.SITE_URL
-  || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? "https://" + process.env.VERCEL_PROJECT_PRODUCTION_URL : "https://emberbyte.vercel.app")).replace(/\/$/, "");
+  || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? "https://" + process.env.VERCEL_PROJECT_PRODUCTION_URL : "https://emberbyte-site.vercel.app")).replace(/\/$/, "");
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 

@@ -6,6 +6,8 @@ per-SIM binding, add-on packs, free windows, rollover, personalized quota run-ou
 alerts, home-screen widgets, per-app budgets, spike detection, "what if" planning, data export, and
 encrypted local backups.
 
+**Website: [emberbyte-site.vercel.app](https://emberbyte-site.vercel.app)** · [Download](https://github.com/Khaledbahaaeldin/Emberbyte/releases/latest) · [Report an issue](https://github.com/Khaledbahaaeldin/Emberbyte/issues/new/choose)
+
 > "DataKB" was the project codename; the repository is now named Emberbyte.
 
 ---
