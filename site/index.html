@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emberbyte: a data-usage monitor that stays on your phone</title>
+  <meta name="description" content="Emberbyte is a free, open-source Android app that tracks your mobile and Wi-Fi data, plans, alerts and widgets. No internet permission, no accounts, no tracking.">
+  <meta name="theme-color" content="#110F19">
+  <meta property="og:title" content="Emberbyte: your data, counted and never shared">
+  <meta property="og:description" content="A free, open-source Android data monitor with twelve themes, flexible plans and widgets. No internet permission.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/roboto-flex.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Emberbyte, home">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8C68 30 84 48 84 67a34 34 0 0 1-68 0C16 48 32 30 50 8Z" fill="#FF7A33"/><path d="M50 44C59 56 66 65 66 74a16 16 0 0 1-32 0C34 65 41 56 50 44Z" fill="#FFD5B8"/></svg>
+      Emberbyte
+    </a>
+    <nav aria-label="Main">
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+        <li><a href="#makers">Makers</a></li>
+        <li><a href="#news">Changelog</a></li>
+        <li class="keep"><a href="#download">Download</a></li>
+      </ul>
+    </nav>
+    <button class="mode" id="mode" type="button" aria-label="Switch colour mode">☾</button>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Free · Open source · No internet permission</p>
+      <h1>
+        <span class="sr-only">Emberbyte, a data-usage monitor: </span><span class="num">1.89</span><span class="unit"><svg class="cookie" data-bumps="9"></svg><span>GB</span></span><br>Counted.<br>Never shared.
+      </h1>
+      <p class="lead" style="margin-top:26px">Emberbyte shows what your phone uses, plans your month and warns you before you run out. Everything is measured and kept on the device. Nothing is ever sent anywhere.</p>
+      <div class="row">
+        <a class="btn primary" href="https://github.com/Khaledbahaaeldin/Emberbyte/releases/latest">Download for Android</a>
+        <a class="btn ghost" href="#features">See what it does</a>
+      </div>
+      <ul class="chips">
+        <li><b>GPL-3.0</b> licence</li>
+        <li><b>12</b> themes</li>
+        <li><b>4</b> widgets</li>
+        <li><b>Reproducible</b> build</li>
+      </ul>
+    </div>
+    <div class="phones" aria-hidden="true">
+      <div class="phone b"><img src="assets/screens/2_apps.webp" alt="" width="640" height="1386"></div>
+      <div class="phone a"><img src="assets/screens/1_home.webp" alt="" width="640" height="1386"></div>
+      <div class="phone c"><img src="assets/screens/3_plans.webp" alt="" width="640" height="1386"></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Made to be read at a glance</h2>
+    <p class="lead">One big number for today, and everything else one tap away.</p>
+    <div class="bento">
+      <article class="tile hi t-wide">
+        <span class="icon" aria-hidden="true">◔</span>
+        <h3>Plans that fit real life</h3>
+        <p>Monthly or every-N-days cycles, SIM binding, add-on packs, free-data windows and rollover. Joined a plan mid-cycle? Enter what you already used, or start counting from the next cycle, and pin the plan you care about most.</p>
+      </article>
+      <article class="tile t-small">
+        <span class="icon" aria-hidden="true">⌁</span>
+        <h3>A forecast you can trust</h3>
+        <p>Learns your hourly pattern over 28 days and tells you the day you would run out.</p>
+      </article>
+      <article class="tile t-small">
+        <span class="icon" aria-hidden="true">◐</span>
+        <h3>Alerts you choose</h3>
+        <p>At 50, 80, 90 or 100 percent per plan, per-app budgets, and a spike detector.</p>
+      </article>
+      <article class="tile ac t-wide">
+        <span class="icon" aria-hidden="true">▦</span>
+        <h3>Four widgets, same theme as the app</h3>
+        <p>Today, Plan, Bento and Dashboard. They show the same numbers as the app and follow your theme.</p>
+      </article>
+      <article class="tile t-mid">
+        <span class="icon" aria-hidden="true">◈</span>
+        <h3>Twelve themes, try them here</h3>
+        <p>Dusk, Ember, Monochrome and nine community palettes, each with light, dark and pure black. Pick one: this page changes with it.</p>
+        <div class="swatches" id="swatches" role="group" aria-label="Choose a theme"></div>
+        <div class="theme-name" id="theme-name" aria-live="polite"></div>
+      </article>
+      <article class="tile t-mid">
+        <span class="icon" aria-hidden="true">✦</span>
+        <h3>Built for everyone</h3>
+        <p>Large text without clipping, right-to-left layouts, TalkBack descriptions and reduced-motion support. Real app icons, smooth predictive back, and an encrypted backup you can restore on a new phone.</p>
+      </article>
+    </div>
+
+    <div class="gallery" tabindex="0" aria-label="Screenshots">
+      <figure><img src="assets/screens/1_home.webp" alt="Home screen with today's usage as a large number" width="640" height="1386" loading="lazy"><figcaption>Home</figcaption></figure>
+      <figure><img src="assets/screens/2_apps.webp" alt="Apps ranked by data used" width="640" height="1386" loading="lazy"><figcaption>Apps</figcaption></figure>
+      <figure><img src="assets/screens/3_plans.webp" alt="Plans shown as a bento of cards" width="640" height="1386" loading="lazy"><figcaption>Plans</figcaption></figure>
+      <figure><img src="assets/screens/4_plan_flow.webp" alt="Starting a plan that is already under way" width="640" height="1386" loading="lazy"><figcaption>Start a plan mid-cycle</figcaption></figure>
+      <figure><img src="assets/screens/5_themes.webp" alt="Twelve themes to choose from" width="640" height="1386" loading="lazy"><figcaption>Twelve themes</figcaption></figure>
+      <figure><img src="assets/screens/6_history.webp" alt="History with a daily chart" width="640" height="1386" loading="lazy"><figcaption>History</figcaption></figure>
+      <figure><img src="assets/screens/7_app_detail.webp" alt="One app's data in detail" width="640" height="1386" loading="lazy"><figcaption>One app</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <h2>Privacy you can check</h2>
+    <p class="lead">Do not take our word for it. Look at what the app is allowed to do.</p>
+    <div class="proof">
+      <div class="perms" role="img" aria-label="Emberbyte's permission list. The internet permission is not requested.">
+        <span class="head">Permissions requested by Emberbyte 1.0.0</span>
+        <span class="no">INTERNET ........................ not requested</span><br>
+        <span class="dim">PACKAGE_USAGE_STATS<br>QUERY_ALL_PACKAGES<br>ACCESS_NETWORK_STATE<br>READ_PHONE_STATE<br>POST_NOTIFICATIONS<br>POST_PROMOTED_NOTIFICATIONS<br>FOREGROUND_SERVICE<br>FOREGROUND_SERVICE_SPECIAL_USE<br>RECEIVE_BOOT_COMPLETED<br>WAKE_LOCK</span>
+      </div>
+      <ul class="points">
+        <li><span class="ok">✓</span><div><b>No internet permission.</b> Without it, Android does not let an app send anything over the network. Your usage never leaves the phone.</div></li>
+        <li><span class="ok">✓</span><div><b>No accounts, no analytics, no trackers.</b> There is nothing to sign in to and nothing to opt out of.</div></li>
+        <li><span class="ok">✓</span><div><b>Open source.</b> The whole app is on GitHub under the GPL-3.0, including the build and the release process.</div></li>
+        <li><span class="ok">✓</span><div><b>Reproducible and signed.</b> Each release is built twice by a public workflow to prove the result is identical, then signed. You can check the signature yourself below.</div></li>
+        <li><span class="ok">✓</span><div><b>Your backup is yours.</b> Encrypted with AES-256-GCM and Argon2id, restored only with your passphrase.</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2>Get Emberbyte</h2>
+    <p class="lead">Android 10 or newer. Free, with no ads and no in-app purchases.</p>
+    <div class="dl">
+      <div class="stores">
+        <a class="store" href="https://github.com/Khaledbahaaeldin/Emberbyte/releases/latest">
+          <span aria-hidden="true">⬇</span><span>GitHub Releases<small>Signed APK · version 1.0.0 · 6.4 MB</small></span><span class="tag">Available</span>
+        </a>
+        <a class="store" aria-disabled="true" href="#download" tabindex="-1">
+          <span aria-hidden="true">▣</span><span>F-Droid<small>Submission in preparation</small></span><span class="tag">Coming soon</span>
+        </a>
+        <a class="btn ghost" href="https://github.com/Khaledbahaaeldin/Emberbyte" style="justify-self:start">View the source code</a>
+      </div>
+      <div>
+        <h3>Verify your download</h3>
+        <p class="lead" style="font-size:1rem;margin:8px 0 14px">Compare the file's checksum, then its signing certificate with Android's own tool.</p>
+<pre><code id="cmd">sha256sum -c emberbyte-1.0.0.apk.sha256
+apksigner verify --print-certs emberbyte-1.0.0.apk</code></pre>
+        <button class="btn ghost copy" type="button" data-copy="cmd">Copy commands</button>
+        <p style="margin:16px 0 6px;color:var(--muted);font-size:.95rem">The certificate SHA-256 must be:</p>
+        <code class="fp" id="fp">72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef</code><br>
+        <button class="btn ghost copy" type="button" data-copy="fp">Copy fingerprint</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="makers">
+  <div class="wrap">
+    <h2>Who makes it</h2>
+    <p class="lead">A small team that wanted a data monitor it could trust.</p>
+    <div class="makers">
+      <article class="maker">
+        <div class="avatar"><svg class="cookie" data-bumps="9" style="color:var(--primary)"></svg><span style="position:relative">KB</span></div>
+        <div>
+          <h3>Khaled Bahaa Eldin</h3>
+          <div class="role">Maintainer · product, design and releases</div>
+          <p>Started Emberbyte, shaped the design and the behaviour of plans, and looks after releases and the project.</p>
+          <a href="https://github.com/Khaledbahaaeldin">@Khaledbahaaeldin on GitHub</a>
+        </div>
+      </article>
+      <article class="maker">
+        <div class="avatar"><svg class="cookie" data-bumps="8" style="color:var(--accent)"></svg><span style="position:relative;color:var(--on-accent)">OA</span></div>
+        <div>
+          <h3>Omar Amin</h3>
+          <div class="role">Implementation and testing</div>
+          <p>Fixed the History, alert and Home details, wrote the project's glossary, and built the Live Lens research that showed why Emberbyte stays free of any VPN.</p>
+          <a href="https://github.com/OmarAminAI">@OmarAminAI on GitHub</a>
+        </div>
+      </article>
+    </div>
+    <p class="credit">Theme palettes belong to their original authors and are used under their licences; the typeface is Roboto Flex (SIL Open Font License). Parts of the code were written with Gemini, and specifications and reviews with Claude. Full credits are in the <a href="https://github.com/Khaledbahaaeldin/Emberbyte/blob/main/CONTRIBUTORS.md">contributors file</a>.</p>
+  </div>
+</section>
+
+<section id="news">
+  <div class="wrap">
+    <h2>Changelog and news</h2>
+    <p class="lead">What changed, and anything we want you to know.</p>
+    <div class="cols">
+      <article class="card">
+        <div class="ver"><h3>Emberbyte 1.0.0</h3><time datetime="2026-10-20">20 October 2026</time></div>
+        <ul>
+          <li><b>Today's number first</b>, with a forecast of whether you will run out.</li>
+          <li><b>Twelve themes</b> in light, dark and pure black.</li>
+          <li><b>Plans</b> with a mid-cycle start, pinning, alerts and per-app budgets.</li>
+          <li><b>Four widgets</b>, a live notification and predictive back.</li>
+          <li><b>Encrypted backup</b> and CSV/JSON export.</li>
+          <li>No internet permission, no tracking.</li>
+        </ul>
+        <a href="https://github.com/Khaledbahaaeldin/Emberbyte/releases">All releases and full notes on GitHub</a>
+      </article>
+      <aside class="card">
+        <h3 style="margin-bottom:14px">News</h3>
+        <ul class="news">
+          <li><time datetime="2026-10-20">20 October 2026</time><a href="https://github.com/Khaledbahaaeldin/Emberbyte/releases/tag/v1.0.0">Emberbyte 1.0.0 is out</a></li>
+          <li><time datetime="2026-10-20">Coming next</time><span style="color:var(--muted)">An F-Droid listing, more languages, and refinements to the widgets.</span></li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section id="report">
+  <div class="wrap">
+    <div class="report">
+      <div>
+        <h2>Found a problem?</h2>
+        <p>Tell us on GitHub. Please include your app version, Android version and phone, and never attach a backup file or your data.</p>
+      </div>
+      <a class="btn" href="https://github.com/Khaledbahaaeldin/Emberbyte/issues/new/choose">Report an issue</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>Emberbyte is free software under the GPL-3.0-or-later.<br>This site uses no analytics and no cookies.</div>
+    <ul>
+      <li><a href="https://github.com/Khaledbahaaeldin/Emberbyte">Source</a></li>
+      <li><a href="https://github.com/Khaledbahaaeldin/Emberbyte/issues">Issues</a></li>
+      <li><a href="https://github.com/Khaledbahaaeldin/Emberbyte/blob/main/LICENSE">Licence</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script src="assets/themes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
