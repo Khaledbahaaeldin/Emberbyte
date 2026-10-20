@@ -63,7 +63,7 @@ SIGNED="$OUT_DIR/emberbyte-$VERSION.apk"
   --out "$SIGNED" "$ALIGNED"
 rm -f "$ALIGNED" "$SIGNED.idsig"
 
-"$APKSIGNER" verify --verbose --print-certs "$SIGNED" | grep -E "^(Verifies|Verified using|Signer #1 certificate (DN|SHA-256))" || true
+"$APKSIGNER" verify --verbose --print-certs "$SIGNED" | grep -E "^(Verifies|Verified using)|certificate (DN|SHA-256 digest)" || true
 "$APKSIGNER" verify "$SIGNED" >/dev/null || die "signature verification FAILED"
 
 if command -v sha256sum >/dev/null 2>&1; then

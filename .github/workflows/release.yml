@@ -131,10 +131,12 @@ jobs:
           APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
           OUT="$("$APKSIGNER" verify --print-certs "$APK")"
           echo "$OUT"
-          GOT="$(echo "$OUT" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d '[:space:]')"
+          # Newer apksigner prints "V3.0 Signer: certificate SHA-256 digest: ...", older ones
+          # "Signer #1 certificate SHA-256 digest: ...". Accept both and require ONE distinct digest.
+          GOT="$(echo "$OUT" | sed -n 's/.*certificate SHA-256 digest: *\([0-9a-fA-F]\{64\}\).*/\1/p' | tr 'A-F' 'a-f' | sort -u)"
           echo "signed with certificate: $GOT"
-          if [ -z "$GOT" ] || [ "$GOT" != "$EXPECTED_CERT_SHA256" ]; then
-            echo "::error::signed with an unexpected certificate (got '$GOT')"
+          if [ "$(echo "$GOT" | grep -c .)" != "1" ] || [ "$GOT" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::signed with an unexpected or ambiguous certificate (got '$GOT')"
             exit 1
           fi
       - name: Dry run - keep the signed APK as an artifact only
