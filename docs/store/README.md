@@ -1,22 +1,22 @@
 # Store Metadata & Screenshots (`docs/store/README.md`)
 
-This directory contains the Play Store and F-Droid listing text and screenshot specifications for Emberbyte.
+This directory holds the store listing text. The listing assets themselves live where F-Droid reads them, under [`fastlane/metadata/android/en-US/`](../../fastlane/metadata/android/en-US/).
 
 ## Listing Text
 - [`docs/store/store-listing.md`](store-listing.md): Title, Short Description, Full Description, Feature highlights, and Privacy declaration.
-- Fastlane source mirrors: [`fastlane/metadata/android/en-US/`](../../fastlane/metadata/android/en-US/).
+- Fastlane source: [`fastlane/metadata/android/en-US/`](../../fastlane/metadata/android/en-US/) (titles, descriptions, changelogs, icon and screenshots).
 
-## Screenshot Specifications
-The store screenshots are captured from the `Violet_API_36` phone emulator in Dusk Dark and Dusk Light modes ($1080 \times 2340$, $440\,\text{dpi}$) and stored under [`docs/store/screenshots/`](screenshots/):
+## Screenshots
+Real captures of the release build from the `Violet_API_36` emulator (1080 x 2340), Dusk dark theme, English, with demo data and a clean status bar. They are in [`fastlane/metadata/android/en-US/images/phoneScreenshots/`](../../fastlane/metadata/android/en-US/images/phoneScreenshots/):
 
-| Filename | Theme | Screen / Content Description |
-|:---|:---|:---|
-| `01_home_dusk_dark.png` | Dusk Dark | Home screen displaying `HeroNumber` consumption metric, `WavyBar`, Forecast bento tile, Live speed tile, and Top apps today. |
-| `02_home_dusk_light.png` | Dusk Light | Home screen in light mode showing dual-tone `NetworkBar`, plan progress, and recent transfer summary. |
-| `03_apps_dusk_dark.png` | Dusk Dark | Apps screen featuring real application icons, proportional usage bars, and time-range filter chips. |
-| `04_plans_dusk_dark.png` | Dusk Dark | Plans screen showing circular `WavyRing`, remaining quota, billing cycle details, and add-on packs. |
-| `05_plan_creation_dusk_dark.png` | Dusk Dark | Plan configuration showing mid-cycle start options (From phone record, Entered usage, Start later) and PIN option. |
-| `06_appearance_dusk_dark.png` | Dusk Dark | Appearance settings screen showing 12 theme preset cards, Light/Dark/System mode switcher, and AMOLED black switch. |
-| `07_widgets_preview.png` | Dusk Dark | Home-screen launcher showcasing all four Glance widgets (Today 2x1, Plan 2x2, Bento 4x2, and Dashboard 4x4). |
+| File | Screen |
+|:---|:---|
+| `1_home.png` | Home: today's usage as a large number, the plan's remaining data, forecast, live speed, network split and top apps. |
+| `2_apps.png` | Apps: the app with the most data as a featured card, then a ranked list with real icons. |
+| `3_plans.png` | Plans: an urgency-ordered bento with a front plan, a second plan and a plan that has not started yet. |
+| `4_plan_flow.png` | New plan, step 4: how to count a cycle that is already under way (the user has typed what was already used). |
+| `5_themes.png` | Appearance: mode switch and the twelve themes. |
+| `6_history.png` | History: the period total, the comparison with the previous period and the daily chart. |
+| `7_app_detail.png` | One app: total, mobile and Wi-Fi split, daily chart and budget. |
 
-*(Note: Real PNG captures for these filenames are generated in Task Z2 via `Violet_API_36` device captures).*
+A widgets screenshot is not included because the four widgets do not fit one launcher page. Rules for new screenshots: capture them from the release build, open every image before committing, and never change the app's behaviour to improve a picture.

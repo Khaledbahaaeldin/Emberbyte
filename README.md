@@ -12,11 +12,15 @@ encrypted local backups.
 
 ## Screenshots
 
-| Home (Dark) | Home (Light) | Apps | Plans |
+| Home | Apps | Plans | New plan |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/store/screenshots/01_home_dusk_dark.png" width="200" alt="Home Screen Dark" /> | <img src="docs/store/screenshots/02_home_dusk_light.png" width="200" alt="Home Screen Light" /> | <img src="docs/store/screenshots/03_apps_dusk_dark.png" width="200" alt="Apps Screen" /> | <img src="docs/store/screenshots/04_plans_dusk_dark.png" width="200" alt="Plans Screen" /> |
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" width="200" alt="Home: today and the plan" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_apps.png" width="200" alt="Apps ranked by usage" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_plans.png" width="200" alt="Plans as a bento" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_plan_flow.png" width="200" alt="Starting a plan mid-cycle" /> |
 
-See [`docs/store/README.md`](docs/store/README.md) for the full screenshot catalog and specifications.
+| Themes | History | App detail |
+|:---:|:---:|:---:|
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_themes.png" width="200" alt="Twelve themes" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_history.png" width="200" alt="History" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7_app_detail.png" width="200" alt="One app in detail" /> |
+
+These are real captures of the 1.0.0 release build (Dusk dark theme, demo data). The same images are used for the F-Droid listing.
 
 ---
 
@@ -27,7 +31,7 @@ See [`docs/store/README.md`](docs/store/README.md) for the full screenshot catal
 - **Per-App History**: Breakdown of data usage per application across daily and 2-hour measurement windows with real application icons.
 - **Flexible Data Plans with Forecast & Alerts**: Custom billing cycles (monthly or every N days), SIM binding, add-on quota packs, free data windows (e.g. night data), and usage rollover (capped or uncapped). Supports mid-cycle plan creation with three start modes: *From phone record*, *Entered usage*, or *Start later*, alongside plan pinning. Predicts run-out dates based on your learned hourly usage curve over the last 28 days and alerts at 50%, 80%, 90%, and 100% quota.
 - **Four Home-Screen Widgets**: Jetpack Glance widgets adhering to a strict < 1.5 MiB image budget:
-  - **Today (2x1)**: Real-time today usage metrics and plan status.
+  - **Today (2x2)**: Today's usage as a large number and the plan status.
   - **Plan (2x2)**: Wavy progress ring, remaining data, and days left in the cycle.
   - **Bento (4x2)**: Data consumption, live transfer speed, run-out forecast, and dual-tone network bar.
   - **Dashboard (4x4)**: Comprehensive view with hero consumption, plan progress, 7-day bar chart, top 3 apps, and direct app deep links.
@@ -36,7 +40,7 @@ See [`docs/store/README.md`](docs/store/README.md) for the full screenshot catal
 - **"What If" Scenario Planner**: Explore how hypothetical extra daily usage alters your projected run-out date.
 - **CSV and JSON Streamed Export**: Stream historical traffic metrics without memory spikes.
 - **Encrypted Local Backup & Restore**: Secure `.emberbyte` archive backups of plans, budgets, and hourly usage protected with Argon2id and AES-256-GCM.
-- **Predictive Back & Live Updates**: Smooth system predictive back animations across all sub-screens with guarded dirty form protection, and Android 16 live-update notification promotion with a status-bar compact chip.
+- **Predictive Back & Live Updates**: Smooth system predictive back animations across all sub-screens with guarded dirty form protection, and Android 16 live-update promotion with a status-bar chip where the phone maker supports it (it did not show on a Galaxy S24+ with One UI 8.5 in our test; the notification itself always works).
 
 > [!NOTE]
 > An in-depth packet inspection feature ("Live Lens") was explored during development and discarded due to CPU and battery constraints; see [ADR 0001: Discard Live Lens](docs/adr/0001-discard-live-lens.md). Emberbyte avoids VPN tunnels entirely.
@@ -68,7 +72,7 @@ Every permission declared in [`AndroidManifest.xml`](app/src/main/AndroidManifes
 | `android.permission.ACCESS_NETWORK_STATE` | Normal | Required to observe active network connectivity (Wi-Fi vs Cellular vs Metered) and network capabilities. |
 | `android.permission.READ_PHONE_STATE` | Dangerous / Runtime | Required on multi-SIM devices to detect active subscription IDs and correlate cellular usage with the user's configured data plan SIM slot. |
 | `android.permission.POST_NOTIFICATIONS` | Runtime (API 33+) | Required to post plan alerts (thresholds chosen per plan from 50%, 80%, 90% and 100%; default 80% and 100%), budget and spike alerts, and the ongoing live notification. |
-| `android.permission.POST_PROMOTED_NOTIFICATIONS` | Normal (API 36+) | Required for Android 16+ Promoted Ongoing live status bar indicator showing remaining plan data (e.g. 3.2 GB or 0 B). |
+| `android.permission.POST_PROMOTED_NOTIFICATIONS` | Normal (API 36+) | Required for Android 16+ Promoted Ongoing live status bar indicator showing today's total, the amount left near the cap, or "Over". |
 | `android.permission.FOREGROUND_SERVICE` | Normal | Required to run `SamplerService` as a background foreground service for periodic network rate sampling and threshold checks. |
 | `android.permission.FOREGROUND_SERVICE_SPECIAL_USE` | Foreground Service Type (API 34+) | Declares the specific foreground service subtype (`data_metering_sampler`) for continuous background network traffic monitoring under modern platform restrictions. |
 | `android.permission.RECEIVE_BOOT_COMPLETED` | Normal | Allows `BootReceiver` to start `SamplerService` after a reboot or an app update (only once onboarding is complete), so measuring continues without opening the app. |
@@ -94,8 +98,13 @@ Every permission declared in [`AndroidManifest.xml`](app/src/main/AndroidManifes
 
 ## Installation
 
-- **F-Droid**: Coming soon once listed in the official F-Droid repository. See [F-Droid draft recipe](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
-- **GitHub Releases**: Download maintainer-signed APKs or inspect reproducible unsigned release APK artifacts on the [Releases](https://github.com/Khaledbahaaeldin/Emberbyte/releases) page. (Unsigned APKs are reproducible build verification artifacts and cannot be directly installed on Android devices without signing).
+- **GitHub Releases (available)**: download `emberbyte-1.0.0.apk` and its `.sha256` from the [Releases](https://github.com/Khaledbahaaeldin/Emberbyte/releases) page. The APK is built and signed by this repository's release workflow. Verify it:
+  ```bash
+  sha256sum -c emberbyte-1.0.0.apk.sha256
+  apksigner verify --print-certs emberbyte-1.0.0.apk
+  ```
+  The certificate SHA-256 must be `72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef`. Requires Android 10 or newer.
+- **F-Droid**: coming soon once listed in the official F-Droid repository. See the [recipe draft](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
 
 ---
 
@@ -129,6 +138,12 @@ Contributions, bug reports, and suggestions are welcome!
    ./gradlew testDebugUnitTest :core:engine:test lintDebug assembleDebug
    ```
 3. Explain why changes are needed in commit messages.
+
+---
+
+## Credits
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for who built what, and [NOTICE](NOTICE) for third-party material (theme palettes, Roboto Flex and libraries).
 
 ---
 
