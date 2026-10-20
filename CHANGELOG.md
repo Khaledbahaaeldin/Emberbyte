@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Flexible Mid-Cycle Plan Creation & Pinning**: Plan creation supports three first-cycle start options (*From phone record*, *Entered usage*, or *Start later*) and plan pinning to ensure your priority plan stays front and center.
   - **Expressive Components**: Wavy progress rings (`WavyRing`) and bars (`WavyBar`), mixed-corner bento tiles (`BentoTile`), vector `BrandMark`, dual-tone `NetworkBar`, responsive `NoticeLine`, segmented `ConnectedButtonGroup`, `ExpressiveSwitch`, and modern accessible modal dialogs (`EmberbyteDialog`).
   - **Four-Page Onboarding Pager**: Clean horizontal pager guiding users through core features, permissions, and notifications with 48 dp touch targets.
+  - **Predictive Back Navigation**: Refined Android predictive back transitions across all sub-screens, with `GuardedBack` intercepting only dirty forms while allowing clean forms and back gestures to smoothly pop.
+  - **Android 16 Live Updates**: Live notification promotion on Android 16 (API 36) with compact chip text in the status bar, daily dismissal suppression, and a dedicated Live updates management row in Settings.
 - **Live Transfer Speed & Sampler**: Real-time foreground service sampling network rates, with a live download speed notification and Android 16+ Promoted Ongoing remaining data indicator.
 - **Traffic Totals & Per-App History**: Breakdown of cellular mobile data and Wi-Fi network usage across 2-hour and daily intervals with real application icons.
 - **Flexible Data Plans**: Support for custom billing cycles (monthly or every N days), SIM slot binding, add-on quota packs, free data windows (e.g. night data), and usage rollover.

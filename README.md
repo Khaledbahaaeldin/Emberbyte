@@ -36,6 +36,7 @@ See [`docs/store/README.md`](docs/store/README.md) for the full screenshot catal
 - **"What If" Scenario Planner**: Explore how hypothetical extra daily usage alters your projected run-out date.
 - **CSV and JSON Streamed Export**: Stream historical traffic metrics without memory spikes.
 - **Encrypted Local Backup & Restore**: Secure `.emberbyte` archive backups of plans, budgets, and hourly usage protected with Argon2id and AES-256-GCM.
+- **Predictive Back & Live Updates**: Smooth system predictive back animations across all sub-screens with guarded dirty form protection, and Android 16 live-update notification promotion with a status-bar compact chip.
 
 > [!NOTE]
 > An in-depth packet inspection feature ("Live Lens") was explored during development and discarded due to CPU and battery constraints; see [ADR 0001: Discard Live Lens](docs/adr/0001-discard-live-lens.md). Emberbyte avoids VPN tunnels entirely.
