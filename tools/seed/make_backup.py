@@ -34,6 +34,8 @@ DEFAULT_MEMORY_KIB = 65536
 DEFAULT_ITERATIONS = 3
 DEFAULT_PARALLELISM = 1
 
+DEFAULT_WEIGHTS = [2.7, 1.44, 0.92, 0.52, 0.20, 0.10]
+
 FAKE_PACKAGES = [
     "com.fake.browser",
     "com.fake.video",
@@ -51,6 +53,7 @@ def generate_backup_payload(
     pseudo_uid: bool = False,
     end_time_str: str = "2026-10-17T00:00:00Z",
     contract: int = 1,
+    weights: list[float] | None = None,
 ) -> dict:
     pkg_list = list(packages) if packages is not None else list(FAKE_PACKAGES)
     if pseudo_uid and "uid:10001" not in pkg_list:
@@ -108,7 +111,8 @@ def generate_backup_payload(
         hour_dt = start_time + timedelta(hours=h)
         hour_str = hour_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         for pkg_idx, pkg in enumerate(pkg_list):
-            rx = 100_000 + ((h * 7 + pkg_idx * 31) % 500) * 10_000
+            mult = weights[pkg_idx] if weights and pkg_idx < len(weights) else 1.0
+            rx = int((100_000 + ((h * 7 + pkg_idx * 31) % 500) * 10_000) * mult)
             tx = rx // 8
             usage_hourly.append({
                 "hourStart": hour_str,
@@ -203,6 +207,8 @@ def main() -> int:
     parser.add_argument("--pseudo-uid", action="store_true", help="Include a pseudo-uid row (e.g. uid:10001)")
     parser.add_argument("--end-time", default="2026-10-17T00:00:00Z", help="End time ISO-8601 (default: 2026-10-17T00:00:00Z)")
     parser.add_argument("--contract", type=int, default=1, choices=[1, 2], help="Contract version (1 or 2, default: 1)")
+    parser.add_argument("--weights", help="Comma-separated multiplier weights per package")
+    parser.add_argument("--varied", action="store_true", help="Use varied realistic weights for packages")
     parser.add_argument("--selftest", action="store_true", help="Run self-test verifying decryption")
 
     args = parser.parse_args()
@@ -211,6 +217,7 @@ def main() -> int:
         parser.error("--out FILE is required unless --selftest is specified")
 
     pkgs = [p.strip() for p in args.packages.split(",") if p.strip()] if args.packages else None
+    weights = [float(w.strip()) for w in args.weights.split(",") if w.strip()] if args.weights else (DEFAULT_WEIGHTS if args.varied else None)
     payload = generate_backup_payload(
         days=args.days,
         scenario=args.scenario,
@@ -218,6 +225,7 @@ def main() -> int:
         pseudo_uid=args.pseudo_uid,
         end_time_str=args.end_time,
         contract=args.contract,
+        weights=weights,
     )
     row_count = len(payload["usageHourly"])
     print(f"rows={row_count}")
