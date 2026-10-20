@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+import java.security.MessageDigest
 import java.util.zip.ZipFile
 
 android {
@@ -71,24 +72,41 @@ tasks.matching { it.name == "testDebugUnitTest" }.configureEach {
     }
 }
 
+fun licenceSourcesDigest(): String {
+    val root = rootProject.projectDir
+    val files = mutableListOf(File(root, "docs/release/dependency-licences.txt"), File(root, "NOTICE"))
+    files += File(root, "licenses").walkTopDown().filter { it.isFile }
+        .sortedBy { it.relativeTo(root).invariantSeparatorsPath }.toList()
+    val md = MessageDigest.getInstance("SHA-256")
+    for (f in files) {
+        md.update(f.relativeTo(root).invariantSeparatorsPath.toByteArray(Charsets.UTF_8))
+        md.update(0)
+        md.update(String(f.readBytes(), Charsets.UTF_8).replace("\r\n", "\n").toByteArray(Charsets.UTF_8))
+        md.update(0)
+    }
+    return md.digest().joinToString("") { "%02x".format(it) }
+}
+
 val verifyLicencesAsset = tasks.register("verifyLicencesAsset") {
-    description = "Verifies that app/src/main/assets/licences.json is present and not stale"
+    description = "Verifies that app/src/main/assets/licences.json is present and was generated from the current licence sources"
     group = "verification"
     inputs.file(rootProject.file("docs/release/dependency-licences.txt"))
     inputs.file(rootProject.file("NOTICE"))
+    inputs.dir(rootProject.file("licenses"))
     inputs.file(project.file("src/main/assets/licences.json"))
+    inputs.file(project.file("licences.sources.sha256"))
     doLast {
         val assetFile = project.file("src/main/assets/licences.json")
         if (!assetFile.exists() || assetFile.length() == 0L) {
             throw GradleException("Licences asset missing or empty at ${assetFile.absolutePath}. Run python tools/gen-licences.py")
         }
-        val genScript = rootProject.file("tools/gen-licences.py")
-        if (genScript.exists()) {
-            val depFile = rootProject.file("docs/release/dependency-licences.txt")
-            val noticeFile = rootProject.file("NOTICE")
-            if (assetFile.lastModified() < depFile.lastModified() || assetFile.lastModified() < noticeFile.lastModified()) {
-                throw GradleException("Licences asset ${assetFile.name} is older than dependency-licences.txt or NOTICE. Run python tools/gen-licences.py to regenerate it.")
-            }
+        val digestFile = project.file("licences.sources.sha256")
+        if (!digestFile.exists()) {
+            throw GradleException("licences.sources.sha256 is missing. Run python tools/gen-licences.py")
+        }
+        // Content based, not timestamp based: a fresh clone gives every file the checkout time.
+        if (digestFile.readText().trim() != licenceSourcesDigest()) {
+            throw GradleException("Licences asset ${assetFile.name} was generated from different licence sources than the current dependency-licences.txt, NOTICE or licenses/. Run python tools/gen-licences.py to regenerate it.")
         }
         logger.lifecycle("Licences asset verified: ${assetFile.name} (${assetFile.length()} bytes)")
     }

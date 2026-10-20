@@ -15,11 +15,28 @@ Format per entry:
 }
 """
 
+import hashlib
 import json
 import os
 import re
 import sys
 from pathlib import Path
+
+def sources_digest(root: Path) -> str:
+    """SHA-256 over the files the asset is generated from (names and content, line endings normalised).
+
+    The Gradle task verifyLicencesAsset recomputes the same digest, so a stale licences.json is detected by
+    content and not by file modification times (which a fresh clone sets arbitrarily).
+    """
+    files = [root / "docs" / "release" / "dependency-licences.txt", root / "NOTICE"]
+    lic_dir = root / "licenses"
+    if lic_dir.exists():
+        files += sorted((f for f in lic_dir.rglob("*") if f.is_file()), key=lambda f: f.relative_to(root).as_posix())
+    h = hashlib.sha256()
+    for f in files:
+        h.update(f.relative_to(root).as_posix().encode("utf-8") + b"\0")
+        h.update(f.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    return h.hexdigest()
 
 def find_repo_root() -> Path:
     candidates = [
@@ -191,8 +208,11 @@ def main():
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
     output_json = json.dumps(entries, indent=2, ensure_ascii=False)
-    output_file.write_text(output_json + "\n", encoding="utf-8")
+    output_file.write_text(output_json + "\n", encoding="utf-8", newline="\n")
     print(f"Generated {output_file} with {len(entries)} entries.")
+    digest_file = root / "app" / "licences.sources.sha256"
+    digest_file.write_text(sources_digest(root) + "\n", encoding="utf-8", newline="\n")
+    print(f"Wrote {digest_file}")
 
 if __name__ == "__main__":
     main()
