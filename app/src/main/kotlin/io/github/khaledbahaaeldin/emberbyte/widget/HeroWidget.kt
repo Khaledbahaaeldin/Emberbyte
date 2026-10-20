@@ -38,6 +38,18 @@ class HeroWidget : GlanceAppWidget() {
             TodayLayout(data, palette, budget, size)
         }
     }
+
+    @androidx.annotation.VisibleForTesting
+    @androidx.compose.runtime.Composable
+    internal fun HeroContent(
+        data: WidgetData,
+        palette: io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette,
+        budget: ImageBudget,
+        size: DpSize,
+        action: androidx.glance.action.Action? = null,
+    ) {
+        TodayLayout(data, palette, budget, size, action)
+    }
 }
 
 /**

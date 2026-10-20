@@ -9,5 +9,6 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:description="@string/widget_dashboard_description"
+    android:previewLayout="@layout/widget_preview_dashboard"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:widgetCategory="home_screen" />

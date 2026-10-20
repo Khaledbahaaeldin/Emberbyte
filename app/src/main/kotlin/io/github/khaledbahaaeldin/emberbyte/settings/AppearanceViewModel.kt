@@ -34,6 +34,7 @@ class AppearanceViewModel(
     private val settings: SettingsRepository,
     private val isSystemDark: () -> Boolean = { false },
     private val sdkInt: Int = Build.VERSION.SDK_INT,
+    private val widgetRefresh: suspend () -> Unit = {},
 ) : ViewModel() {
 
     private fun toUiState(s: Settings): AppearanceUiState {
@@ -70,6 +71,9 @@ class AppearanceViewModel(
                 is AppearanceEvent.SetWallpaper -> settings.update { it.copy(useWallpaperColors = event.on) }
                 is AppearanceEvent.SetAmoled -> settings.update { it.copy(amoledBlack = event.on) }
                 is AppearanceEvent.SetHaptics -> settings.update { it.copy(hapticsEnabled = event.on) }
+            }
+            if (event !is AppearanceEvent.SetHaptics) {
+                widgetRefresh()
             }
         }
     }

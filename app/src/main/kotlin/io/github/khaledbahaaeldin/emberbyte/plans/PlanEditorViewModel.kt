@@ -53,6 +53,7 @@ class PlanEditorViewModel(
     private val locale: Locale = Locale.getDefault(),
     private val previewDebounceMillis: Long = 300L,
     private val savedStateHandle: SavedStateHandle,
+    private val widgetRefresh: suspend () -> Unit = {},
 ) : ViewModel() {
     private val hasRestored = savedStateHandle.get<String>(KEY_FORM)?.let { PlanEditorFormJson.decode(it) } != null
     private var isRestoredDirty = hasRestored
@@ -436,6 +437,7 @@ class PlanEditorViewModel(
                 isRestoredDirty = false
                 loadedForm = _state.value.form
                 _state.update { it.copy(planId = res.value, isNew = false, saved = true, saving = false, isDirty = false) }
+                widgetRefresh()
             }
             is Outcome.Failure -> {
                 val err = when (val e = res.error) {
@@ -456,6 +458,7 @@ class PlanEditorViewModel(
                 isRestoredDirty = false
                 loadedForm = _state.value.form
                 _state.update { it.copy(saved = true, isDirty = false) }
+                widgetRefresh()
             }
             is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not archive. Try again.")) }
         }
