@@ -1,10 +1,8 @@
-Initial release of Emberbyte:
-• Live download speed indicator & sampler
-• Daily and per-app mobile and Wi-Fi usage history
-• Custom billing cycles, per-SIM binding, add-ons, and rollover
-• Predictive quota run-out forecast and threshold alerts
-• Per-app data budgets and spike detection
-• "What If" scenario planner
-• Encrypted local backup and restore (AES-256-GCM)
-• Glance home screen widgets
-• 100% on-device privacy with zero internet access
+Initial release of Emberbyte, a data-usage monitor that stays on your phone:
+• Today's usage in large type, with a run-out forecast
+• 12 themes in light, dark and AMOLED black
+• Flexible plans, mid-cycle start, threshold alerts, per-app budgets
+• Four home-screen widgets and a live notification
+• Predictive back, real app icons, accessibility built in
+• Encrypted backup and CSV/JSON export
+• No INTERNET permission, no tracking, GPL-3.0
