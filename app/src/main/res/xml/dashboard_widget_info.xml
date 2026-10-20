@@ -4,11 +4,8 @@
     android:minHeight="250dp"
     android:minResizeWidth="200dp"
     android:minResizeHeight="110dp"
-    android:maxResizeWidth="400dp"
-    android:maxResizeHeight="400dp"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:description="@string/widget_dashboard_description"
-    android:previewLayout="@layout/widget_preview_dashboard"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:widgetCategory="home_screen" />

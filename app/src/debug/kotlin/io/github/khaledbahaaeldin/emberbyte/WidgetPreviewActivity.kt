@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color as AndroidColor
 import android.os.Bundle
@@ -34,6 +35,7 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
+@SuppressLint("SetTextI18n")
 class WidgetPreviewActivity : ComponentActivity() {
 
     private lateinit var rootContainer: FrameLayout

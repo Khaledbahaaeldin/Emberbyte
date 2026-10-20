@@ -24,7 +24,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1.38"
+            android:text="@string/widget_preview_today_value"
             android:textSize="36sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF" />
@@ -32,7 +32,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=" GB"
+            android:text="@string/widget_preview_today_unit"
             android:textSize="16sp"
             android:textColor="#FFFFFF" />
     </LinearLayout>
@@ -40,7 +40,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="12.4 GB left"
+        android:text="@string/widget_preview_today_remaining"
         android:textSize="13sp"
         android:textColor="#D0BCFF"
         android:layout_marginTop="4dp" />

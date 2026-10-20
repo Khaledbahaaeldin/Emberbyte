@@ -9,8 +9,10 @@ import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
-import android.os.Build
 import androidx.annotation.VisibleForTesting
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withClip
+import androidx.core.graphics.withTranslation
 import androidx.graphics.shapes.CornerRounding
 import androidx.graphics.shapes.RoundedPolygon
 import androidx.graphics.shapes.toPath
@@ -47,26 +49,24 @@ object WidgetImages {
             return Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val typeface = Typeface.Builder(context.resources.assets, "font/roboto_flex.ttf")
-                    .setFontVariationSettings(variationSettings)
-                    .build()
-                if (typeface != null) return typeface
-            } catch (_: Throwable) {}
+        try {
+            val typeface = Typeface.Builder(context.resources.assets, "font/roboto_flex.ttf")
+                .setFontVariationSettings(variationSettings)
+                .build()
+            if (typeface != null) return typeface
+        } catch (_: Throwable) {}
 
-            try {
-                val pfd = context.resources.openRawResourceFd(resId)
-                if (pfd != null) {
-                    val typeface = pfd.use {
-                        Typeface.Builder(it.fileDescriptor)
-                            .setFontVariationSettings(variationSettings)
-                            .build()
-                    }
-                    if (typeface != null) return typeface
+        try {
+            val pfd = context.resources.openRawResourceFd(resId)
+            if (pfd != null) {
+                val typeface = pfd.use {
+                    Typeface.Builder(it.fileDescriptor)
+                        .setFontVariationSettings(variationSettings)
+                        .build()
                 }
-            } catch (_: Throwable) {}
-        }
+                if (typeface != null) return typeface
+            }
+        } catch (_: Throwable) {}
 
         return Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
     }
@@ -125,28 +125,12 @@ object WidgetImages {
         palette: EmberbytePalette,
         widthPx: Int,
         heightPx: Int,
-        context: Context? = null,
+        context: Context,
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(widthPx, heightPx)
         val canvas = Canvas(bitmap)
 
-        val ctx = context ?: try {
-            val app = Class.forName("android.app.ActivityThread")
-                .getMethod("currentApplication")
-                .invoke(null) as? Context
-            app ?: try {
-                val testApp = Class.forName("androidx.test.core.app.ApplicationProvider")
-                    .getMethod("getApplicationContext")
-                    .invoke(null) as? Context
-                testApp ?: throw IllegalStateException("No context available")
-            } catch (_: Throwable) {
-                throw IllegalStateException("No context available")
-            }
-        } catch (_: Throwable) {
-            throw IllegalStateException("No context available")
-        }
-
-        val typeface = buildTypeface(ctx, R.font.roboto_flex, "'wght' 800, 'wdth' 36")
+        val typeface = buildTypeface(context, R.font.roboto_flex, "'wght' 800, 'wdth' 36")
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = palette.primary.toArgb()
@@ -193,16 +177,15 @@ object WidgetImages {
         }
 
         val cookiePath = shapePath(AppShape.Cookie, badgeSize)
-        canvas.save()
-        canvas.translate(badgeX, badgeY)
-        canvas.drawPath(cookiePath, badgeBgPaint)
+        canvas.withTranslation(badgeX, badgeY) {
+            drawPath(cookiePath, badgeBgPaint)
 
-        unitPaint.textSize = badgeSize * 0.45f
-        val unitBounds = Rect()
-        unitPaint.getTextBounds(unit, 0, unit.length, unitBounds)
-        val unitY = badgeSize / 2f + unitBounds.height() / 2f
-        canvas.drawText(unit, badgeSize / 2f, unitY, unitPaint)
-        canvas.restore()
+            unitPaint.textSize = badgeSize * 0.45f
+            val unitBounds = Rect()
+            unitPaint.getTextBounds(unit, 0, unit.length, unitBounds)
+            val unitY = badgeSize / 2f + unitBounds.height() / 2f
+            drawText(unit, badgeSize / 2f, unitY, unitPaint)
+        }
 
         return bitmap
     }
@@ -213,7 +196,7 @@ object WidgetImages {
         palette: EmberbytePalette,
         sizePx: Int,
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(sizePx, sizePx)
         val canvas = Canvas(bitmap)
 
         val strokeWidth = sizePx * 0.12f
@@ -272,7 +255,7 @@ object WidgetImages {
         heightPx: Int,
         wavy: Boolean,
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(widthPx, heightPx)
         val canvas = Canvas(bitmap)
 
         val clamped = if (fraction.isNaN() || fraction < 0f) 0f else minOf(fraction, 1f)
@@ -335,19 +318,18 @@ object WidgetImages {
         sizePx: Int,
         palette: EmberbytePalette,
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(sizePx, sizePx)
         val canvas = Canvas(bitmap)
 
         val clipPath = shapePath(shape, sizePx.toFloat())
 
         if (icon != null) {
-            canvas.save()
-            canvas.clipPath(clipPath)
-            val src = Rect(0, 0, icon.width, icon.height)
-            val dst = Rect(0, 0, sizePx, sizePx)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-            canvas.drawBitmap(icon, src, dst, paint)
-            canvas.restore()
+            canvas.withClip(clipPath) {
+                val src = Rect(0, 0, icon.width, icon.height)
+                val dst = Rect(0, 0, sizePx, sizePx)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+                drawBitmap(icon, src, dst, paint)
+            }
         } else {
             val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 this.color = palette.surface2.toArgb()
@@ -377,7 +359,7 @@ object WidgetImages {
         widthPx: Int,
         heightPx: Int,
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(widthPx, heightPx)
         val canvas = Canvas(bitmap)
 
         if (values.isEmpty()) return bitmap

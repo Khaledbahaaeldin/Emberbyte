@@ -23,6 +23,7 @@ import org.robolectric.annotation.GraphicsMode
 class WidgetImagesTest {
 
     private val duskPalette = ThemePresets.first { it.id == "dusk" }.dark
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
     fun hero_number_bitmap_is_not_blank_and_has_the_requested_size() {
@@ -32,6 +33,7 @@ class WidgetImagesTest {
             palette = duskPalette,
             widthPx = 240,
             heightPx = 120,
+            context = context,
         )
         assertNotNull(bitmap)
         assertEquals(240, bitmap.width)
@@ -156,6 +158,7 @@ class WidgetImagesTest {
                 palette = duskPalette,
                 widthPx = 200,
                 heightPx = 100,
+                context = context,
             )
             assertNotNull(bitmap)
             var hasPixels = false

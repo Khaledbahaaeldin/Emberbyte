@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="62%"
+        android:text="@string/widget_preview_plan_pct_62"
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF" />
@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Primary SIM"
+        android:text="@string/widget_preview_plan_name"
         android:textSize="12sp"
         android:textColor="#FFFFFF"
         android:layout_marginTop="4dp" />
@@ -26,7 +26,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="3.8 GB left"
+        android:text="@string/widget_preview_plan_3_8_gb_left"
         android:textSize="11sp"
         android:textColor="#D0BCFF"
         android:layout_marginTop="2dp" />

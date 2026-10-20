@@ -5,6 +5,5 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:description="@string/widget_hero_description"
-    android:previewLayout="@layout/widget_preview_today"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:widgetCategory="home_screen" />
