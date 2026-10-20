@@ -886,3 +886,12 @@ Four widgets, provider classes in `...widget`: `TodayWidget` and `TodayWidgetRec
 
 ### 13.8 Unchanged
 Deep links, notification channels, the live-update rules of 12.1, the accessibility rules of 12.2, the release rules of 12.3, the backup container, the Room tables not named above, and the measuring and forecasting maths.
+
+
+## 14. Additions after the design audit (predictive back, live-update pill)
+
+### 14.1 Predictive back
+The application declares `android:enableOnBackInvokedCallback="true"`. No screen intercepts back unconditionally: a screen with a dirty form intercepts only while it is dirty, through `PredictiveBackHandler`, and shows the "Discard changes?" dialog on commit; every other back is handled by Navigation Compose with the pop transitions of `BackTransitions` (leaving screen: scale 0.90 about the dragged edge, 28 dp slide toward the finger, 32 dp corners; screen behind: scale 0.94 to 1 with a scrim from 45 percent to 0; reduced motion: 90 ms fade). Back-to-home and cross-activity animations stay with the system.
+
+### 14.2 Live-update promotion
+Promotion is requested on API 36.1 and newer with `Notification.Builder.setRequestPromotedOngoing(true)` (as in 12.1) and on API 36.0 by adding `Notification.EXTRA_REQUEST_PROMOTED_ONGOING = true` to the extras; below API 36 it is never requested. It is requested only when the "Live notification" switch is on, `NotificationManager.canPostPromotedNotifications()` is true and the user has not dismissed the promoted notification on the current local day (`setDeleteIntent` to a non-exported receiver; DataStore key `promoted_dismissed_on`, ISO local date). Chip text (`setShortCriticalText`) is at most 7 characters: Ok "1.4 GB" (today's total), Warning "!1.2 GB" (the amount left), Exceeded "Over". Settings gets a "Live updates" row that reports the system permission state and opens `Settings.ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS`. Samsung has no separate application API: One UI shows the same promoted notification in its status bar, lock screen and Now Bar, and the user may have to allow the app there; the app only shows a hint on Samsung devices.

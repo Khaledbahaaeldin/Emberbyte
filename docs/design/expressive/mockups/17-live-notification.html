@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live notification: status bar pill</title>
+<style>
+  :root { --bg:#110F19; --surface:#1D1929; --surface2:#2A2440; --text:#EAE6F5; --muted:#A9A3BF; --primary:#D0BCFF; --onPrimary:#2A1858; --accent:#C9F0D3; --onAccent:#0D3A1F; --warn:#FFD98A; --onWarn:#3B2A00; --danger:#FFB4AB; --onDanger:#4D0B0B; --track:#4A4360; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0B0A10; color:var(--text); font:15px/1.5 "Roboto Flex", system-ui, sans-serif; padding:22px 14px 60px; display:flex; flex-direction:column; align-items:center; gap:20px; }
+  h2 { margin:0; font-weight:800; font-size:22px; text-align:center; }
+  h4 { margin:0 0 6px; font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); text-align:center; }
+  p.lead { margin:0; max-width:600px; color:var(--muted); text-align:center; }
+  .row { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+  .phone { width:236px; border-radius:28px; background:#05040a; border:3px solid #26233a; overflow:hidden; }
+  .status { height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; font-size:12px; color:#fff; }
+  .chip { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px 0 6px; border-radius:11px; font-weight:800; font-size:12px; }
+  .chip i { width:12px; height:12px; border-radius:50%; background:currentColor; opacity:.9; }
+  .ok { background:var(--primary); color:var(--onPrimary); } .warn { background:var(--warn); color:var(--onWarn); } .danger { background:var(--danger); color:var(--onDanger); }
+  .body { padding:10px 10px 14px; min-height:150px; }
+  .notif { background:var(--surface); border-radius:22px; padding:12px 14px; }
+  .notif .app { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted); }
+  .notif .dot { width:16px; height:16px; border-radius:50%; background:#FF7A33; }
+  .notif .t { margin:6px 0 2px; font-size:15px; font-weight:700; }
+  .notif .s { font-size:12px; color:var(--muted); }
+  .seg { margin-top:10px; height:8px; border-radius:4px; background:var(--track); position:relative; overflow:hidden; }
+  .seg > div { position:absolute; left:0; top:0; bottom:0; border-radius:4px; }
+  .nowbar { margin:10px; padding:9px 12px; border-radius:26px; background:#1d1d24; display:flex; align-items:center; gap:10px; font-size:12px; }
+  .nowbar .ic { width:30px; height:30px; border-radius:50%; background:#FF7A33; flex:none; }
+  .nowbar b { display:block; font-size:13px; }
+  .lock { background:linear-gradient(160deg,#233 0%,#101030 100%); padding:30px 10px 14px; text-align:center; }
+  .lock .time { font-size:50px; font-weight:800; margin-bottom:12px; }
+  .steps { max-width:620px; background:var(--surface); border-radius:22px; padding:16px 20px; display:grid; gap:8px; font-size:14px; }
+  .steps b { color:var(--text); } .steps span { color:var(--muted); }
+  .warnbox { max-width:620px; border:1px solid #5a4a20; background:#2b2310; border-radius:18px; padding:12px 16px; font-size:13px; color:#f1dba3; }
+  code { background:#2A2440; padding:1px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+<h2>Live notification: the status bar pill</h2>
+<p class="lead">The same notification, shown the three ways an Android 16 / One UI 8 phone can show it. Mockup only: Samsung draws its own pill and Now Bar, so the exact shape and corners will differ. The text, the colours by state, and what appears where are what we control.</p>
+
+<div class="row">
+  <div><h4>Status bar chip</h4>
+    <div class="phone"><div class="status"><span>9:41</span><span class="chip ok"><i></i>1.4 GB</span><span>● ▮▮▮</span></div>
+      <div class="body"><div class="notif"><div class="app"><span class="dot"></span>Emberbyte</div><div class="t">1.4 GB today</div><div class="s">18.7 GB left of 21.5 GB · ↓ 85 KB/s</div><div class="seg"><div style="width:13%;background:var(--primary)"></div></div></div></div></div></div>
+
+  <div><h4>Nearly used up</h4>
+    <div class="phone"><div class="status"><span>9:41</span><span class="chip warn"><i></i>1.2 GB left</span><span>● ▮▮▮</span></div>
+      <div class="body"><div class="notif"><div class="app"><span class="dot"></span>Emberbyte</div><div class="t">17.6 GB today</div><div class="s">Only 1.2 GB left · ↓ 1.2 MB/s</div><div class="seg"><div style="width:87%;background:var(--warn)"></div></div></div></div></div></div>
+
+  <div><h4>Over the cap</h4>
+    <div class="phone"><div class="status"><span>9:41</span><span class="chip danger"><i></i>Over cap</span><span>● ▮▮▮</span></div>
+      <div class="body"><div class="notif"><div class="app"><span class="dot"></span>Emberbyte</div><div class="t">21.9 GB today</div><div class="s">No data left · ↓ 0 B/s</div><div class="seg"><div style="width:100%;background:var(--danger)"></div></div></div></div></div></div>
+</div>
+
+<div class="row">
+  <div><h4>Lock screen and Now Bar (Samsung)</h4>
+    <div class="phone"><div class="lock"><div class="time">9:41</div><div class="nowbar"><span class="ic"></span><span><b>1.4 GB today</b>18.7 GB left</span><span class="chip ok" style="margin-left:auto">13%</span></div></div></div></div>
+</div>
+
+<div class="steps">
+  <b>What we found out (sources at the end of the reply):</b>
+  <span>1. Android 16 "Live Updates" are the official way. A notification qualifies when it is ongoing, has a title, uses a standard, BigText, Call, Progress or Metric style, has no custom view, is not colourised, its channel is not "minimum", the app holds <code>POST_PROMOTED_NOTIFICATIONS</code> and requests promotion. The chip text comes from <code>setShortCriticalText</code>; it shows up to 96 dp, and text under 7 characters is shown whole.</span>
+  <span>2. Samsung does not have a separate API for apps. One UI 8 shows these same Live Updates in the status bar, on the lock screen and in the Now Bar. The user can switch it per app: Settings, Lock screen and AOD, Now bar (the path comes from forum reports, we must confirm it on the S24+).</span>
+  <span>3. Google lists what is allowed: an ongoing, user-started activity with a clear start and end (navigation, rides, delivery). Plain "ambient information" is explicitly not allowed. Emberbyte's live usage sits on that line, so the notification is pinned by the user ("Show live usage" is an explicit switch), the chip is dismissable, and we do not repost it after the user dismisses it.</span>
+</div>
+
+<div class="warnbox"><b>The important finding about our code.</b> Today the promotion request is only sent on Android 16 QPR2 (API 36.1), because <code>setRequestPromotedOngoing</code> was finalised there. A Galaxy S24+ on One UI 8 is Android 16 (API 36.0), so our app never asks for promotion there and no pill appears. On 36.0 the same request can be made through the extra <code>Notification.EXTRA_REQUEST_PROMOTED_ONGOING</code>, which Google's documentation lists as an equal alternative. That is the first thing to test on your phone, and the plan item for it is below.</div>
+
+<div class="steps">
+  <b>Proposed work (new task, after widgets):</b>
+  <span>• Send the promotion request on API 36.0 through the extra, keep the builder method on 36.1.</span>
+  <span>• Add the "Allow live updates" check: <code>canPostPromotedNotifications()</code>, and a row in Settings that opens <code>ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS</code>; on Samsung a short hint about the Now bar switch.</span>
+  <span>• Chip text per state (value left or "Over cap"), never colour alone, colours from the active theme.</span>
+  <span>• Respect dismissal (<code>setDeleteIntent</code>): once dismissed it is not promoted again until the next day or the user turns it back on.</span>
+  <span>• Prove it on your S24+ with a short <code>dumpsys notification</code> check and a photo of the status bar; the emulator cannot show Samsung's pill.</span>
+</div>
+</body>
+</html>
