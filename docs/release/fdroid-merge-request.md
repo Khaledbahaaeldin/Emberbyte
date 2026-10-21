@@ -28,7 +28,7 @@ and shows home-screen widgets and a live notification. Everything stays on the d
   `WAKE_LOCK`: the live notification, alerts and the sampler that keeps measuring after a reboot.
   The full table is in the README.
 
-**Build:** Gradle (wrapper, Gradle 9.6.0), JDK 21 (the build server's own; the code is compiled for Java 17 bytecode), `compileSdk` 37 and build-tools 36.1.0 (installed with `sdkmanager`), `subdir: app`. Release builds are reproducible: CI builds the tag twice and compares the APKs
+**Build:** Gradle (wrapper, Gradle 9.6.0), JDK 21 (the build server's own; the code is compiled for Java 17 bytecode), `compileSdk` 37 (platform `android-37.0`) and build-tools 36.0.0 (installed with `sdkmanager`), `subdir: app`. Release builds are reproducible: CI builds the tag twice and compares the APKs
 (`tools/compare-apks.py`), and builds on Linux like the F-Droid server. I have **not** run `fdroid build` locally
 (no suitable machine), so I rely on this pipeline and will fix whatever it reports.
 

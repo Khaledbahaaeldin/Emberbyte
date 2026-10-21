@@ -18,8 +18,7 @@ Builds:
     versionCode: 2
     commit: e5d17dffd04dd9375379b76320673eccf59f4387
     subdir: app
-    sudo:
-      - sdkmanager 'platforms;android-37' 'build-tools;36.1.0'
+    sudo: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
     gradle:
       - yes
 
