@@ -29,12 +29,12 @@ and shows home-screen widgets and a live notification. Everything stays on the d
   The full table is in the README.
 
 **Build:** Gradle (wrapper, Gradle 9.6.0), JDK 21 (the build server's own; the code is compiled for Java 17 bytecode), `compileSdk` 37 (platform `android-37.0`) and build-tools 36.0.0 (installed with `sdkmanager`), `subdir: app`. Release builds are reproducible: CI builds the tag twice and compares the APKs
-(`tools/compare-apks.py`), and builds on Linux like the F-Droid server. I have **not** run `fdroid build` locally
-(no suitable machine), so I rely on this pipeline and will fix whatever it reports.
+(`tools/compare-apks.py`), and builds on Linux like the F-Droid server. The `fdroid build` job in this merge request's
+pipeline passes on F-Droid's own build server (all 9 jobs are green).
 
 **Signing:** F-Droid signs the build itself. (I considered reproducible-build verification against my GitHub APK, but the F-Droid server uses Debian's JDK while my CI uses Temurin, so I left it out to keep the first listing simple.)
 
-**Metadata:** fastlane metadata (title, short and full description, changelog `1.txt`, icon and seven screenshots)
+**Metadata:** fastlane metadata (title, short and full description, changelogs `1.txt` and `2.txt`, icon and seven screenshots)
 is in the source repository under `fastlane/metadata/android/en-US/`.
 
 **Updates:** `AutoUpdateMode: Version` with `UpdateCheckMode: Tags`; I tag every release as `vX.Y.Z`.
