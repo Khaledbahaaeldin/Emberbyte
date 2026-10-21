@@ -42,7 +42,7 @@ The release build configuration is defined in [`app/build.gradle.kts`](../../app
   ```
 - **Version Metadata**:
   - `versionCode = 1`
-  - `versionName = "1.0.0"`
+  - `versionName = "1.0.1"`
 
 ---
 

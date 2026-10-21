@@ -1,0 +1,3 @@
+Build fix release for F-Droid:
+• The app now builds with JDK 21, so F-Droid can compile it from source
+• No changes to features or data

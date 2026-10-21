@@ -158,9 +158,9 @@ class ReleaseApkVerificationTest {
             val manifestBytes = zip.getInputStream(manifestEntry).use { it.readBytes() }
             val manifest = parseBinaryManifest(manifestBytes)
 
-            // 3. versionName == "1.0.0" and versionCode == 1
-            assertEquals("versionName must be 1.0.0", "1.0.0", manifest.versionName)
-            assertEquals("versionCode must be 1", 1, manifest.versionCode)
+            // 3. versionName == "1.0.1" and versionCode == 2
+            assertEquals("versionName must be 1.0.1", "1.0.1", manifest.versionName)
+            assertEquals("versionCode must be 2", 2, manifest.versionCode)
 
             // 4. android:debuggable absent or false
             assertFalse("android:debuggable must be absent or false", manifest.debuggable)
