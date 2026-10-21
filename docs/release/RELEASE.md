@@ -9,7 +9,7 @@ This document describes how to build, verify, and release reproducible unsigned 
 Emberbyte release builds are deterministic for the same commit. Because Android Gradle Plugin (AGP) embeds git revision metadata into `META-INF/version-control-info.textproto`, the outer whole-file APK SHA-256 and exact size vary across different commits. For independent clean builds of the same commit, the tool `tools/compare-apks.py` proves functional byte-identity across all non-META-INF entries.
 
 ### Prerequisites
-- **JDK**: Eclipse Temurin OpenJDK 17 (`java -version` -> `17.x.x`)
+- **JDK**: Eclipse Temurin OpenJDK 21 (`java -version` -> `21.x.x`); the code still targets Java 17 bytecode
 - **Android SDK Platform**: API Level 37 (`compileSdk = 37`, targeting Android 16 / API 36)
 - **Build Tools**: `36.1.0` (or newer)
 - **Gradle**: Managed via included wrapper (`gradle/wrapper/gradle-wrapper.properties`, Gradle 9.6.0)
