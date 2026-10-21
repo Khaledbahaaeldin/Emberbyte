@@ -4,10 +4,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import io.github.khaledbahaaeldin.emberbyte.EmberbyteApplication
+import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+
+/** Remembers that the user dismissed the promoted notification today; kept apart from the receiver so it can be tested without a thread hop. */
+internal suspend fun recordPromotedDismissal(repository: SettingsRepository, today: LocalDate = LocalDate.now()) {
+    repository.update { it.copy(promotedDismissedOn = today.toString()) }
+}
 
 class PromotedDismissReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -16,8 +22,7 @@ class PromotedDismissReceiver : BroadcastReceiver() {
         val repository = app?.graph?.settings
         CoroutineScope(Dispatchers.Default).launch {
             try {
-                val today = LocalDate.now().toString()
-                repository?.update { it.copy(promotedDismissedOn = today) }
+                if (repository != null) recordPromotedDismissal(repository)
             } finally {
                 pending?.finish()
             }
