@@ -100,13 +100,14 @@ Every permission declared in [`AndroidManifest.xml`](app/src/main/AndroidManifes
 
 ## Installation
 
-- **GitHub Releases (available)**: download `emberbyte-1.0.0.apk` and its `.sha256` from the [Releases](https://github.com/Khaledbahaaeldin/Emberbyte/releases) page. The APK is built and signed by this repository's release workflow. Verify it:
+- **GitHub Releases (available)**: download `emberbyte-<version>.apk` and its `.sha256` from the [Releases](https://github.com/Khaledbahaaeldin/Emberbyte/releases) page. The APK is built and signed by this repository's release workflow. Verify it (replace `<version>`, for example `1.0.1`):
   ```bash
-  sha256sum -c emberbyte-1.0.0.apk.sha256
-  apksigner verify --print-certs emberbyte-1.0.0.apk
+  sha256sum -c emberbyte-<version>.apk.sha256
+  apksigner verify --print-certs emberbyte-<version>.apk
   ```
   The certificate SHA-256 must be `72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef`. Requires Android 10 or newer.
-- **F-Droid**: coming soon once listed in the official F-Droid repository. See the [recipe draft](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
+- **Obtainium (installs and updates straight from GitHub Releases)**: [add Emberbyte to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.github.khaledbahaaeldin.emberbyte%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FKhaledbahaaeldin%2FEmberbyte%22%2C%22author%22%3A%22Khaledbahaaeldin%22%2C%22name%22%3A%22Emberbyte%22%7D), or in Obtainium choose "Add App" and paste `https://github.com/Khaledbahaaeldin/Emberbyte`.
+- **F-Droid**: submitted and in review ([merge request](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53562)). F-Droid signs its own build, so its APK has a different signature from the GitHub one; do not mix the two sources on one phone. See the [recipe](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
 
 ---
 
