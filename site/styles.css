@@ -129,6 +129,9 @@ h3 { font-size: 1.35rem; font-stretch: 85%; letter-spacing: -0.01em; }
 .store { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-radius: 20px; background: var(--surface2); text-decoration: none; color: var(--text); font-weight: 700; }
 .store small { display: block; color: var(--muted); font-weight: 500; }
 .store[aria-disabled="true"] { opacity: .6; }
+.store-badge { justify-self: start; display: inline-block; line-height: 0; border-radius: 14px; }
+.store-badge img { display: block; height: 60px; width: auto; }
+.store-badge:focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
 .tag { margin-left: auto; font-size: .78rem; background: var(--bg); padding: 4px 10px; border-radius: 999px; color: var(--muted); }
 pre { margin: 0; background: var(--bg); border-radius: 18px; padding: 16px 18px; overflow-x: auto; font-size: .82rem; line-height: 1.7; color: var(--text); }
 code { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
