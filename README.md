@@ -107,7 +107,9 @@ Every permission declared in [`AndroidManifest.xml`](app/src/main/AndroidManifes
   ```
   The certificate SHA-256 must be `72ad25a3d8366a07339c7b239be0dfd70d427cfb7dfe498b92621e4c604595ef`. Requires Android 10 or newer.
 - **Obtainium (installs and updates straight from GitHub Releases)**: [add Emberbyte to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.github.khaledbahaaeldin.emberbyte%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FKhaledbahaaeldin%2FEmberbyte%22%2C%22author%22%3A%22Khaledbahaaeldin%22%2C%22name%22%3A%22Emberbyte%22%7D), or in Obtainium choose "Add App" and paste `https://github.com/Khaledbahaaeldin/Emberbyte`.
-- **F-Droid**: submitted and in review ([merge request](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/53562)). F-Droid signs its own build, so its APK has a different signature from the GitHub one; do not mix the two sources on one phone. See the [recipe](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
+- **Orion Store**: Emberbyte is listed in [Orion Store](https://github.com/RookieEnough/Orion-Store), which installs and updates the same signed APK from this repository's GitHub Releases.
+  [![Get it on Orion Store](https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png)](https://rookieenough.github.io/Orion-Data/redirect.html?id=emberbyte)
+- **F-Droid**: not listed yet. F-Droid asks for about three months of active maintenance before including an app, so a new submission is planned for early 2027. A build from F-Droid would be signed with F-Droid's own key and would not update over the GitHub APK, so keep to one source. See the [recipe draft](docs/release/fdroiddata-io.github.khaledbahaaeldin.emberbyte.yml).
 
 ---
 
