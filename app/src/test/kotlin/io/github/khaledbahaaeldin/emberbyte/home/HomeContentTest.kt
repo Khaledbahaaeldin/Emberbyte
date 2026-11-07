@@ -1,6 +1,9 @@
 package io.github.khaledbahaaeldin.emberbyte.home
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
@@ -200,5 +203,36 @@ class HomeContentTest {
     @Test fun loading_shows_loading_state() {
         show(HomeUiState(isLoading = true))
         rule.onNodeWithContentDescription("Loading today's usage").assertIsDisplayed()
+    }
+
+    @Test
+    fun removing_a_prompt_keeps_the_others_and_does_not_crash() {
+        val p1 = PermissionPromptUi("p1", "Prompt 1", "Detail 1", "Fix")
+        val p2 = PermissionPromptUi("p2", "Prompt 2", "Detail 2", "Fix")
+        var promptList by mutableStateOf(listOf(p1, p2))
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = HomeUiState(prompts = promptList),
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                )
+            }
+        }
+
+        rule.onNodeWithText("Prompt 1").assertIsDisplayed()
+        rule.onNodeWithText("Prompt 2").assertIsDisplayed()
+
+        // Remove p1
+        promptList = listOf(p2)
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Prompt 2").assertIsDisplayed()
+        rule.onNodeWithText("Prompt 1").assertDoesNotExist()
     }
 }

@@ -50,6 +50,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -108,6 +109,7 @@ internal fun AppsContent(
     icons: (String) -> ImageBitmap? = { null },
 ) {
     val palette = LocalEmberbytePalette.current
+    val motion = rememberEmberbyteMotion()
     var showFiltersSheet by remember { mutableStateOf(false) }
 
     if (showFiltersSheet) {
@@ -336,6 +338,11 @@ internal fun AppsContent(
                     wifiBytes = app.wifiBytes,
                     onClick = { onOpenApp(app.packageName) },
                     units = state.units,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
                 )
             }
         }
