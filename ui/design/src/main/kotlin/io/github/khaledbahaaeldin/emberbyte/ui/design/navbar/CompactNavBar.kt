@@ -3,10 +3,16 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.navbar
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -65,6 +71,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -151,6 +158,10 @@ private fun NavBarRow(
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
+    val reduceMotion = LocalReduceMotion.current
+    val motion = MaterialTheme.motionScheme
+    val lastTrailing = remember { arrayOfNulls<@Composable () -> Unit>(1) }
+    if (trailing != null) lastTrailing[0] = trailing
 
     val labelStyle = MaterialTheme.typography.labelLarge.copy(
         fontSize = 13.sp,
@@ -221,9 +232,23 @@ private fun NavBarRow(
             )
         }
 
-        if (trailing != null) {
-            Spacer(Modifier.width(12.dp))
-            trailing()
+        // Animated so the centred row slides the bar over instead of making it jump when the button comes and goes.
+        // The last content is kept so the exit animation still has something to draw.
+        AnimatedVisibility(
+            visible = trailing != null,
+            enter = if (reduceMotion) EnterTransition.None else {
+                expandHorizontally(motion.defaultSpatialSpec<IntSize>(), expandFrom = Alignment.Start) +
+                    scaleIn(motion.defaultSpatialSpec<Float>()) + fadeIn(motion.defaultEffectsSpec())
+            },
+            exit = if (reduceMotion) ExitTransition.None else {
+                shrinkHorizontally(motion.defaultSpatialSpec<IntSize>(), shrinkTowards = Alignment.Start) +
+                    scaleOut(motion.defaultSpatialSpec<Float>()) + fadeOut(motion.defaultEffectsSpec())
+            },
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.width(12.dp))
+                lastTrailing[0]?.invoke()
+            }
         }
     }
 }
