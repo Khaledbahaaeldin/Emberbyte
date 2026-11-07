@@ -4,13 +4,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -23,13 +31,18 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+private const val CORNER_FULL_PILL = 50f
+private const val CORNER_INNER_FLAT = 8f
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -185,5 +198,119 @@ class ConnectedButtonGroupTest {
         }
         rule.onNodeWithText("Month").performClick()
         assertEquals(0, selected)
+    }
+
+    @Test
+    fun selecting_another_segment_animates_the_shape() {
+        var selectedIndex by mutableStateOf(0)
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                ConnectedButtonGroup(
+                    options = listOf("Day", "Week", "Month"),
+                    selectedIndex = selectedIndex,
+                    onSelect = { selectedIndex = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+
+        // Initially "Day" (leading segment) is selected (full pill shape: 50.0)
+        val dayNode = rule.onNodeWithText("Day")
+        val initialRadius = dayNode.currentCornerRadius()
+        assertEquals(CORNER_FULL_PILL, initialRadius, 0.001f)
+
+        // Select "Week"
+        selectedIndex = 1
+
+        // Step through paused frames to read the shape at midpoint
+        var midRadius: Float? = null
+        for (i in 1..30) {
+            rule.mainClock.advanceTimeBy(16)
+            val r = dayNode.currentCornerRadius()
+            if (r != CORNER_FULL_PILL && r != CORNER_INNER_FLAT) {
+                midRadius = r
+                break
+            }
+        }
+
+        // Settle the animation
+        rule.mainClock.advanceTimeBy(600)
+        val finalRadius = dayNode.currentCornerRadius()
+        assertEquals(CORNER_INNER_FLAT, finalRadius, 0.001f)
+
+        // Midpoint shape exists and differs from both start and end shape (active morphing)
+        assertNotNull("Expected active morphing frame", midRadius)
+        assertTrue(midRadius != initialRadius)
+        assertTrue(midRadius != finalRadius)
+    }
+
+    @Test
+    fun reduced_motion_changes_shape_instantly() {
+        var selectedIndex by mutableStateOf(0)
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    ConnectedButtonGroup(
+                        options = listOf("Day", "Week", "Month"),
+                        selectedIndex = selectedIndex,
+                        onSelect = { selectedIndex = it },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+
+        val dayNode = rule.onNodeWithText("Day")
+        val initialRadius = dayNode.currentCornerRadius()
+        assertEquals(CORNER_FULL_PILL, initialRadius, 0.001f)
+
+        // Switch selection to "Week"
+        selectedIndex = 1
+
+        // Under reduced motion (snap motion scheme), the shape changes to settled 8.0 instantly without intermediate morphing
+        var firstChangedRadius: Float? = null
+        for (i in 1..10) {
+            rule.mainClock.advanceTimeBy(16)
+            val r = dayNode.currentCornerRadius()
+            if (r != CORNER_FULL_PILL) {
+                firstChangedRadius = r
+                break
+            }
+        }
+        assertEquals(CORNER_INNER_FLAT, firstChangedRadius ?: -1f, 0.001f)
+
+        // Verify across remaining frames that it stays at settled 8.0 without any intermediate morph values
+        repeat(10) {
+            rule.mainClock.advanceTimeBy(16)
+            assertEquals(CORNER_INNER_FLAT, dayNode.currentCornerRadius(), 0.001f)
+        }
+    }
+
+    private fun SemanticsNodeInteraction.currentCornerRadius(): Float =
+        fetchLayerShape().toRoundRect().topRightCornerRadius.x
+
+    private fun SemanticsNodeInteraction.fetchLayerShape(): Shape {
+        val node = fetchSemanticsNode()
+        val layoutNodeField = node.javaClass.declaredFields.firstOrNull { it.name.contains("layoutNode") }
+            ?.apply { isAccessible = true } ?: error("layoutNode field not found")
+        val layoutNode = layoutNodeField.get(node) ?: error("layoutNode not found")
+        val getModifierInfo = layoutNode.javaClass.getMethod("getModifierInfo")
+        val infos = getModifierInfo.invoke(layoutNode) as List<*>
+        for (info in infos) {
+            val mod = info!!.javaClass.getMethod("getModifier").invoke(info)
+            if (mod != null && mod.javaClass.name.contains("GraphicsLayerElement")) {
+                val shapeField = mod.javaClass.declaredFields.firstOrNull { it.name == "shape" }
+                    ?.apply { isAccessible = true }
+                return shapeField?.get(mod) as? Shape ?: error("Shape field not found on GraphicsLayerElement")
+            }
+        }
+        error("GraphicsLayerElement not found on node")
+    }
+
+    private fun Shape.toRoundRect(size: Size = Size(200f, 100f)): RoundRect {
+        val outline = createOutline(size, LayoutDirection.Ltr, Density(1f))
+        return (outline as Outline.Rounded).roundRect
     }
 }
