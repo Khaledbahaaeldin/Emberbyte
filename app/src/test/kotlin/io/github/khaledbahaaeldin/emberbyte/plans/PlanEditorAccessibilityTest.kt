@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToLog
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
@@ -63,6 +64,37 @@ class PlanEditorAccessibilityTest {
         val saveButton = rule.onNodeWithText("Save").performScrollTo()
         saveButton.assertIsDisplayed()
         saveButton.assert(hasClickAction())
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun icon_buttons_keep_48dp_and_their_content_description() {
+        val state = PlanEditorUiState(
+            isNew = false,
+            loading = false,
+            form = baseForm.copy(
+                addOns = listOf(AddOnDraft(label = "Boost", amountText = "1", unit = CapUnit.GB, validFrom = java.time.LocalDate.now(), validUntil = java.time.LocalDate.now().plusDays(7))),
+                freeRules = listOf(FreeRuleDraft(label = "Night", days = setOf(java.time.DayOfWeek.MONDAY))),
+            ),
+        )
+        show(state)
+
+        val backButton = rule.onNodeWithContentDescription("Back")
+        backButton
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
+
+        val removeAddOnButton = rule.onNodeWithContentDescription("Remove add-on pack")
+        removeAddOnButton
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
+
+        val removeFreeRuleButton = rule.onNodeWithContentDescription("Remove free window")
+        removeFreeRuleButton
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
+
+        assertNoTouchTargetSmallerThan48dp(rule)
     }
 
     @Test

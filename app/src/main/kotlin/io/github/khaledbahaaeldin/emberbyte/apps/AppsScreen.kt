@@ -25,8 +25,10 @@ import androidx.compose.material.icons.rounded.Tune
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -99,6 +101,7 @@ fun AppsScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun AppsContent(
     state: AppsUiState,
@@ -163,11 +166,15 @@ internal fun AppsContent(
                     },
                     trailingIcon = if (state.query.isNotEmpty()) {
                         {
-                            IconButton(onClick = { onEvent(AppsEvent.SetQuery("")) }) {
+                            IconButton(
+                                onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                                modifier = Modifier.size(48.dp),
+                            ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
                                     contentDescription = "Clear search",
-                                    tint = palette.muted,
                                 )
                             }
                         }
