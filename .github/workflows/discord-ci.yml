@@ -1,0 +1,64 @@
+# Posts the result of the CI, Release and Website check workflows to the team's Discord #ci-cd channel.
+# Needs the repository secret DISCORD_CI_WEBHOOK (a Discord webhook URL) and, optionally, the
+# repository variable DISCORD_DEV_ROLE_ID (the role to ping when something fails).
+# Without the secret the job exits quietly, so forks and clones are unaffected.
+name: Discord CI status
+
+on:
+  workflow_run:
+    workflows: ["CI", "Release", "Website check"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_CI_WEBHOOK }}
+          NAME: ${{ github.event.workflow_run.name }}
+          RESULT: ${{ github.event.workflow_run.conclusion }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          ACTOR: ${{ github.event.workflow_run.actor.login }}
+          TITLE: ${{ github.event.workflow_run.display_title }}
+          URL: ${{ github.event.workflow_run.html_url }}
+          DEV_ROLE: ${{ vars.DISCORD_DEV_ROLE_ID }}
+        run: |
+          [ -n "$WEBHOOK" ] || exit 0
+          case "$RESULT" in
+            success) ICON="✅"; COLOR=3066993 ;;
+            cancelled|skipped)
+              # A superseded CI run is noise; a cancelled release is worth seeing.
+              [ "$NAME" = "Release" ] || exit 0
+              ICON="⚪"; COLOR=9807270 ;;
+            *) ICON="❌"; COLOR=15158332 ;;
+          esac
+          MENTION=""
+          if [ "$ICON" = "❌" ] && [ -n "$DEV_ROLE" ]; then MENTION="<@&$DEV_ROLE>"; fi
+          jq -n \
+            --arg title "$ICON $NAME: $RESULT" \
+            --arg desc "${TITLE:-no title}" \
+            --arg branch "${BRANCH:-unknown}" \
+            --arg sha "${SHA:0:7}" \
+            --arg actor "${ACTOR:-unknown}" \
+            --arg url "$URL" \
+            --argjson color "$COLOR" \
+            --arg mention "$MENTION" \
+            --arg role "$DEV_ROLE" \
+            '{content: $mention,
+              allowed_mentions: {roles: (if $mention == "" then [] else [$role] end)},
+              embeds: [{
+                title: $title,
+                url: $url,
+                description: $desc,
+                color: $color,
+                fields: [
+                  {name: "Branch", value: $branch, inline: true},
+                  {name: "Commit", value: $sha, inline: true},
+                  {name: "By", value: $actor, inline: true}
+                ]
+              }]}' \
+          | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"
