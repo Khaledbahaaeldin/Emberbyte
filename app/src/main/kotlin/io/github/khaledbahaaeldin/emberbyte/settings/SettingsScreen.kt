@@ -94,6 +94,11 @@ fun SettingsScreen(
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
     }
 
+    val updatesState = remember(context, versionName) {
+        val installer = InstallSourceReader.forContext(context).installerPackage()
+        UpdatesUiState(classifyInstaller(installer), versionName, installer)
+    }
+
     val pendingState = rememberSaveable(saver = SettingsPendingState.Saver) { SettingsPendingState() }
     val promotedGate = remember(context) { io.github.khaledbahaaeldin.emberbyte.sampler.PromotedGate(context) }
 
@@ -128,6 +133,18 @@ fun SettingsScreen(
         versionName = versionName,
         onOpenSource = { runCatching { uriHandler.openUri(SOURCE_URL) } },
         onOpenLicenses = onOpenLicenses,
+        updatesState = updatesState,
+        onOpenUpdater = {
+            val launch = updatesState.installerPackage?.let { pkg ->
+                runCatching { context.packageManager.getLaunchIntentForPackage(pkg) }.getOrNull()
+            }
+            if (launch != null) {
+                runCatching { context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            } else {
+                runCatching { uriHandler.openUri(RELEASES_URL) }
+            }
+        },
+        onOpenReleases = { runCatching { uriHandler.openUri(RELEASES_URL) } },
         onCopyNavLog = {
             val info = runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
             val header = "Emberbyte $versionName (code ${info?.longVersionCode ?: 0}) | Android ${Build.VERSION.RELEASE} " +
@@ -233,6 +250,9 @@ internal fun SettingsContent(
     mayPostLiveUpdates: Boolean = true,
     onOpenLiveUpdatesSettings: () -> Unit = {},
     onCopyNavLog: () -> Unit = {},
+    updatesState: UpdatesUiState = UpdatesUiState(InstallerKind.Unknown, versionName),
+    onOpenUpdater: () -> Unit = {},
+    onOpenReleases: () -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
@@ -384,6 +404,9 @@ internal fun SettingsContent(
                     onOpenSource = onOpenSource,
                     onOpenLicenses = onOpenLicenses,
                     onCopyNavLog = onCopyNavLog,
+                    updatesState = updatesState,
+                    onOpenUpdater = onOpenUpdater,
+                    onOpenReleases = onOpenReleases,
                 )
             }
         }
@@ -586,6 +609,9 @@ private fun AboutGroupContent(
     onOpenSource: () -> Unit,
     onOpenLicenses: () -> Unit,
     onCopyNavLog: () -> Unit,
+    updatesState: UpdatesUiState,
+    onOpenUpdater: () -> Unit,
+    onOpenReleases: () -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -623,6 +649,12 @@ private fun AboutGroupContent(
                 )
             }
         }
+
+        UpdatesRow(
+            state = updatesState,
+            onOpenUpdater = onOpenUpdater,
+            onOpenReleases = onOpenReleases,
+        )
 
         if (singleColumn) {
             Column(
