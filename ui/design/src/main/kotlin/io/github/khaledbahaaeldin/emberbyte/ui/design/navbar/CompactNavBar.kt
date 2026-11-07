@@ -258,6 +258,9 @@ private fun NavBarSlots(
     val currentReduceMotion by rememberUpdatedState(reduceMotion)
     val currentIsRtl by rememberUpdatedState(isRtl)
     val currentOnDiagnostic by rememberUpdatedState(onDiagnostic)
+    // Set by a cell's own click during a gesture. If the finger lifts outside the pressed cell that click is cancelled,
+    // and the gesture handler selects the pressed tab itself.
+    val clickFired = remember { booleanArrayOf(false) }
 
     val pillHeightPx = with(density) { 52.dp.toPx() }
     val pillTopPx = with(density) { 6.dp.toPx() }
@@ -413,6 +416,7 @@ private fun NavBarSlots(
                 val touchSlop = viewConfiguration.touchSlop
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    clickFired[0] = false
                     run {
                         val (dXs, dWs) = computeCells(currentSelectedIndex, currentIsRtl)
                         val cellAtDown = itemIndexAt(down.position.x, dXs.toList(), List(items.size) { i -> dXs[i] + dWs[i] })
@@ -475,8 +479,19 @@ private fun NavBarSlots(
                         val selLeft = curXs[currentSelectedIndex]
                         val selRight = selLeft + curWs[currentSelectedIndex]
                         val stayedInsideSelected = startX in selLeft..selRight && endX in selLeft..selRight && momentumVel == 0f
+                        val tapLanding = resolveTapLanding(
+                            startX = startX,
+                            totalDragPx = endX - startX,
+                            flickPxPerSec = rawVel,
+                            starts = curXs.toList(),
+                            ends = List(items.size) { i -> curXs[i] + curWs[i] },
+                            tapSlopPx = NavBarSpring.TAP_SLOP_DP.dp.toPx(),
+                            flickThresholdPx = flickThresholdPxPerSec,
+                        )
 
-                        val landingIdx = if (stayedInsideSelected) {
+                        val landingIdx = if (tapLanding != null) {
+                            tapLanding
+                        } else if (stayedInsideSelected) {
                             currentSelectedIndex
                         } else {
                             NavBarSpring.landingIndex(
@@ -505,13 +520,30 @@ private fun NavBarSlots(
                         val (curXs, curWs) = computeCells(currentSelectedIndex, currentIsRtl)
                         val starts = curXs.toList()
                         val ends = List(items.size) { i -> curXs[i] + curWs[i] }
-                        val tappedIdx = itemIndexAt(endX, starts, ends)
+                        // The pressed cell, not the cell under the lifted finger: a tap that drifted out of its cell
+                        // still means the cell it started on.
+                        val tappedIdx = resolveTapLanding(
+                            startX = startX,
+                            totalDragPx = endX - startX,
+                            flickPxPerSec = 0f,
+                            starts = starts,
+                            ends = ends,
+                            tapSlopPx = NavBarSpring.TAP_SLOP_DP.dp.toPx(),
+                            flickThresholdPx = Float.MAX_VALUE,
+                        ) ?: itemIndexAt(endX, starts, ends)
+                        currentOnDiagnostic("TAB_TAP", "pressed=${items[tappedIdx].id} clickFired=${clickFired[0]}")
                         if (tappedIdx != currentSelectedIndex) {
                             launchTargetTransition(
                                 targetIdx = tappedIdx,
                                 velocityPxPerSec = 0f,
                                 snap = currentReduceMotion,
                             )
+                            if (!clickFired[0]) {
+                                if (currentHapticsEnabled) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                }
+                                currentOnSelect(items[tappedIdx].id)
+                            }
                         }
                     }
                 }
@@ -544,6 +576,7 @@ private fun NavBarSlots(
                         .selectable(
                             selected = isSelected,
                             onClick = {
+                                clickFired[0] = true
                                 currentOnDiagnostic("TAB_CLICK", "id=${item.id} selected=$selectedId")
                                 if (item.id != selectedId) {
                                     if (hapticsEnabled) {
