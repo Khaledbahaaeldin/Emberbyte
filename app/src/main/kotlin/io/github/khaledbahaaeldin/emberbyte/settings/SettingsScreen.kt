@@ -70,6 +70,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import java.time.LocalDate
 
 private const val SOURCE_URL = "https://github.com/Khaledbahaaeldin/Emberbyte"
+private const val RELEASES_URL = "https://github.com/Khaledbahaaeldin/Emberbyte/releases"
 
 @Composable
 fun SettingsScreen(
@@ -166,6 +167,23 @@ fun SettingsScreen(
                 context.startActivity(promotedGate.settingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         },
+        updateSource = remember(context) { InstallSourceReader.getUpdateSource(context) },
+        onOpenReleases = { runCatching { uriHandler.openUri(RELEASES_URL) } },
+        onOpenUpdater = remember(context) {
+            val source = InstallSourceReader.getUpdateSource(context)
+            if (!source.isKnownUpdater) null
+            else {
+                {
+                    val installerPkg = InstallSourceReader.getInstallerPackageName(context)
+                    if (installerPkg != null) {
+                        val launchIntent = context.packageManager.getLaunchIntentForPackage(installerPkg)
+                        if (launchIntent != null) {
+                            runCatching { context.startActivity(launchIntent) }
+                        }
+                    }
+                }
+            }
+        },
         modifier = modifier,
     )
 }
@@ -219,6 +237,9 @@ internal fun SettingsContent(
     onOpenAppearance: () -> Unit = {},
     mayPostLiveUpdates: Boolean = true,
     onOpenLiveUpdatesSettings: () -> Unit = {},
+    updateSource: UpdateSource = UpdateSource.Unknown,
+    onOpenReleases: () -> Unit = {},
+    onOpenUpdater: (() -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
@@ -369,6 +390,9 @@ internal fun SettingsContent(
                     versionName = versionName,
                     onOpenSource = onOpenSource,
                     onOpenLicenses = onOpenLicenses,
+                    updateSource = updateSource,
+                    onOpenReleases = onOpenReleases,
+                    onOpenUpdater = onOpenUpdater,
                 )
             }
         }
@@ -570,6 +594,9 @@ private fun AboutGroupContent(
     versionName: String,
     onOpenSource: () -> Unit,
     onOpenLicenses: () -> Unit,
+    updateSource: UpdateSource = UpdateSource.Unknown,
+    onOpenReleases: () -> Unit = {},
+    onOpenUpdater: (() -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -599,6 +626,12 @@ private fun AboutGroupContent(
                 )
             }
         }
+
+        UpdatesRow(
+            updateSource = updateSource,
+            onOpenReleases = onOpenReleases,
+            onOpenUpdater = onOpenUpdater,
+        )
 
         if (singleColumn) {
             Column(

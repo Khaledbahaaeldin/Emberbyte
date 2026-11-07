@@ -35,3 +35,13 @@ _Avoid_: SimCard, Line, ModemPort
 **Session**:
 A contiguous interval of active network connectivity across a single network transport interface.
 _Avoid_: Connection, Tunnel, Flow
+
+### Distribution & Updates
+
+**InstallSource**:
+The recorded distribution channel or installer application on the device responsible for installing or delivering the app.
+_Avoid_: DownloadOrigin, AppOrigin, InstallType
+
+**Updater**:
+An external on-device application (such as Obtainium, Orion Store, or F-Droid) managing application version updates in the absence of in-app network permissions.
+_Avoid_: AutoUpdater, UpdateDaemon, PatchManager
