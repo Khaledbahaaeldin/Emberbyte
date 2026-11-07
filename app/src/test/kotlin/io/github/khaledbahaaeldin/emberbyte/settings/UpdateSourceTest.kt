@@ -34,7 +34,6 @@ class UpdateSourceTest {
         assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.fdroid"))
         assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.basic"))
         assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.fdroid.privileged"))
-        assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.fdroid.classic"))
     }
 
     @Test
@@ -106,7 +105,7 @@ class UpdateSourceTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.packageManager.setInstallerPackageName(context.packageName, "org.fdroid.fdroid")
 
-        val installer = InstallSourceReader.resolveInstaller(context.packageManager, context.packageName, sdkInt = 29)
+        val installer = InstallSourceReader.readInstallerPackageName(context.packageManager, context.packageName, sdkInt = 29)
         assertEquals("org.fdroid.fdroid", installer)
         assertEquals(UpdateSource.FDroid, classifyInstaller(installer))
     }

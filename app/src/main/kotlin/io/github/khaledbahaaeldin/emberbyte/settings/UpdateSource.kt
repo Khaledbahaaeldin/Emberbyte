@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 
+internal const val RELEASES_URL = "https://github.com/Khaledbahaaeldin/Emberbyte/releases"
+
 private val OBTAINIUM_PACKAGES = setOf(
     "dev.imranr.obtainium",
     "dev.imranr.obtainium.fdroid",
@@ -17,7 +19,6 @@ private val FDROID_PACKAGES = setOf(
     "org.fdroid.fdroid",
     "org.fdroid.basic",
     "org.fdroid.fdroid.privileged",
-    "org.fdroid.fdroid.classic",
 )
 
 enum class UpdateSource(val displayName: String) {
@@ -29,14 +30,6 @@ enum class UpdateSource(val displayName: String) {
 
     val isKnownUpdater: Boolean
         get() = this == Obtainium || this == OrionStore || this == FDroid
-
-    val subtitle: String
-        get() = when (this) {
-            Obtainium -> "Managed by Obtainium"
-            OrionStore -> "Managed by Orion Store"
-            FDroid -> "Managed by F-Droid"
-            Other, Unknown -> "GitHub Releases"
-        }
 }
 
 fun classifyInstaller(installerPackageName: String?): UpdateSource {
@@ -54,24 +47,24 @@ fun classifyInstaller(installerPackageName: String?): UpdateSource {
 
 object InstallSourceReader {
 
-    internal fun resolveInstaller(
+    internal fun readInstallerPackageName(
         pm: PackageManager,
-        targetPackage: String,
+        packageName: String,
         sdkInt: Int = Build.VERSION.SDK_INT,
     ): String? {
         return try {
             if (sdkInt >= Build.VERSION_CODES.R) {
-                val info = pm.getInstallSourceInfo(targetPackage)
+                val info = pm.getInstallSourceInfo(packageName)
                 val initiating = info.initiatingPackageName
                 val installing = info.installingPackageName
-                when {
-                    classifyInstaller(initiating).isKnownUpdater -> initiating
-                    classifyInstaller(installing).isKnownUpdater -> installing
-                    else -> installing ?: initiating
+                if (classifyInstaller(initiating).isKnownUpdater) {
+                    initiating
+                } else {
+                    installing ?: initiating
                 }
             } else {
                 @Suppress("DEPRECATION")
-                pm.getInstallerPackageName(targetPackage)
+                pm.getInstallerPackageName(packageName)
             }
         } catch (_: Exception) {
             null
@@ -80,7 +73,7 @@ object InstallSourceReader {
 
     fun getInstallerPackageName(context: Context): String? {
         return try {
-            resolveInstaller(context.packageManager, context.packageName)
+            readInstallerPackageName(context.packageManager, context.packageName)
         } catch (_: Exception) {
             null
         }

@@ -11,19 +11,19 @@ fun UpdatesRow(
     updateSource: UpdateSource,
     modifier: Modifier = Modifier,
     onOpenReleases: (() -> Unit)? = null,
-    onOpenUpdater: (() -> Unit)? = null,
 ) {
-    val onClick = if (updateSource.isKnownUpdater) onOpenUpdater else onOpenReleases
-    val secondarySubtitle = if (!updateSource.isKnownUpdater) {
-        "github.com/Khaledbahaaeldin/Emberbyte/releases"
-    } else {
-        null
+    val subtitle = when (updateSource) {
+        UpdateSource.Obtainium -> "Managed by Obtainium"
+        UpdateSource.OrionStore -> "Managed by Orion Store"
+        UpdateSource.FDroid -> "Managed by F-Droid"
+        UpdateSource.Other, UpdateSource.Unknown -> "GitHub Releases"
     }
+
+    val onClick = if (updateSource.isKnownUpdater) null else onOpenReleases
 
     SettingsRow(
         title = "Updates",
-        subtitle = updateSource.subtitle,
-        secondarySubtitle = secondarySubtitle,
+        subtitle = subtitle,
         iconVector = Icons.Rounded.Refresh,
         iconText = null,
         iconShape = AppShape.Squircle,

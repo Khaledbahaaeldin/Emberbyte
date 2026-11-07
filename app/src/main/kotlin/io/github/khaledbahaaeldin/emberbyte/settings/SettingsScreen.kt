@@ -70,7 +70,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import java.time.LocalDate
 
 private const val SOURCE_URL = "https://github.com/Khaledbahaaeldin/Emberbyte"
-private const val RELEASES_URL = "https://github.com/Khaledbahaaeldin/Emberbyte/releases"
 
 @Composable
 fun SettingsScreen(
@@ -92,20 +91,6 @@ fun SettingsScreen(
     val pendingState = rememberSaveable(saver = SettingsPendingState.Saver) { SettingsPendingState() }
     val promotedGate = remember(context) { io.github.khaledbahaaeldin.emberbyte.sampler.PromotedGate(context) }
     val updateSource = remember(context) { InstallSourceReader.getUpdateSource(context) }
-    val onOpenUpdater: (() -> Unit)? = remember(context, updateSource) {
-        if (!updateSource.isKnownUpdater) null
-        else {
-            {
-                val installerPkg = InstallSourceReader.getInstallerPackageName(context)
-                if (installerPkg != null) {
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(installerPkg)
-                    if (launchIntent != null) {
-                        runCatching { context.startActivity(launchIntent) }
-                    }
-                }
-            }
-        }
-    }
 
     val createCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         uri?.let { dataViewModel.exportCsv(pendingState.pendingRange, it) }
@@ -184,7 +169,6 @@ fun SettingsScreen(
         },
         updateSource = updateSource,
         onOpenReleases = { runCatching { uriHandler.openUri(RELEASES_URL) } },
-        onOpenUpdater = onOpenUpdater,
         modifier = modifier,
     )
 }
@@ -240,7 +224,6 @@ internal fun SettingsContent(
     onOpenLiveUpdatesSettings: () -> Unit = {},
     updateSource: UpdateSource = UpdateSource.Unknown,
     onOpenReleases: () -> Unit = {},
-    onOpenUpdater: (() -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
@@ -393,7 +376,6 @@ internal fun SettingsContent(
                     onOpenLicenses = onOpenLicenses,
                     updateSource = updateSource,
                     onOpenReleases = onOpenReleases,
-                    onOpenUpdater = onOpenUpdater,
                 )
             }
         }
@@ -597,7 +579,6 @@ private fun AboutGroupContent(
     onOpenLicenses: () -> Unit,
     updateSource: UpdateSource = UpdateSource.Unknown,
     onOpenReleases: () -> Unit = {},
-    onOpenUpdater: (() -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -631,7 +612,6 @@ private fun AboutGroupContent(
         UpdatesRow(
             updateSource = updateSource,
             onOpenReleases = onOpenReleases,
-            onOpenUpdater = onOpenUpdater,
         )
 
         if (singleColumn) {

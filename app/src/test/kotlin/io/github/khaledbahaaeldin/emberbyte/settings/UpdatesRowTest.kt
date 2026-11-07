@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -29,128 +28,50 @@ class UpdatesRowTest {
     @Test
     fun row_shows_github_releases_when_unknown_and_opens_releases() {
         var openedReleases = false
-        var openedUpdater = false
 
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UpdatesRow(
                     updateSource = UpdateSource.Unknown,
                     onOpenReleases = { openedReleases = true },
-                    onOpenUpdater = { openedUpdater = true },
                 )
             }
         }
 
         rule.onNodeWithText("Updates").assertIsDisplayed()
         rule.onNodeWithText("GitHub Releases").assertIsDisplayed()
-        rule.onNodeWithText("github.com/Khaledbahaaeldin/Emberbyte/releases").assertIsDisplayed()
         rule.onNode(hasText("Updates") and hasClickAction()).performClick()
 
         assertTrue(openedReleases)
-        assertFalse(openedUpdater)
     }
 
     @Test
     fun row_shows_github_releases_when_other_and_opens_releases() {
         var openedReleases = false
-        var openedUpdater = false
 
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UpdatesRow(
                     updateSource = UpdateSource.Other,
                     onOpenReleases = { openedReleases = true },
-                    onOpenUpdater = { openedUpdater = true },
                 )
             }
         }
 
         rule.onNodeWithText("Updates").assertIsDisplayed()
         rule.onNodeWithText("GitHub Releases").assertIsDisplayed()
-        rule.onNodeWithText("github.com/Khaledbahaaeldin/Emberbyte/releases").assertIsDisplayed()
         rule.onNode(hasText("Updates") and hasClickAction()).performClick()
 
         assertTrue(openedReleases)
-        assertFalse(openedUpdater)
     }
 
     @Test
-    fun row_shows_managed_by_obtainium_and_opens_updater() {
-        var openedReleases = false
-        var openedUpdater = false
-
-        rule.setContent {
-            EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                UpdatesRow(
-                    updateSource = UpdateSource.Obtainium,
-                    onOpenReleases = { openedReleases = true },
-                    onOpenUpdater = { openedUpdater = true },
-                )
-            }
-        }
-
-        rule.onNodeWithText("Updates").assertIsDisplayed()
-        rule.onNodeWithText("Managed by Obtainium").assertIsDisplayed()
-        rule.onNode(hasText("Updates") and hasClickAction()).performClick()
-
-        assertTrue(openedUpdater)
-        assertFalse(openedReleases)
-    }
-
-    @Test
-    fun row_shows_managed_by_orion_store_and_opens_updater() {
-        var openedReleases = false
-        var openedUpdater = false
-
-        rule.setContent {
-            EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                UpdatesRow(
-                    updateSource = UpdateSource.OrionStore,
-                    onOpenReleases = { openedReleases = true },
-                    onOpenUpdater = { openedUpdater = true },
-                )
-            }
-        }
-
-        rule.onNodeWithText("Updates").assertIsDisplayed()
-        rule.onNodeWithText("Managed by Orion Store").assertIsDisplayed()
-        rule.onNode(hasText("Updates") and hasClickAction()).performClick()
-
-        assertTrue(openedUpdater)
-        assertFalse(openedReleases)
-    }
-
-    @Test
-    fun row_shows_managed_by_fdroid_and_opens_updater() {
-        var openedReleases = false
-        var openedUpdater = false
-
-        rule.setContent {
-            EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                UpdatesRow(
-                    updateSource = UpdateSource.FDroid,
-                    onOpenReleases = { openedReleases = true },
-                    onOpenUpdater = { openedUpdater = true },
-                )
-            }
-        }
-
-        rule.onNodeWithText("Updates").assertIsDisplayed()
-        rule.onNodeWithText("Managed by F-Droid").assertIsDisplayed()
-        rule.onNode(hasText("Updates") and hasClickAction()).performClick()
-
-        assertTrue(openedUpdater)
-        assertFalse(openedReleases)
-    }
-
-    @Test
-    fun known_updater_without_click_action_is_not_clickable() {
+    fun row_shows_managed_by_obtainium_and_is_not_clickable() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 UpdatesRow(
                     updateSource = UpdateSource.Obtainium,
                     onOpenReleases = {},
-                    onOpenUpdater = null,
                 )
             }
         }
@@ -161,13 +82,44 @@ class UpdatesRowTest {
     }
 
     @Test
+    fun row_shows_managed_by_orion_store_and_is_not_clickable() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                UpdatesRow(
+                    updateSource = UpdateSource.OrionStore,
+                    onOpenReleases = {},
+                )
+            }
+        }
+
+        rule.onNodeWithText("Updates").assertIsDisplayed()
+        rule.onNodeWithText("Managed by Orion Store").assertIsDisplayed()
+        rule.onNode(hasText("Updates") and hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
+    fun row_shows_managed_by_fdroid_and_is_not_clickable() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                UpdatesRow(
+                    updateSource = UpdateSource.FDroid,
+                    onOpenReleases = {},
+                )
+            }
+        }
+
+        rule.onNodeWithText("Updates").assertIsDisplayed()
+        rule.onNodeWithText("Managed by F-Droid").assertIsDisplayed()
+        rule.onNode(hasText("Updates") and hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
     fun font_scale_2_no_clip() {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     UpdatesRow(
                         updateSource = UpdateSource.Obtainium,
-                        onOpenUpdater = {},
                     )
                 }
             }
@@ -183,7 +135,6 @@ class UpdatesRowTest {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     UpdatesRow(
                         updateSource = UpdateSource.FDroid,
-                        onOpenUpdater = {},
                     )
                 }
             }
