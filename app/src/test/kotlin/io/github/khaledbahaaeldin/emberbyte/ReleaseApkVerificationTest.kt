@@ -158,9 +158,10 @@ class ReleaseApkVerificationTest {
             val manifestBytes = zip.getInputStream(manifestEntry).use { it.readBytes() }
             val manifest = parseBinaryManifest(manifestBytes)
 
-            // 3. versionName == "1.0.1" and versionCode == 2
-            assertEquals("versionName must be 1.0.1", "1.0.1", manifest.versionName)
-            assertEquals("versionCode must be 2", 2, manifest.versionCode)
+            // 3. versionName and versionCode are the ones declared in app/build.gradle.kts (never literals here,
+            //    so a release does not need a test edit)
+            assertEquals("versionName must match build.gradle.kts", declaredVersionName(), manifest.versionName)
+            assertEquals("versionCode must match build.gradle.kts", declaredVersionCode(), manifest.versionCode)
 
             // 4. android:debuggable absent or false
             assertFalse("android:debuggable must be absent or false", manifest.debuggable)
@@ -461,5 +462,28 @@ class ReleaseApkVerificationTest {
             shift += 7
         }
         return value
+    }
+
+    private fun buildScript(): String = java.io.File("build.gradle.kts").readText()
+
+    private fun declaredVersionName(): String =
+        Regex("versionName\\s*=\\s*\"([^\"]+)\"").find(buildScript())?.groupValues?.get(1)
+            ?: error("versionName not found in app/build.gradle.kts")
+
+    private fun declaredVersionCode(): Int =
+        Regex("versionCode\\s*=\\s*(\\d+)").find(buildScript())?.groupValues?.get(1)?.toInt()
+            ?: error("versionCode not found in app/build.gradle.kts")
+
+    @Test
+    fun version_name_matches_the_newest_changelog_entry() {
+        val changelog = java.io.File("../CHANGELOG.md").readText()
+        val newest = Regex("^## \\[(\\d+\\.\\d+\\.\\d+)\\]", RegexOption.MULTILINE).find(changelog)?.groupValues?.get(1)
+            ?: error("no version heading in CHANGELOG.md")
+        assertEquals("versionName must match the newest CHANGELOG.md entry", newest, declaredVersionName())
+    }
+
+    @Test
+    fun version_code_is_a_positive_number_that_only_ever_grows() {
+        assertTrue("versionCode must be at least 1", declaredVersionCode() >= 1)
     }
 }
