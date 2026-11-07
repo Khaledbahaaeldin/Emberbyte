@@ -53,7 +53,9 @@ class BackTransitionsTest {
     fun tab_transitions_are_not_used_for_pop() {
         val appFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/EmberbyteApp.kt")
         assertTrue("EmberbyteApp.kt should exist", appFile.exists())
-        val content = appFile.readText()
+        val transitionsFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/AppTransitions.kt")
+        assertTrue("AppTransitions.kt should exist", transitionsFile.exists())
+        val content = appFile.readText() + transitionsFile.readText()
 
         // NavHost must not use tabEnterTransition or tabExitTransition for popEnterTransition or popExitTransition
         val popEnterMatch = Regex("""popEnterTransition\s*=\s*\{\s*tabEnterTransition""").containsMatchIn(content)
@@ -84,7 +86,9 @@ class BackTransitionsTest {
     fun emberbyte_app_passes_layout_direction_to_back_transitions() {
         val appFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/EmberbyteApp.kt")
         assertTrue("EmberbyteApp.kt should exist", appFile.exists())
-        val content = appFile.readText()
+        val transitionsFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/AppTransitions.kt")
+        assertTrue("AppTransitions.kt should exist", transitionsFile.exists())
+        val content = appFile.readText() + transitionsFile.readText()
         assertTrue(
             "EmberbyteApp must pass layoutDirection to BackTransitions.popExit",
             content.contains("BackTransitions.popExit(layoutDirection)")

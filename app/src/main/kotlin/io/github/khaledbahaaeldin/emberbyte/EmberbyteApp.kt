@@ -35,7 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import io.github.khaledbahaaeldin.emberbyte.nav.BackTransitions
+import io.github.khaledbahaaeldin.emberbyte.nav.AppTransitions
 import io.github.khaledbahaaeldin.emberbyte.nav.DeepLinkPatterns
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailScreen
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
@@ -47,10 +47,9 @@ import io.github.khaledbahaaeldin.emberbyte.home.HomeScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Destination
 import io.github.khaledbahaaeldin.emberbyte.nav.PredictiveBackSubScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
+import io.github.khaledbahaaeldin.emberbyte.nav.navigateToTab
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
 import io.github.khaledbahaaeldin.emberbyte.nav.rememberPermissionActions
-import io.github.khaledbahaaeldin.emberbyte.nav.tabEnterTransition
-import io.github.khaledbahaaeldin.emberbyte.nav.tabExitTransition
 import io.github.khaledbahaaeldin.emberbyte.onboarding.OnboardingScreen
 import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorScreen
 import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorViewModel
@@ -142,22 +141,19 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     val motion = MaterialTheme.motionScheme
     val reduceMotion = LocalReduceMotion.current
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val transitions = remember(motion, reduceMotion, layoutDirection) {
+        AppTransitions(motion, reduceMotion, layoutDirection)
+    }
 
     Box(Modifier.fillMaxSize().nestedScroll(visibility.connection), contentAlignment = Alignment.TopCenter) {
         NavHost(
             navController = navController,
             startDestination = if (startOnboarding) Routes.ONBOARDING else Destination.Home.route,
             modifier = Modifier.contentWidth().fillMaxHeight(),
-            enterTransition = { tabEnterTransition(motion, reduceMotion) },
-            exitTransition = { tabExitTransition(motion, reduceMotion) },
-            popEnterTransition = {
-                if (reduceMotion) BackTransitions.popEnterReducedMotion()
-                else BackTransitions.popEnter(layoutDirection)(this)
-            },
-            popExitTransition = {
-                if (reduceMotion) BackTransitions.popExitReducedMotion()
-                else BackTransitions.popExit(layoutDirection)(this)
-            },
+            enterTransition = transitions.enter,
+            exitTransition = transitions.exit,
+            popEnterTransition = transitions.popEnter,
+            popExitTransition = transitions.popExit,
         ) {
             composable(Routes.ONBOARDING) {
                 val viewModel: OnboardingViewModel = viewModel(factory = graph.onboardingViewModelFactory())
@@ -186,7 +182,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
                     onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
-                    onNavigateToApps = { navController.navigate(Destination.Apps.route) },
+                    onNavigateToApps = { navController.navigateToTab(Destination.Apps) },
                     iconProvider = graph.appIcons,
                 )
             }
@@ -311,11 +307,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 items = items,
                 selectedId = selected.id,
                 onSelect = { id ->
-                    navController.navigate(Destination.fromId(id).route) {
-                        popUpTo(Destination.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigateToTab(Destination.fromId(id))
                 },
                 visible = visibility.visible,
                 hapticsEnabled = hapticsEnabled,

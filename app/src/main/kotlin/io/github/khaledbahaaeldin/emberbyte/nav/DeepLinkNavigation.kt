@@ -47,11 +47,7 @@ internal fun NavController.openDeepLink(intent: Intent, allowed: () -> Boolean =
     val current = currentBackStackEntry
     return try {
         when (target) {
-            is DeepLinkTarget.Tab -> navigate(target.destination.route) {
-                popUpTo(Destination.Home.route) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
-            }
+            is DeepLinkTarget.Tab -> navigateToTab(target.destination)
             DeepLinkTarget.Settings -> if (current?.destination?.route != Routes.SETTINGS) navigate(uri)
             is DeepLinkTarget.AppDetail ->
                 if (!(current?.destination?.route == Routes.APP_DETAIL && current.arguments?.getString("packageName") == target.packageName)) navigate(uri)
