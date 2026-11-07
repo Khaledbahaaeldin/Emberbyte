@@ -55,7 +55,7 @@ fun GuardedBack(
             progressFlow.collect { backEvent ->
                 val p = backEvent.progress.coerceIn(0f, 1f)
                 gestureProgress = p
-                shrink = 1.0f - (1.0f - BackTransitions.SHRINK) * p
+                shrink = BackTransitions.shrinkFor(p)
             }
             NavDiagnostics.record("BACK_COMMIT", "guarded")
             showDiscardDialog = true
@@ -67,7 +67,7 @@ fun GuardedBack(
     }
 
     val cornerRadius = BackTransitions.cornerRadiusFor(gestureProgress)
-    val shadowElevation = (8f * (gestureProgress * 4f).coerceAtMost(1f)).dp
+    val shadowElevation = BackTransitions.shadowDpFor(gestureProgress)
     val palette = LocalEmberbytePalette.current
     val layoutDirection = LocalLayoutDirection.current
     val origin = BackTransitions.transformOriginFor(layoutDirection)

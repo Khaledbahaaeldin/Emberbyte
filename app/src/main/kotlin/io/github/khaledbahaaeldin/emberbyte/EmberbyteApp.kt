@@ -166,6 +166,8 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             exitTransition = transitions.exit,
             popEnterTransition = transitions.popEnter,
             popExitTransition = transitions.popExit,
+            predictivePopEnterTransition = transitions.predictivePopEnter,
+            predictivePopExitTransition = transitions.predictivePopExit,
         ) {
             composable(Routes.ONBOARDING) {
                 val viewModel: OnboardingViewModel = viewModel(factory = graph.onboardingViewModelFactory())
@@ -314,32 +316,30 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             }
         }
         val isTopLevel = route in setOf(Destination.Home.route, Destination.Apps.route, Destination.Plans.route)
-        if (isTopLevel) {
-            CompactNavBar(
-                items = items,
-                selectedId = selected.id,
-                onSelect = { id ->
-                    NavDiagnostics.record("NAV_REQUEST", "route=$id from=$route")
-                    navController.navigateToTab(Destination.fromId(id))
-                },
-                visible = visibility.visible,
-                onDiagnostic = NavDiagnostics::record,
-                hapticsEnabled = hapticsEnabled,
-                trailing = if (route == Destination.Plans.route) {
-                    {
-                        PlusButton(
-                            onClick = { navController.navigate(Routes.PLAN_NEW) },
-                            contentDescription = "New plan",
-                        )
-                    }
-                } else null,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .contentWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 12.dp),
-            )
-        }
+        CompactNavBar(
+            items = items,
+            selectedId = selected.id,
+            onSelect = { id ->
+                NavDiagnostics.record("NAV_REQUEST", "route=$id from=$route")
+                navController.navigateToTab(Destination.fromId(id))
+            },
+            visible = visibility.visible && isTopLevel,
+            onDiagnostic = NavDiagnostics::record,
+            hapticsEnabled = hapticsEnabled,
+            trailing = if (route == Destination.Plans.route) {
+                {
+                    PlusButton(
+                        onClick = { navController.navigate(Routes.PLAN_NEW) },
+                        contentDescription = "New plan",
+                    )
+                }
+            } else null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .contentWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 12.dp),
+        )
     }
 }
 
