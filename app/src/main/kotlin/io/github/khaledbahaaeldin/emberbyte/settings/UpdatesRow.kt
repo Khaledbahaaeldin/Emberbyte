@@ -12,14 +12,13 @@ fun UpdatesRow(
     modifier: Modifier = Modifier,
     onOpenReleases: (() -> Unit)? = null,
 ) {
-    val subtitle = when (updateSource) {
-        UpdateSource.Obtainium -> "Managed by Obtainium"
-        UpdateSource.OrionStore -> "Managed by Orion Store"
-        UpdateSource.FDroid -> "Managed by F-Droid"
-        UpdateSource.Other, UpdateSource.Unknown -> "GitHub Releases"
+    val (subtitle, onClick) = when (updateSource) {
+        UpdateSource.Obtainium,
+        UpdateSource.OrionStore,
+        UpdateSource.FDroid -> "Managed by ${updateSource.displayName}" to null
+        UpdateSource.Other,
+        UpdateSource.Unknown -> "GitHub Releases" to onOpenReleases
     }
-
-    val onClick = if (updateSource.isKnownUpdater) null else onOpenReleases
 
     SettingsRow(
         title = "Updates",

@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 
-internal const val RELEASES_URL = "https://github.com/Khaledbahaaeldin/Emberbyte/releases"
-
 private val OBTAINIUM_PACKAGES = setOf(
     "dev.imranr.obtainium",
     "dev.imranr.obtainium.fdroid",
