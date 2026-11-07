@@ -70,7 +70,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import java.time.LocalDate
 
 private const val SOURCE_URL = "https://github.com/Khaledbahaaeldin/Emberbyte"
-private const val RELEASES_URL = "https://github.com/Khaledbahaaeldin/Emberbyte/releases"
+private const val RELEASES_URL = "$SOURCE_URL/releases"
 
 @Composable
 fun SettingsScreen(
