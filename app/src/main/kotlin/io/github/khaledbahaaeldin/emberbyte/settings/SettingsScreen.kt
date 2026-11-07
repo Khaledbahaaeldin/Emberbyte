@@ -94,10 +94,8 @@ fun SettingsScreen(
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
     }
 
-    val updatesState = remember(context, versionName) {
-        val installer = InstallSourceReader.forContext(context).installerPackage()
-        UpdatesUiState(classifyInstaller(installer), versionName, installer)
-    }
+    val installerPackage = remember(context) { InstallSourceReader.getInstallerPackageName(context) }
+    val updateSource = remember(installerPackage) { classifyInstaller(installerPackage) }
 
     val pendingState = rememberSaveable(saver = SettingsPendingState.Saver) { SettingsPendingState() }
     val promotedGate = remember(context) { io.github.khaledbahaaeldin.emberbyte.sampler.PromotedGate(context) }
@@ -133,9 +131,9 @@ fun SettingsScreen(
         versionName = versionName,
         onOpenSource = { runCatching { uriHandler.openUri(SOURCE_URL) } },
         onOpenLicenses = onOpenLicenses,
-        updatesState = updatesState,
+        updateSource = updateSource,
         onOpenUpdater = {
-            val launch = updatesState.installerPackage?.let { pkg ->
+            val launch = installerPackage?.let { pkg ->
                 runCatching { context.packageManager.getLaunchIntentForPackage(pkg) }.getOrNull()
             }
             if (launch != null) {
@@ -250,7 +248,7 @@ internal fun SettingsContent(
     mayPostLiveUpdates: Boolean = true,
     onOpenLiveUpdatesSettings: () -> Unit = {},
     onCopyNavLog: () -> Unit = {},
-    updatesState: UpdatesUiState = UpdatesUiState(InstallerKind.Unknown, versionName),
+    updateSource: UpdateSource = UpdateSource.Unknown,
     onOpenUpdater: () -> Unit = {},
     onOpenReleases: () -> Unit = {},
 ) {
@@ -404,7 +402,7 @@ internal fun SettingsContent(
                     onOpenSource = onOpenSource,
                     onOpenLicenses = onOpenLicenses,
                     onCopyNavLog = onCopyNavLog,
-                    updatesState = updatesState,
+                    updateSource = updateSource,
                     onOpenUpdater = onOpenUpdater,
                     onOpenReleases = onOpenReleases,
                 )
@@ -609,7 +607,7 @@ private fun AboutGroupContent(
     onOpenSource: () -> Unit,
     onOpenLicenses: () -> Unit,
     onCopyNavLog: () -> Unit,
-    updatesState: UpdatesUiState,
+    updateSource: UpdateSource,
     onOpenUpdater: () -> Unit,
     onOpenReleases: () -> Unit,
 ) {
@@ -651,7 +649,8 @@ private fun AboutGroupContent(
         }
 
         UpdatesRow(
-            state = updatesState,
+            updateSource = updateSource,
+            versionName = versionName,
             onOpenUpdater = onOpenUpdater,
             onOpenReleases = onOpenReleases,
         )

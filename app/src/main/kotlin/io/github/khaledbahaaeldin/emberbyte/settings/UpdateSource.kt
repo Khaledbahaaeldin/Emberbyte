@@ -1,92 +1,87 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.SystemUpdate
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
-
-/** Where the app was installed from, as far as Android tells us. */
-enum class InstallerKind { Obtainium, OrionStore, FDroid, Other, Unknown }
 
 /** Opened when the user wants to look for a newer version without an updater app. */
 internal const val RELEASES_URL = "https://github.com/Khaledbahaaeldin/Emberbyte/releases/latest"
 
-private val OBTAINIUM_PACKAGES = setOf("dev.imranr.obtainium", "dev.imranr.obtainium.fdroid")
-private const val ORION_PACKAGE = "com.orion.store"
-private val FDROID_PACKAGES = setOf("org.fdroid.fdroid", "org.fdroid.basic")
+private val OBTAINIUM_PACKAGES = setOf(
+    "dev.imranr.obtainium",
+    "dev.imranr.obtainium.fdroid",
+)
 
-internal fun classifyInstaller(packageName: String?): InstallerKind = when {
-    packageName.isNullOrBlank() -> InstallerKind.Unknown
-    packageName in OBTAINIUM_PACKAGES -> InstallerKind.Obtainium
-    packageName == ORION_PACKAGE -> InstallerKind.OrionStore
-    packageName in FDROID_PACKAGES -> InstallerKind.FDroid
-    else -> InstallerKind.Other
+private val ORION_STORE_PACKAGES = setOf(
+    "com.orion.store",
+)
+
+private val FDROID_PACKAGES = setOf(
+    "org.fdroid.fdroid",
+    "org.fdroid.basic",
+    "org.fdroid.fdroid.privileged",
+)
+
+enum class UpdateSource(val displayName: String) {
+    Obtainium("Obtainium"),
+    OrionStore("Orion Store"),
+    FDroid("F-Droid"),
+    Other("Other"),
+    Unknown("Unknown");
+
+    val isKnownUpdater: Boolean
+        get() = this == Obtainium || this == OrionStore || this == FDroid
 }
 
-/**
- * Reads the installer package. Any failure counts as "unknown": this only chooses a wording, so it must never crash.
- * Uses the install-source API on Android 11+ and the older call below that (minSdk is 29).
- */
-class InstallSourceReader(private val lookup: () -> String?) {
-    fun installerPackage(): String? = runCatching(lookup).getOrNull()
-
-    fun kind(): InstallerKind = classifyInstaller(installerPackage())
-
-    companion object {
-        /** [sdkInt] is injectable so the Android 10 branch can be tested without a second Robolectric SDK. */
-        fun forContext(context: Context, sdkInt: Int = Build.VERSION.SDK_INT): InstallSourceReader = InstallSourceReader {
-            val pm = context.packageManager
-            if (sdkInt >= Build.VERSION_CODES.R && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                pm.getInstallSourceInfo(context.packageName).installingPackageName
-            } else {
-                @Suppress("DEPRECATION")
-                pm.getInstallerPackageName(context.packageName)
-            }
-        }
+fun classifyInstaller(installerPackageName: String?): UpdateSource {
+    val trimmed = installerPackageName?.trim()
+    if (trimmed.isNullOrEmpty()) {
+        return UpdateSource.Unknown
+    }
+    return when (trimmed) {
+        in OBTAINIUM_PACKAGES -> UpdateSource.Obtainium
+        in ORION_STORE_PACKAGES -> UpdateSource.OrionStore
+        in FDROID_PACKAGES -> UpdateSource.FDroid
+        else -> UpdateSource.Other
     }
 }
 
-data class UpdatesUiState(
-    val kind: InstallerKind,
-    val versionName: String,
-    /** The installer's package, used to open it. Null when unknown. */
-    val installerPackage: String? = null,
-)
+object InstallSourceReader {
 
-private fun updatesSubtitle(state: UpdatesUiState): String = when (state.kind) {
-    InstallerKind.Obtainium -> "Obtainium keeps Emberbyte up to date"
-    InstallerKind.OrionStore -> "Orion Store keeps Emberbyte up to date"
-    InstallerKind.FDroid -> "F-Droid keeps Emberbyte up to date"
-    InstallerKind.Other, InstallerKind.Unknown ->
-        "You have ${state.versionName}. Tap to see the latest release on GitHub. " +
-            "Emberbyte never goes online by itself, so it cannot tell you when one appears."
-}
+    internal fun readInstallerPackageName(
+        pm: PackageManager,
+        packageName: String,
+        sdkInt: Int = Build.VERSION.SDK_INT,
+    ): String? {
+        return try {
+            // Lint only understands a direct Build.VERSION.SDK_INT check, so it stays next to the injectable one.
+            if (sdkInt >= Build.VERSION_CODES.R && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val info = pm.getInstallSourceInfo(packageName)
+                val initiating = info.initiatingPackageName
+                val installing = info.installingPackageName
+                if (classifyInstaller(initiating).isKnownUpdater) {
+                    initiating
+                } else {
+                    installing ?: initiating
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getInstallerPackageName(packageName)
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
 
-/**
- * Points the user to whoever updates the app. It cannot say whether a newer version exists, because the app has no
- * network permission by design.
- */
-@Composable
-fun UpdatesRow(
-    state: UpdatesUiState,
-    onOpenUpdater: () -> Unit,
-    onOpenReleases: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val opensUpdater = state.kind == InstallerKind.Obtainium ||
-        state.kind == InstallerKind.OrionStore ||
-        state.kind == InstallerKind.FDroid
-    SettingsRow(
-        title = "Updates",
-        subtitle = updatesSubtitle(state),
-        iconVector = Icons.Rounded.SystemUpdate,
-        iconText = null,
-        iconShape = AppShape.Squircle,
-        showChevron = true,
-        onClick = if (opensUpdater) onOpenUpdater else onOpenReleases,
-        modifier = modifier,
-    )
+    fun getInstallerPackageName(context: Context): String? {
+        return try {
+            readInstallerPackageName(context.packageManager, context.packageName)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun getUpdateSource(context: Context): UpdateSource {
+        return classifyInstaller(getInstallerPackageName(context))
+    }
 }

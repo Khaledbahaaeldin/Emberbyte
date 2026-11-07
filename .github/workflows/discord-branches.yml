@@ -1,0 +1,38 @@
+# Posts pushes to main and release/* branches to the team's Discord #branches channel.
+# Needs the repository secret DISCORD_BRANCHES_WEBHOOK (a Discord webhook URL).
+# Without the secret the job exits quietly. Commit messages are read from the event file with jq,
+# never interpolated into the shell.
+name: Discord branch feed
+
+on:
+  push:
+    branches: [main, 'release/**']
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_BRANCHES_WEBHOOK }}
+          BRANCH: ${{ github.ref_name }}
+          PUSHER: ${{ github.actor }}
+          COMPARE: ${{ github.event.compare }}
+        run: |
+          [ -n "$WEBHOOK" ] || exit 0
+          COUNT=$(jq '.commits | length' "$GITHUB_EVENT_PATH")
+          LIST=$(jq -r '[.commits[:5][] | "• `" + .id[0:7] + "` " + ((.message | split("\n")[0])[0:100])] | join("\n")' "$GITHUB_EVENT_PATH")
+          [ -n "$LIST" ] || LIST="(no new commits)"
+          jq -n \
+            --arg title "🌿 $PUSHER pushed $COUNT commit(s) to $BRANCH" \
+            --arg desc "$LIST" \
+            --arg url "$COMPARE" \
+            '{embeds: [{
+                title: $title,
+                url: (if $url == "" then null else $url end),
+                description: $desc,
+                color: 5793266
+              }]}' \
+          | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"

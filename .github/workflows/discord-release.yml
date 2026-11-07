@@ -1,0 +1,31 @@
+# Announces a published GitHub release in the team's Discord #releases channel.
+# Needs the repository secret DISCORD_RELEASES_WEBHOOK (a Discord webhook URL).
+# Without the secret the job exits quietly. Drafts do not trigger it, only a published release does.
+name: Discord release announcement
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+        run: |
+          [ -n "$WEBHOOK" ] || exit 0
+          jq '{embeds: [{
+                title: ("🚀 Emberbyte " + .release.tag_name),
+                url: .release.html_url,
+                description: (if (.release.body // "") == "" then "No release notes." else (.release.body[0:1500]) end),
+                color: 15844367,
+                fields: [
+                  {name: "Tag", value: .release.tag_name, inline: true},
+                  {name: "Pre-release", value: (.release.prerelease | tostring), inline: true}
+                ]
+              }]}' "$GITHUB_EVENT_PATH" \
+          | curl -fsS -H 'Content-Type: application/json' -d @- "$WEBHOOK"
