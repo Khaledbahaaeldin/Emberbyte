@@ -39,7 +39,7 @@ class InstallSourceReader(private val lookup: () -> String?) {
         /** [sdkInt] is injectable so the Android 10 branch can be tested without a second Robolectric SDK. */
         fun forContext(context: Context, sdkInt: Int = Build.VERSION.SDK_INT): InstallSourceReader = InstallSourceReader {
             val pm = context.packageManager
-            if (sdkInt >= Build.VERSION_CODES.R) {
+            if (sdkInt >= Build.VERSION_CODES.R && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 pm.getInstallSourceInfo(context.packageName).installingPackageName
             } else {
                 @Suppress("DEPRECATION")

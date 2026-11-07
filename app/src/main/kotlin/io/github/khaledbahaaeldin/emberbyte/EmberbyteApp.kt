@@ -150,8 +150,10 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     }
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
-            val stack = controller.currentBackStack.value.mapNotNull { it.destination.route }
-            NavDiagnostics.record("NAV_RESULT", "route=${destination.route} stack=$stack")
+            NavDiagnostics.record(
+                "NAV_RESULT",
+                "route=${destination.route} previous=${controller.previousBackStackEntry?.destination?.route}",
+            )
         }
         navController.addOnDestinationChangedListener(listener)
         onDispose { navController.removeOnDestinationChangedListener(listener) }

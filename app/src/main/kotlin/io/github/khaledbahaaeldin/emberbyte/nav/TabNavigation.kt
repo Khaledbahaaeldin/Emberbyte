@@ -10,10 +10,13 @@ import androidx.navigation.NavController
  * the tab itself. A plain `navigate` to a tab would instead leave a duplicate tab entry that later tab taps pop and
  * restore wrongly (found by TabNavigationExhaustiveTest).
  */
+private const val MAX_SUB_SCREENS = 8
+
 internal fun NavController.navigateToTab(destination: Destination) {
-    val topTab = currentBackStack.value.lastOrNull { isTabRoute(it.destination.route) }?.destination?.route
-    if (topTab != null && currentBackStackEntry?.destination?.route != topTab) {
-        popBackStack(topTab, inclusive = false)
+    // Pop every sub-screen above the topmost tab (the guard keeps a malformed stack from looping).
+    var pops = 0
+    while (!isTabRoute(currentBackStackEntry?.destination?.route) && pops < MAX_SUB_SCREENS && popBackStack()) {
+        pops++
     }
     navigate(destination.route) {
         popUpTo(Destination.Home.route) { saveState = true }
