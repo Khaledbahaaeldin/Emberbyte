@@ -104,4 +104,14 @@ class StatesTest {
         rule.onNodeWithTag("loading_normal").assertIsDisplayed()
         rule.onNodeWithContentDescription("Loading usage").assertIsDisplayed()
     }
+
+    @Test
+    fun loading_state_has_the_label_for_talkback() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                LoadingState(label = "Loading plans for TalkBack")
+            }
+        }
+        rule.onNodeWithContentDescription("Loading plans for TalkBack").assertIsDisplayed()
+    }
 }
