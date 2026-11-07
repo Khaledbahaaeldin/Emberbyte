@@ -34,6 +34,7 @@ class UpdateSourceTest {
         assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.fdroid"))
         assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.basic"))
         assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.fdroid.privileged"))
+        assertEquals(UpdateSource.FDroid, classifyInstaller("org.fdroid.fdroid.classic"))
     }
 
     @Test
@@ -69,6 +70,23 @@ class UpdateSourceTest {
 
     @Test
     @Config(sdk = [34])
+    fun installSourceReader_api30_plus_prioritizes_known_updater_initiating_package() {
+        // When Obtainium or F-Droid initiates an install, system packageinstaller is often the installing package
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val shadowPm = shadowOf(context.packageManager)
+        shadowPm.setInstallSourceInfo(
+            context.packageName,
+            "dev.imranr.obtainium",
+            "com.google.android.packageinstaller"
+        )
+
+        val installer = InstallSourceReader.getInstallerPackageName(context)
+        assertEquals("dev.imranr.obtainium", installer)
+        assertEquals(UpdateSource.Obtainium, InstallSourceReader.getUpdateSource(context))
+    }
+
+    @Test
+    @Config(sdk = [34])
     fun installSourceReader_api30_plus_falls_back_to_initiating_package_when_installing_null() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val shadowPm = shadowOf(context.packageManager)
@@ -88,9 +106,9 @@ class UpdateSourceTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.packageManager.setInstallerPackageName(context.packageName, "org.fdroid.fdroid")
 
-        val installer = InstallSourceReader.getInstallerPackageName(context, sdkInt = 29)
+        val installer = InstallSourceReader.resolveInstaller(context.packageManager, context.packageName, sdkInt = 29)
         assertEquals("org.fdroid.fdroid", installer)
-        assertEquals(UpdateSource.FDroid, InstallSourceReader.getUpdateSource(context, sdkInt = 29))
+        assertEquals(UpdateSource.FDroid, classifyInstaller(installer))
     }
 
     @Test

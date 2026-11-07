@@ -43,6 +43,7 @@ class UpdatesRowTest {
 
         rule.onNodeWithText("Updates").assertIsDisplayed()
         rule.onNodeWithText("GitHub Releases").assertIsDisplayed()
+        rule.onNodeWithText("github.com/Khaledbahaaeldin/Emberbyte/releases").assertIsDisplayed()
         rule.onNode(hasText("Updates") and hasClickAction()).performClick()
 
         assertTrue(openedReleases)
@@ -66,6 +67,7 @@ class UpdatesRowTest {
 
         rule.onNodeWithText("Updates").assertIsDisplayed()
         rule.onNodeWithText("GitHub Releases").assertIsDisplayed()
+        rule.onNodeWithText("github.com/Khaledbahaaeldin/Emberbyte/releases").assertIsDisplayed()
         rule.onNode(hasText("Updates") and hasClickAction()).performClick()
 
         assertTrue(openedReleases)

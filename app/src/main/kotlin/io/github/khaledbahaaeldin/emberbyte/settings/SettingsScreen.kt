@@ -91,6 +91,21 @@ fun SettingsScreen(
 
     val pendingState = rememberSaveable(saver = SettingsPendingState.Saver) { SettingsPendingState() }
     val promotedGate = remember(context) { io.github.khaledbahaaeldin.emberbyte.sampler.PromotedGate(context) }
+    val updateSource = remember(context) { InstallSourceReader.getUpdateSource(context) }
+    val onOpenUpdater: (() -> Unit)? = remember(context, updateSource) {
+        if (!updateSource.isKnownUpdater) null
+        else {
+            {
+                val installerPkg = InstallSourceReader.getInstallerPackageName(context)
+                if (installerPkg != null) {
+                    val launchIntent = context.packageManager.getLaunchIntentForPackage(installerPkg)
+                    if (launchIntent != null) {
+                        runCatching { context.startActivity(launchIntent) }
+                    }
+                }
+            }
+        }
+    }
 
     val createCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         uri?.let { dataViewModel.exportCsv(pendingState.pendingRange, it) }
@@ -167,23 +182,9 @@ fun SettingsScreen(
                 context.startActivity(promotedGate.settingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
         },
-        updateSource = remember(context) { InstallSourceReader.getUpdateSource(context) },
+        updateSource = updateSource,
         onOpenReleases = { runCatching { uriHandler.openUri(RELEASES_URL) } },
-        onOpenUpdater = remember(context) {
-            val source = InstallSourceReader.getUpdateSource(context)
-            if (!source.isKnownUpdater) null
-            else {
-                {
-                    val installerPkg = InstallSourceReader.getInstallerPackageName(context)
-                    if (installerPkg != null) {
-                        val launchIntent = context.packageManager.getLaunchIntentForPackage(installerPkg)
-                        if (launchIntent != null) {
-                            runCatching { context.startActivity(launchIntent) }
-                        }
-                    }
-                }
-            }
-        },
+        onOpenUpdater = onOpenUpdater,
         modifier = modifier,
     )
 }

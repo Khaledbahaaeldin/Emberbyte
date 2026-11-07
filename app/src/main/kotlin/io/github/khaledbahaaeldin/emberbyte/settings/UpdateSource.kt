@@ -1,21 +1,23 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 
-val OBTAINIUM_PACKAGES = setOf(
+private val OBTAINIUM_PACKAGES = setOf(
     "dev.imranr.obtainium",
     "dev.imranr.obtainium.fdroid",
 )
 
-val ORION_STORE_PACKAGES = setOf(
+private val ORION_STORE_PACKAGES = setOf(
     "com.orion.store",
 )
 
-val FDROID_PACKAGES = setOf(
+private val FDROID_PACKAGES = setOf(
     "org.fdroid.fdroid",
     "org.fdroid.basic",
     "org.fdroid.fdroid.privileged",
+    "org.fdroid.fdroid.classic",
 )
 
 enum class UpdateSource(val displayName: String) {
@@ -27,6 +29,14 @@ enum class UpdateSource(val displayName: String) {
 
     val isKnownUpdater: Boolean
         get() = this == Obtainium || this == OrionStore || this == FDroid
+
+    val subtitle: String
+        get() = when (this) {
+            Obtainium -> "Managed by Obtainium"
+            OrionStore -> "Managed by Orion Store"
+            FDroid -> "Managed by F-Droid"
+            Other, Unknown -> "GitHub Releases"
+        }
 }
 
 fun classifyInstaller(installerPackageName: String?): UpdateSource {
@@ -43,30 +53,40 @@ fun classifyInstaller(installerPackageName: String?): UpdateSource {
 }
 
 object InstallSourceReader {
-    fun getInstallerPackageName(
-        context: Context,
-        targetPackage: String = context.packageName,
+
+    internal fun resolveInstaller(
+        pm: PackageManager,
+        targetPackage: String,
         sdkInt: Int = Build.VERSION.SDK_INT,
     ): String? {
         return try {
-            val pm = context.packageManager
             if (sdkInt >= Build.VERSION_CODES.R) {
                 val info = pm.getInstallSourceInfo(targetPackage)
-                info.installingPackageName ?: info.initiatingPackageName
+                val initiating = info.initiatingPackageName
+                val installing = info.installingPackageName
+                when {
+                    classifyInstaller(initiating).isKnownUpdater -> initiating
+                    classifyInstaller(installing).isKnownUpdater -> installing
+                    else -> installing ?: initiating
+                }
             } else {
                 @Suppress("DEPRECATION")
                 pm.getInstallerPackageName(targetPackage)
             }
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             null
         }
     }
 
-    fun getUpdateSource(
-        context: Context,
-        targetPackage: String = context.packageName,
-        sdkInt: Int = Build.VERSION.SDK_INT,
-    ): UpdateSource {
-        return classifyInstaller(getInstallerPackageName(context, targetPackage, sdkInt))
+    fun getInstallerPackageName(context: Context): String? {
+        return try {
+            resolveInstaller(context.packageManager, context.packageName)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun getUpdateSource(context: Context): UpdateSource {
+        return classifyInstaller(getInstallerPackageName(context))
     }
 }
