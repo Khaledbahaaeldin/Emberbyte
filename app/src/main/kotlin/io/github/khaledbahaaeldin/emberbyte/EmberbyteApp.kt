@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import io.github.khaledbahaaeldin.emberbyte.nav.AppTransitions
+import io.github.khaledbahaaeldin.emberbyte.nav.NavDiagnostics
 import io.github.khaledbahaaeldin.emberbyte.nav.DeepLinkPatterns
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailScreen
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
@@ -142,7 +144,17 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     val reduceMotion = LocalReduceMotion.current
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
     val transitions = remember(motion, reduceMotion, layoutDirection) {
-        AppTransitions(motion, reduceMotion, layoutDirection)
+        AppTransitions(motion, reduceMotion, layoutDirection) { lambda, kind, from, to ->
+            NavDiagnostics.record("TRANSITION", "kind=$kind lambda=$lambda from=$from to=$to")
+        }
+    }
+    DisposableEffect(navController) {
+        val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
+            val stack = controller.currentBackStack.value.mapNotNull { it.destination.route }
+            NavDiagnostics.record("NAV_RESULT", "route=${destination.route} stack=$stack")
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
     }
 
     Box(Modifier.fillMaxSize().nestedScroll(visibility.connection), contentAlignment = Alignment.TopCenter) {
@@ -307,9 +319,11 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 items = items,
                 selectedId = selected.id,
                 onSelect = { id ->
+                    NavDiagnostics.record("NAV_REQUEST", "route=$id from=$route")
                     navController.navigateToTab(Destination.fromId(id))
                 },
                 visible = visibility.visible,
+                onDiagnostic = NavDiagnostics::record,
                 hapticsEnabled = hapticsEnabled,
                 trailing = if (route == Destination.Plans.route) {
                     {

@@ -50,14 +50,17 @@ fun GuardedBack(
     var showDiscardDialog by remember { mutableStateOf(false) }
 
     PredictiveBackHandler(enabled = dirty) { progressFlow ->
+        NavDiagnostics.record("BACK_START", "guarded")
         try {
             progressFlow.collect { backEvent ->
                 val p = backEvent.progress.coerceIn(0f, 1f)
                 gestureProgress = p
                 shrink = 1.0f - (1.0f - BackTransitions.SHRINK) * p
             }
+            NavDiagnostics.record("BACK_COMMIT", "guarded")
             showDiscardDialog = true
         } catch (_: CancellationException) {
+            NavDiagnostics.record("BACK_CANCEL", "guarded")
             shrink = 1f
             gestureProgress = 0f
         }
