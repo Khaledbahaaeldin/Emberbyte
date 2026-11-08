@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package io.github.khaledbahaaeldin.emberbyte.ui.design.controls
 
 import androidx.compose.animation.AnimatedVisibility
@@ -39,10 +41,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private val SnapMotionScheme = object : MotionScheme {
     override fun <T> defaultSpatialSpec(): FiniteAnimationSpec<T> = snap()
     override fun <T> fastSpatialSpec(): FiniteAnimationSpec<T> = snap()
@@ -52,7 +54,6 @@ private val SnapMotionScheme = object : MotionScheme {
     override fun <T> slowEffectsSpec(): FiniteAnimationSpec<T> = snap()
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun connectedShapes(index: Int, count: Int): ToggleButtonShapes = when {
     count <= 1 -> {
@@ -74,7 +75,6 @@ private fun connectedShapes(index: Int, count: Int): ToggleButtonShapes = when {
  * - The container uses [selectableGroup], each segment has [Role.RadioButton] and a minimum height of 48 dp.
  * - Segment labels are wrapped in [ForceLtr].
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ConnectedButtonGroup(
     options: List<String>,
@@ -83,81 +83,102 @@ fun ConnectedButtonGroup(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
 
-    val content: @Composable () -> Unit = {
-        val motion = MaterialTheme.motionScheme
-        Row(
-            modifier = modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-            verticalAlignment = Alignment.CenterVertically,
+    if (reduceMotion) {
+        // ToggleButton morphs shapes internally via MaterialTheme.motionScheme; override with SnapMotionScheme when reduced motion is requested.
+        MaterialExpressiveTheme(
+            motionScheme = SnapMotionScheme,
         ) {
-            val colors = ToggleButtonDefaults.colors(
-                containerColor = palette.surface2,
-                contentColor = palette.muted,
-                checkedContainerColor = palette.primary,
-                checkedContentColor = palette.onPrimary,
-                disabledContainerColor = palette.surface2.copy(alpha = 0.38f),
-                disabledContentColor = palette.muted.copy(alpha = 0.38f),
+            ConnectedButtonGroupRow(
+                options = options,
+                selectedIndex = selectedIndex,
+                onSelect = onSelect,
+                modifier = modifier,
+                enabled = enabled,
             )
+        }
+    } else {
+        ConnectedButtonGroupRow(
+            options = options,
+            selectedIndex = selectedIndex,
+            onSelect = onSelect,
+            modifier = modifier,
+            enabled = enabled,
+        )
+    }
+}
 
-            options.forEachIndexed { index, option ->
-                val isSelected = index == selectedIndex
-                val shapes = connectedShapes(index = index, count = options.size)
+@Composable
+private fun ConnectedButtonGroupRow(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val palette = LocalEmberbytePalette.current
+    val motion = rememberEmberbyteMotion()
+    Row(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val colors = ToggleButtonDefaults.colors(
+            containerColor = palette.surface2,
+            contentColor = palette.muted,
+            checkedContainerColor = palette.primary,
+            checkedContentColor = palette.onPrimary,
+            disabledContainerColor = palette.surface2.copy(alpha = 0.38f),
+            disabledContentColor = palette.muted.copy(alpha = 0.38f),
+        )
 
-                ToggleButton(
-                    checked = isSelected,
-                    onCheckedChange = { onSelect(index) },
-                    enabled = enabled,
-                    shapes = shapes,
-                    colors = colors,
-                    modifier = Modifier
-                        .weight(1f)
-                        .defaultMinSize(minHeight = 48.dp)
-                        .semantics {
-                            role = Role.RadioButton
-                            selected = isSelected
-                        },
+        options.forEachIndexed { index, option ->
+            val isSelected = index == selectedIndex
+            val shapes = connectedShapes(index = index, count = options.size)
+
+            ToggleButton(
+                checked = isSelected,
+                onCheckedChange = { onSelect(index) },
+                enabled = enabled,
+                shapes = shapes,
+                colors = colors,
+                modifier = Modifier
+                    .weight(1f)
+                    .defaultMinSize(minHeight = 48.dp)
+                    .semantics {
+                        role = Role.RadioButton
+                        selected = isSelected
+                    },
+            ) {
+                AnimatedVisibility(
+                    visible = isSelected,
+                    enter = fadeIn(animationSpec = motion.fastEffects()) +
+                        expandHorizontally(animationSpec = motion.fastSpatial()),
+                    exit = fadeOut(animationSpec = motion.fastEffects()) +
+                        shrinkHorizontally(animationSpec = motion.fastSpatial()),
                 ) {
-                    AnimatedVisibility(
-                        visible = isSelected,
-                        enter = fadeIn(animationSpec = motion.fastEffectsSpec()) +
-                            expandHorizontally(animationSpec = motion.fastSpatialSpec()),
-                        exit = fadeOut(animationSpec = motion.fastEffectsSpec()) +
-                            shrinkHorizontally(animationSpec = motion.fastSpatialSpec()),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .testTag("connected_button_group_check_icon"),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                    }
-                    ForceLtr {
-                        Text(
-                            text = option,
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            textAlign = TextAlign.Center,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .testTag("connected_button_group_check_icon"),
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
+                }
+                ForceLtr {
+                    Text(
+                        text = option,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
-    }
-
-    if (reduceMotion) {
-        MaterialExpressiveTheme(
-            motionScheme = SnapMotionScheme,
-            content = content,
-        )
-    } else {
-        content()
     }
 }

@@ -2,7 +2,6 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.progress
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
@@ -31,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
 
 internal fun ringColors(state: BudgetStateUi, palette: EmberbytePalette): Pair<Color, Color> {
@@ -109,8 +107,8 @@ fun WavyRing(
     val (arcColor, trackColor) = ringColors(state, palette)
     val outlineColor = ringOutlineColor(palette)
 
-    val reduceMotion = LocalReduceMotion.current
-    val animSpec: AnimationSpec<Float> = if (reduceMotion) snap() else MaterialTheme.motionScheme.defaultSpatialSpec()
+    val motion = rememberEmberbyteMotion()
+    val animSpec: AnimationSpec<Float> = motion.spatial()
     onAnimationSpecResolved?.invoke(animSpec)
 
     val sweep by animateFloatAsState(
