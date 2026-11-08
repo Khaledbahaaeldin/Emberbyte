@@ -1,0 +1,5 @@
+• New Updates row in Settings: shows which app updates Emberbyte, or opens the latest release
+• One smoother back animation everywhere, and tab switches no longer play it
+• Fixed a tab tap that was sometimes ignored
+• Unit picker, lists, loading and buttons now animate
+• Local navigation log to help report bugs (never leaves your phone)
