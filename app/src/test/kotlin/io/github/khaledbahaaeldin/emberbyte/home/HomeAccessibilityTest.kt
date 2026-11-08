@@ -19,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -114,6 +115,16 @@ class HomeAccessibilityTest {
         val settingsNode = rule.onNodeWithContentDescription("Settings")
         settingsNode.assertIsDisplayed()
         settingsNode.assert(hasClickAction())
+    }
+
+    @Test
+    fun icon_buttons_keep_48dp_and_their_content_description() {
+        show()
+        val settingsNode = rule.onNodeWithContentDescription("Settings")
+        settingsNode
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
+        assertNoTouchTargetSmallerThan48dp(rule)
     }
 
     @Test

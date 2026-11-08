@@ -4,7 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.HourglassEmpty
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
  * - A progress indicator described by [label] for accessibility
  * - A static indicator icon when reduced motion is on ([LocalReduceMotion]).
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoadingState(
     label: String,
@@ -44,9 +46,9 @@ fun LoadingState(
                 modifier = Modifier.size(36.dp),
             )
         } else {
-            CircularProgressIndicator(
-                color = palette.primary,
-                modifier = Modifier.size(36.dp),
+            ContainedLoadingIndicator(
+                containerColor = palette.surface2,
+                indicatorColor = palette.primary,
             )
         }
     }

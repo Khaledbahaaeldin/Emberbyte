@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 package io.github.khaledbahaaeldin.emberbyte.ui.design.number
 
 import androidx.compose.animation.AnimatedContent
@@ -11,21 +9,16 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
@@ -38,31 +31,37 @@ import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.R
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import kotlin.math.ln
 import kotlin.math.roundToInt
 
-internal const val REST_BPS = 10_000L
-internal const val MAX_BPS = 20_000_000L
-private const val WEIGHT_REST = 520f
-private const val WEIGHT_MAX = 900f
-private const val WIDTH_REST = 100f
-private const val WIDTH_MAX = 125f
-private const val AXIS_STEPS = 32
+internal object MorphingNumberPhysics {
+    const val REST_BPS = 10_000L
+    const val MAX_BPS = 20_000_000L
+    const val WEIGHT_REST = 520f
+    const val WEIGHT_MAX = 900f
+    const val WIDTH_REST = 100f
+    const val WIDTH_MAX = 125f
+    const val AXIS_STEPS = 32
+}
 
 internal data class NumberAxes(val weight: Float, val width: Float)
 
 /** 0 at or below 10 KB/s, 1 at or above 20 MB/s, log-scaled in between. */
 internal fun throughputIntensity(bps: Long): Float {
-    if (bps <= REST_BPS) return 0f
-    val t = (ln(bps.toDouble()) - ln(REST_BPS.toDouble())) /
-        (ln(MAX_BPS.toDouble()) - ln(REST_BPS.toDouble()))
+    if (bps <= MorphingNumberPhysics.REST_BPS) return 0f
+    val t = (ln(bps.toDouble()) - ln(MorphingNumberPhysics.REST_BPS.toDouble())) /
+        (ln(MorphingNumberPhysics.MAX_BPS.toDouble()) - ln(MorphingNumberPhysics.REST_BPS.toDouble()))
     return t.coerceIn(0.0, 1.0).toFloat()
 }
 
 internal fun axesFor(intensity: Float): NumberAxes = NumberAxes(
-    weight = WEIGHT_REST + (WEIGHT_MAX - WEIGHT_REST) * intensity,
-    width = WIDTH_REST + (WIDTH_MAX - WIDTH_REST) * intensity,
+    weight = MorphingNumberPhysics.WEIGHT_REST +
+        (MorphingNumberPhysics.WEIGHT_MAX - MorphingNumberPhysics.WEIGHT_REST) * intensity,
+    width = MorphingNumberPhysics.WIDTH_REST +
+        (MorphingNumberPhysics.WIDTH_MAX - MorphingNumberPhysics.WIDTH_REST) * intensity,
 )
 
 private fun robotoFlexFamily(axes: NumberAxes): FontFamily {
@@ -89,12 +88,12 @@ fun MorphingNumber(
     animate: Boolean = true,
     onMotionResolved: ((Boolean, androidx.compose.animation.core.AnimationSpec<Float>) -> Unit)? = null,
 ) {
+    val palette = LocalEmberbytePalette.current
     val live = animate && !LocalReduceMotion.current
     val formatted = remember(bytes, units) { formatBytes(bytes, units) }
-    val motion = MaterialTheme.motionScheme
+    val motion = rememberEmberbyteMotion()
 
-    val intensitySpec: androidx.compose.animation.core.AnimationSpec<Float> =
-        if (LocalReduceMotion.current) androidx.compose.animation.core.snap() else motion.defaultEffectsSpec()
+    val intensitySpec: androidx.compose.animation.core.AnimationSpec<Float> = motion.fastEffects()
     onMotionResolved?.invoke(live, intensitySpec)
 
     val intensity by animateFloatAsState(
@@ -102,10 +101,10 @@ fun MorphingNumber(
         animationSpec = intensitySpec,
         label = "numberIntensity",
     )
-    val step = (intensity * AXIS_STEPS).roundToInt()
-    val family = remember(step) { robotoFlexFamily(axesFor(step / AXIS_STEPS.toFloat())) }
-    val rollSpatial = motion.defaultSpatialSpec<IntOffset>()
-    val rollEffects = motion.defaultEffectsSpec<Float>()
+    val step = (intensity * MorphingNumberPhysics.AXIS_STEPS).roundToInt()
+    val family = remember(step) { robotoFlexFamily(axesFor(step / MorphingNumberPhysics.AXIS_STEPS.toFloat())) }
+    val rollSpatial = motion.spatial<IntOffset>()
+    val rollEffects = motion.effects<Float>()
 
     ForceLtr {
         Column(modifier.clearAndSetSemantics { this.contentDescription = contentDescription }) {
@@ -129,7 +128,7 @@ fun MorphingNumber(
                             Text(
                                 text = digit.toString(),
                                 modifier = Modifier.clearAndSetSemantics { },
-                                color = MaterialTheme.colorScheme.primary,
+                                color = palette.primary,
                                 style = EmberbyteType.hero(72.sp).copy(
                                     fontFamily = family,
                                     lineHeight = 72.sp,

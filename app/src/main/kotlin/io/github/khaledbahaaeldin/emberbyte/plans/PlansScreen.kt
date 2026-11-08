@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
@@ -54,6 +55,7 @@ internal fun PlansContent(
     onNewPlan: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val motion = rememberEmberbyteMotion()
     LazyColumn(
         modifier = modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
@@ -102,13 +104,20 @@ internal fun PlansContent(
                 )
             }
         } else {
-            item {
-                PlansBento(
-                    cards = state.cards,
-                    onOpenPlan = onOpenPlan,
-                    onPinPlan = { id, pinned -> onEvent(PlansEvent.SetPinned(id, pinned)) },
-                    onArchivePlan = { id -> onEvent(PlansEvent.ArchivePlan(id)) },
-                )
+            if (state.cards.isNotEmpty()) {
+                item(key = "active_plans") {
+                    PlansBento(
+                        cards = state.cards,
+                        onOpenPlan = onOpenPlan,
+                        onPinPlan = { id, pinned -> onEvent(PlansEvent.SetPinned(id, pinned)) },
+                        onArchivePlan = { id -> onEvent(PlansEvent.ArchivePlan(id)) },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                    )
+                }
             }
 
             if (state.archivedCards.isNotEmpty()) {
@@ -122,7 +131,15 @@ internal fun PlansContent(
                 }
                 if (state.showArchived) {
                     items(state.archivedCards, key = { it.id }) { card ->
-                        PlanCard(model = card, onClick = { onOpenPlan(card.id) })
+                        PlanCard(
+                            model = card,
+                            onClick = { onOpenPlan(card.id) },
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                        )
                     }
                 }
             }

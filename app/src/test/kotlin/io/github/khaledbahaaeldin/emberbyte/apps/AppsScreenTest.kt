@@ -1,6 +1,9 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -156,5 +159,30 @@ class AppsScreenTest {
         // Screen renders without crash in RTL
         rule.onNodeWithText("Apps").assertIsDisplayed()
         rule.onNodeWithText("Filters").assertIsDisplayed()
+    }
+
+    @Test
+    fun removing_an_item_keeps_the_others_and_does_not_crash() {
+        var apps by mutableStateOf(sampleApps)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppsContent(
+                    state = AppsUiState(apps = apps, loaded = true),
+                    onEvent = {},
+                    onOpenApp = {},
+                    onPromptAction = {},
+                )
+            }
+        }
+
+        rule.onNodeWithText("YouTube").assertIsDisplayed()
+        rule.onNodeWithText("Chat").assertIsDisplayed()
+
+        // Remove YouTube
+        apps = listOf(AppRowUi("com.chat", "Chat", 100_000_000L, 0L))
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Chat").assertIsDisplayed()
+        rule.onNodeWithText("YouTube").assertDoesNotExist()
     }
 }

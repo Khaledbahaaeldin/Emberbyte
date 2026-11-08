@@ -8,14 +8,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanTile
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -107,7 +109,7 @@ fun PlansBento(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PlanCardWithMenu(
     model: PlanCardUi,
@@ -116,6 +118,7 @@ private fun PlanCardWithMenu(
     onArchive: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalEmberbytePalette.current
     var menuOpen by remember { mutableStateOf(false) }
     val pinLabel = if (model.pinned) "Unpin" else "Pin"
     val menuActions = listOf(
@@ -142,12 +145,13 @@ private fun PlanCardWithMenu(
         Box(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
             IconButton(
                 onClick = { menuOpen = true },
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = "Plan options for ${model.name}",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             DropdownMenu(
@@ -180,7 +184,7 @@ private fun PlanCardWithMenu(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PlanTileWithMenu(
     model: PlanCardUi,
@@ -189,6 +193,7 @@ private fun PlanTileWithMenu(
     onArchive: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalEmberbytePalette.current
     var menuOpen by remember { mutableStateOf(false) }
     val pinLabel = if (model.pinned) "Unpin" else "Pin"
     val menuActions = listOf(
@@ -215,12 +220,13 @@ private fun PlanTileWithMenu(
         Box(modifier = Modifier.align(Alignment.TopEnd).padding(2.dp)) {
             IconButton(
                 onClick = { menuOpen = true },
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = "Plan options for ${model.name}",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             DropdownMenu(

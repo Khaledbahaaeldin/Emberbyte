@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,11 +46,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.graphics.shapes.Morph
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
 import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ExpressiveSwitch
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.morphShape
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePreset
@@ -58,6 +61,10 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
 
 val ThemeCardPaletteKey = SemanticsPropertyKey<EmberbytePalette>("ThemeCardPalette")
 val ThemeGridColumnsKey = SemanticsPropertyKey<Int>("ThemeGridColumns")
+val ThemeCardSwatchMorphProgressKey = SemanticsPropertyKey<Float>("ThemeCardSwatchMorphProgress")
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private val ThemeSwatchMorph = Morph(MaterialShapes.Circle, MaterialShapes.Cookie9Sided)
 
 @Composable
 fun AppearanceScreen(
@@ -194,7 +201,13 @@ private fun ThemeCard(
 ) {
     val currentPalette = LocalEmberbytePalette.current
     val shape = RoundedCornerShape(20.dp)
-    val cookieShape = MaterialShapes.Cookie9Sided.toShape()
+    val motion = rememberEmberbyteMotion()
+    val progress by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = motion.spatial(),
+        label = "theme_swatch_morph",
+    )
+    val swatchShape = morphShape(ThemeSwatchMorph, progress)
 
     Box(
         modifier = modifier
@@ -210,6 +223,7 @@ private fun ThemeCard(
                 contentDescription = if (isSelected) "${preset.name} theme, selected" else "${preset.name} theme"
                 set(ThemeCardPaletteKey, previewPalette)
                 set(ThemeGridColumnsKey, columns)
+                set(ThemeCardSwatchMorphProgressKey, progress)
                 selected = isSelected
             }
             .testTag("theme_card_${preset.id}")
@@ -220,7 +234,7 @@ private fun ThemeCard(
             modifier = Modifier
                 .size(46.dp)
                 .align(Alignment.TopStart)
-                .clip(cookieShape)
+                .clip(swatchShape)
                 .background(previewPalette.primary),
         )
 

@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +51,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.SpeedTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun HomeHeader(
     state: HomeUiState,
@@ -78,12 +82,13 @@ internal fun HomeHeader(
             }
             IconButton(
                 onClick = onOpenSettings,
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Settings,
                     contentDescription = "Settings",
-                    tint = palette.text,
                 )
             }
         }

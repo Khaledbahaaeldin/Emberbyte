@@ -2,7 +2,6 @@ package io.github.khaledbahaaeldin.emberbyte.onboarding
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,8 +22,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.nav.PermissionActions
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -70,7 +68,6 @@ fun OnboardingScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun OnboardingContent(
     state: OnboardingUiState,
@@ -151,7 +148,6 @@ internal fun OnboardingContent(
 
         OnboardingPageDots(
             pagerState = pagerState,
-            reduceMotion = reduceMotion,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
 
@@ -166,14 +162,14 @@ internal fun OnboardingContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun OnboardingPageDots(
     pagerState: PagerState,
-    reduceMotion: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
+    val motion = rememberEmberbyteMotion()
+    val spatialSpec = motion.spatial<Dp>()
     val currentPage = pagerState.currentPage
     val description = "Page ${currentPage + 1} of $ONBOARDING_PAGE_COUNT"
 
@@ -191,7 +187,7 @@ private fun OnboardingPageDots(
             val targetWidth: Dp = if (isSelected) 28.dp else 8.dp
             val dotWidth by animateDpAsState(
                 targetValue = targetWidth,
-                animationSpec = if (reduceMotion) snap() else MaterialTheme.motionScheme.defaultSpatialSpec(),
+                animationSpec = spatialSpec,
                 label = "onboarding_dot_width_$index",
             )
             Box(

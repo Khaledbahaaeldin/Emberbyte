@@ -2,14 +2,11 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.progress
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -24,8 +21,8 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
 internal fun clampBarFraction(fraction: Float): Float {
     return if (fraction.isNaN() || fraction < 0f) 0f else minOf(fraction, 1f)
@@ -34,13 +31,12 @@ internal fun clampBarFraction(fraction: Float): Float {
 /**
  * Expressive wavy bar progress indicator (Contract 13.1, Task A11).
  *
- * Renders a wavy filled segment in [color], a flat dim remainder in [EmberbytePalette.track],
+ * Renders a wavy filled segment in [color], a flat dim remainder in [LocalEmberbytePalette] track color,
  * with round caps on both ends.
  *
  * Clamps fraction between 0f and 1f and exposes progress semantics via [ProgressBarRangeInfo].
- * Animates with [MaterialTheme.motionScheme.defaultSpatialSpec], snapping when [LocalReduceMotion] is active.
+ * Animates with [rememberEmberbyteMotion], snapping when reduced motion is active.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WavyBar(
     fraction: Float,
@@ -50,8 +46,8 @@ fun WavyBar(
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
 ) {
     val clamped = clampBarFraction(fraction)
-    val reduceMotion = LocalReduceMotion.current
-    val animSpec: AnimationSpec<Float> = if (reduceMotion) snap() else MaterialTheme.motionScheme.defaultSpatialSpec()
+    val motion = rememberEmberbyteMotion()
+    val animSpec = motion.spatial<Float>()
     onAnimationSpecResolved?.invoke(animSpec)
 
     val animatedFraction by animateFloatAsState(

@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -138,5 +140,26 @@ class LicencesScreenTest {
         rule.onNodeWithText("Open-source licences").assertIsDisplayed()
         rule.onNodeWithText("Emberbyte is free software").assertIsDisplayed()
         rule.onNodeWithText("Bouncy Castle").assertIsDisplayed()
+    }
+
+    @Test
+    fun icon_buttons_keep_48dp_and_their_content_description() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                LicencesContent(
+                    items = sampleItems,
+                    searchQuery = "Roboto",
+                    onSearchQueryChange = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        val clearButton = rule.onNodeWithContentDescription("Clear search")
+        clearButton
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
+
+        assertNoTouchTargetSmallerThan48dp(rule)
     }
 }
