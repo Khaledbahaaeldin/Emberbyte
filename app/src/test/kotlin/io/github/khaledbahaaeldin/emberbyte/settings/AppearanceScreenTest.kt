@@ -22,6 +22,7 @@ import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerTha
 import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -228,5 +229,81 @@ class AppearanceScreenTest {
         val monoX2 = rule.onNodeWithTag("theme_card_monochrome").fetchSemanticsNode().positionInRoot.x
         assertTrue("RTL: Dusk > Ember", duskX2 > emberX2)
         assertTrue("RTL: Ember > Monochrome", emberX2 > monoX2)
+    }
+
+    @Test
+    fun selected_theme_swatch_has_a_different_shape_than_unselected() {
+        var selectedThemeId by mutableStateOf("dusk")
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppearanceContent(
+                    uiState = AppearanceUiState(themeId = selectedThemeId),
+                    onEvent = { event ->
+                        if (event is AppearanceEvent.SetTheme) selectedThemeId = event.id
+                    },
+                    onBack = {},
+                )
+            }
+        }
+
+        // Selected card (Dusk) has progress 1f (Cookie9Sided shape)
+        val selectedNode = rule.onNodeWithTag("theme_card_dusk").fetchSemanticsNode()
+        val selectedProgress = selectedNode.config[ThemeCardSwatchMorphProgressKey]
+        assertEquals("Selected theme swatch progress should be 1.0 (Cookie9Sided)", 1f, selectedProgress, 0.01f)
+
+        // Unselected card (Ember) has progress 0f (Circle shape)
+        val unselectedNode = rule.onNodeWithTag("theme_card_ember").fetchSemanticsNode()
+        val unselectedProgress = unselectedNode.config[ThemeCardSwatchMorphProgressKey]
+        assertEquals("Unselected theme swatch progress should be 0.0 (Circle)", 0f, unselectedProgress, 0.01f)
+
+        // Select Ember
+        rule.onNodeWithTag("theme_card_ember").performClick()
+        rule.waitForIdle()
+
+        // Ember is now selected (progress 1f) and Dusk is unselected (progress 0f)
+        val newSelectedProgress = rule.onNodeWithTag("theme_card_ember").fetchSemanticsNode().config[ThemeCardSwatchMorphProgressKey]
+        val newUnselectedProgress = rule.onNodeWithTag("theme_card_dusk").fetchSemanticsNode().config[ThemeCardSwatchMorphProgressKey]
+        assertEquals("Newly selected theme swatch progress should reach 1.0", 1f, newSelectedProgress, 0.01f)
+        assertEquals("Formerly selected theme swatch progress should reach 0.0", 0f, newUnselectedProgress, 0.01f)
+    }
+
+    @Test
+    fun selected_theme_swatch_morph_snaps_under_reduced_motion() {
+        var selectedThemeId by mutableStateOf("dusk")
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    AppearanceContent(
+                        uiState = AppearanceUiState(themeId = selectedThemeId),
+                        onEvent = { event ->
+                            if (event is AppearanceEvent.SetTheme) selectedThemeId = event.id
+                        },
+                        onBack = {},
+                    )
+                }
+            }
+        }
+
+        assertEquals(1f, rule.onNodeWithTag("theme_card_dusk").fetchSemanticsNode().config[ThemeCardSwatchMorphProgressKey], 0.001f)
+        assertEquals(0f, rule.onNodeWithTag("theme_card_ember").fetchSemanticsNode().config[ThemeCardSwatchMorphProgressKey], 0.001f)
+
+        try {
+            rule.mainClock.autoAdvance = false
+            selectedThemeId = "ember"
+
+            var emberProgress: Float? = null
+            for (i in 1..10) {
+                rule.mainClock.advanceTimeBy(16)
+                val p = rule.onNodeWithTag("theme_card_ember").fetchSemanticsNode().config[ThemeCardSwatchMorphProgressKey]
+                if (p != 0f) {
+                    emberProgress = p
+                    break
+                }
+            }
+            assertEquals("Under reduced motion, progress snaps directly to 1f without intermediate values", 1f, emberProgress ?: -1f, 0.001f)
+            assertEquals("Dusk snaps directly to 0f", 0f, rule.onNodeWithTag("theme_card_dusk").fetchSemanticsNode().config[ThemeCardSwatchMorphProgressKey], 0.001f)
+        } finally {
+            rule.mainClock.autoAdvance = true
+        }
     }
 }
