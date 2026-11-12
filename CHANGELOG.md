@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.2] - 2026-11-10
+## [1.0.2] - 2026-11-12
 
 ### Added
 - **Updates row** in Settings. It shows which app keeps Emberbyte up to date (Obtainium, Orion Store or F-Droid) and opens it; with any other installer it opens the latest GitHub release. Emberbyte still never goes online by itself, so it cannot tell you when a new version exists.
