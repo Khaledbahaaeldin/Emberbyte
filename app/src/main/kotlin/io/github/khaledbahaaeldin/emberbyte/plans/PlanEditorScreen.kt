@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,9 +25,11 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -43,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,7 +88,7 @@ fun PlanEditorScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlanEditorContent(
     state: PlanEditorUiState,
@@ -94,6 +97,7 @@ internal fun PlanEditorContent(
     onPrompt: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalEmberbytePalette.current
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val backRequester = remember { FocusRequester() }
 
@@ -538,7 +542,9 @@ internal fun PlanEditorContent(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         IconButton(
                             onClick = { onEvent(PlanEditorEvent.RemoveAddOn(index)) },
-                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                            shapes = IconButtonDefaults.shapes(),
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(Icons.Rounded.Delete, contentDescription = "Remove add-on pack")
                         }
@@ -652,7 +658,9 @@ internal fun PlanEditorContent(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         IconButton(
                             onClick = { onEvent(PlanEditorEvent.RemoveFreeRule(index)) },
-                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                            shapes = IconButtonDefaults.shapes(),
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Icon(Icons.Rounded.Delete, contentDescription = "Remove free window")
                         }

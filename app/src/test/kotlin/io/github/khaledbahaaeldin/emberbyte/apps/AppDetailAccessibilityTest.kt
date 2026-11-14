@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetPeriod
@@ -71,6 +72,16 @@ class AppDetailAccessibilityTest {
         show()
         val backButton = rule.onNodeWithContentDescription("Back")
         backButton.assertIsDisplayed()
+    }
+
+    @Test
+    fun icon_buttons_keep_48dp_and_their_content_description() {
+        show()
+        val backButton = rule.onNodeWithContentDescription("Back")
+        backButton
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
+        assertNoTouchTargetSmallerThan48dp(rule)
     }
 
     @Test

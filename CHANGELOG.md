@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-11-12
+
+### Added
+- **Updates row** in Settings. It shows which app keeps Emberbyte up to date (Obtainium, Orion Store or F-Droid) and opens it; with any other installer it opens the latest GitHub release. Emberbyte still never goes online by itself, so it cannot tell you when a new version exists.
+- **Local navigation log**: long-press the version in Settings to copy the last 300 navigation and tab-tap events to the clipboard. It is kept in memory only and never saved or sent anywhere.
+
+### Changed
+- **One back and push motion** for every screen: the screen shrinks, rounds its corners and slides away, and follows your finger during the predictive back gesture.
+- **Plan creation**: going back a step now uses the predictive back gesture, and steps slide in the direction you are moving.
+- **Unit picker** (MB / GB / TB and the other segmented choices) morphs between shapes using the Material 3 Expressive toggle button.
+- **Lists animate**: Apps, Plans, History and the Home prompts fade and slide when items appear, disappear or move.
+- **Loading** uses the Material 3 Expressive loading indicator.
+- **Icon buttons** change shape while pressed, and the theme swatch morphs between a circle and a cookie when selected.
+- The plans "+" button grows in and out, and the navigation bar slides smoothly instead of jumping.
+- Animation settings now come from one place, and reduced motion still snaps everything.
+
+### Fixed
+- Switching tabs from the navigation bar no longer plays the back animation (for example Apps to Home).
+- A tap on a tab that drifted slightly before lifting is no longer ignored, which could leave the Apps tab unresponsive until you went Home.
+- Opening a tab from a link while a sub-screen is open no longer leaves a duplicate tab on the back stack.
+
 ## [1.0.1] - 2026-10-21
 
 ### Changed

@@ -36,6 +36,26 @@ internal fun itemIndexAt(x: Float, starts: List<Float>, ends: List<Float>): Int 
     return best
 }
 
+/**
+ * The tab a gesture should select when it is really a tap whose finger drifted, or null when it is a real drag.
+ *
+ * A press that moves no more than [tapSlopPx] and ends without a flick is a tap on the cell under the finger when it
+ * went DOWN. Without this, a tap near a cell's edge that drifted out of the cell lost the cell's own click (the click is
+ * cancelled once the finger leaves the cell) and the drag logic then landed on the old tab, so the tap seemed ignored.
+ */
+internal fun resolveTapLanding(
+    startX: Float,
+    totalDragPx: Float,
+    flickPxPerSec: Float,
+    starts: List<Float>,
+    ends: List<Float>,
+    tapSlopPx: Float,
+    flickThresholdPx: Float,
+): Int? {
+    val isTap = kotlin.math.abs(totalDragPx) <= tapSlopPx && kotlin.math.abs(flickPxPerSec) < flickThresholdPx
+    return if (isTap) itemIndexAt(startX, starts, ends) else null
+}
+
 /** Pixels the previewed pill trails behind the finger: it follows with resistance, never 1:1. */
 internal fun dragResistance(deltaPx: Float): Float = deltaPx * 0.5f
 
@@ -54,6 +74,7 @@ object NavBarSpring {
     const val MOMENTUM_SECONDS = 0.08f
     const val LABEL_FADE_START = 0.35f
     const val LABEL_FADE_SPAN = 0.65f
+    const val TAP_SLOP_DP = 20
 
     val leadingStiffness: Float
         get() = BASE_STIFFNESS * EDGE_LEAD

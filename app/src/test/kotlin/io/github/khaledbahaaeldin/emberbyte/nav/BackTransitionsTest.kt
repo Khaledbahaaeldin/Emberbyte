@@ -13,7 +13,7 @@ class BackTransitionsTest {
     @Test
     fun pop_constants_match_the_contract() {
         assertEquals(0.90f, BackTransitions.SHRINK, 0.001f)
-        assertEquals(28, BackTransitions.SLIDE_DP)
+        assertEquals(0.08f, BackTransitions.SLIDE_FRACTION, 0.001f)
         assertEquals(0.94f, BackTransitions.BEHIND_SCALE_START, 0.001f)
         assertEquals(32, BackTransitions.CORNER_DP)
     }
@@ -53,7 +53,9 @@ class BackTransitionsTest {
     fun tab_transitions_are_not_used_for_pop() {
         val appFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/EmberbyteApp.kt")
         assertTrue("EmberbyteApp.kt should exist", appFile.exists())
-        val content = appFile.readText()
+        val transitionsFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/AppTransitions.kt")
+        assertTrue("AppTransitions.kt should exist", transitionsFile.exists())
+        val content = appFile.readText() + transitionsFile.readText()
 
         // NavHost must not use tabEnterTransition or tabExitTransition for popEnterTransition or popExitTransition
         val popEnterMatch = Regex("""popEnterTransition\s*=\s*\{\s*tabEnterTransition""").containsMatchIn(content)
@@ -64,15 +66,11 @@ class BackTransitionsTest {
     }
 
     @Test
-    fun pop_exit_in_rtl_uses_rtl_origin_and_negative_slide() {
-        val rtlExit = BackTransitions.popExit(LayoutDirection.Rtl)
-        org.junit.Assert.assertNotNull(rtlExit)
-    }
-
-    @Test
-    fun pop_exit_in_ltr_uses_ltr_origin_and_positive_slide() {
-        val ltrExit = BackTransitions.popExit(LayoutDirection.Ltr)
-        org.junit.Assert.assertNotNull(ltrExit)
+    fun pop_exit_is_built_for_both_directions() {
+        val motion = androidx.compose.material3.MotionScheme.expressive()
+        org.junit.Assert.assertNotNull(BackTransitions.popExit(motion, LayoutDirection.Rtl))
+        org.junit.Assert.assertNotNull(BackTransitions.popExit(motion, LayoutDirection.Ltr))
+        org.junit.Assert.assertNotNull(BackTransitions.predictivePopExit(LayoutDirection.Rtl))
     }
 
     @Test
@@ -84,14 +82,20 @@ class BackTransitionsTest {
     fun emberbyte_app_passes_layout_direction_to_back_transitions() {
         val appFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/EmberbyteApp.kt")
         assertTrue("EmberbyteApp.kt should exist", appFile.exists())
-        val content = appFile.readText()
+        val transitionsFile = File("src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/AppTransitions.kt")
+        assertTrue("AppTransitions.kt should exist", transitionsFile.exists())
+        val content = appFile.readText() + transitionsFile.readText()
         assertTrue(
-            "EmberbyteApp must pass layoutDirection to BackTransitions.popExit",
-            content.contains("BackTransitions.popExit(layoutDirection)")
+            "The pop exit must be built with the layout direction",
+            content.contains("BackTransitions.popExit(motion, layoutDirection)")
         )
         assertTrue(
-            "EmberbyteApp must pass layoutDirection to BackTransitions.popEnter",
-            content.contains("BackTransitions.popEnter(layoutDirection)")
+            "The predictive pop exit must be built with the direction of the swipe edge",
+            content.contains("BackTransitions.predictivePopExit(directionForEdge(edge))")
+        )
+        assertTrue(
+            "The push enter must be built with the layout direction",
+            content.contains("BackTransitions.pushEnter(motion, layoutDirection)")
         )
     }
 

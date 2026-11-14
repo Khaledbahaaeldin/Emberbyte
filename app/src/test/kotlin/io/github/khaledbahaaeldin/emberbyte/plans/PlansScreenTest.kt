@@ -1,5 +1,8 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
@@ -177,5 +180,38 @@ class PlansScreenTest {
 
         rule.onNodeWithText("Front Plan").assertIsDisplayed()
         rule.onNodeWithText("Second Plan").assertIsDisplayed()
+    }
+
+    @Test
+    fun removing_an_archived_plan_keeps_the_others_and_does_not_crash() {
+        val a1 = sampleCard(10, "Archived 1")
+        val a2 = sampleCard(20, "Archived 2")
+        var archivedList by mutableStateOf(listOf(a1, a2))
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                PlansContent(
+                    state = PlansUiState(
+                        cards = emptyList(),
+                        archivedCards = archivedList,
+                        showArchived = true,
+                        loaded = true,
+                    ),
+                    onEvent = {},
+                    onOpenPlan = {},
+                    onNewPlan = {},
+                )
+            }
+        }
+
+        rule.onNodeWithText("Archived 1").assertIsDisplayed()
+        rule.onNodeWithText("Archived 2").assertIsDisplayed()
+
+        // Remove Archived 1
+        archivedList = listOf(a2)
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Archived 2").assertIsDisplayed()
+        rule.onNodeWithText("Archived 1").assertDoesNotExist()
     }
 }

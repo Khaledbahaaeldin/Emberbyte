@@ -25,8 +25,10 @@ import androidx.compose.material.icons.rounded.Tune
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -50,6 +52,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -98,6 +101,7 @@ fun AppsScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun AppsContent(
     state: AppsUiState,
@@ -108,6 +112,7 @@ internal fun AppsContent(
     icons: (String) -> ImageBitmap? = { null },
 ) {
     val palette = LocalEmberbytePalette.current
+    val motion = rememberEmberbyteMotion()
     var showFiltersSheet by remember { mutableStateOf(false) }
 
     if (showFiltersSheet) {
@@ -161,11 +166,15 @@ internal fun AppsContent(
                     },
                     trailingIcon = if (state.query.isNotEmpty()) {
                         {
-                            IconButton(onClick = { onEvent(AppsEvent.SetQuery("")) }) {
+                            IconButton(
+                                onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                                modifier = Modifier.size(48.dp),
+                            ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
                                     contentDescription = "Clear search",
-                                    tint = palette.muted,
                                 )
                             }
                         }
@@ -336,6 +345,11 @@ internal fun AppsContent(
                     wifiBytes = app.wifiBytes,
                     onClick = { onOpenApp(app.packageName) },
                     units = state.units,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
                 )
             }
         }

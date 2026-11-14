@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import kotlinx.coroutines.flow.onEach
 import androidx.lifecycle.ViewModel
@@ -260,6 +261,7 @@ fun HistoryContent(
         Granularity.MONTH -> "month"
         else -> "day"
     }
+    val motion = rememberEmberbyteMotion()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -290,9 +292,15 @@ fun HistoryContent(
             if (selectedIndex != null && selectedIndex in state.bars.indices) {
                 val bar = state.bars[selectedIndex]
                 val point = state.points.getOrNull(selectedIndex)
-                item {
+                item(key = "selected_bar_$selectedIndex") {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(

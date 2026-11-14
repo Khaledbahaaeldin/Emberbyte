@@ -1,10 +1,13 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import android.content.Intent
+import android.os.Build
+import android.widget.Toast
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,16 +45,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import io.github.khaledbahaaeldin.emberbyte.nav.NavDiagnostics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
@@ -88,6 +94,9 @@ fun SettingsScreen(
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
     }
 
+    val installerPackage = remember(context) { InstallSourceReader.getInstallerPackageName(context) }
+    val updateSource = remember(installerPackage) { classifyInstaller(installerPackage) }
+
     val pendingState = rememberSaveable(saver = SettingsPendingState.Saver) { SettingsPendingState() }
     val promotedGate = remember(context) { io.github.khaledbahaaeldin.emberbyte.sampler.PromotedGate(context) }
 
@@ -122,6 +131,25 @@ fun SettingsScreen(
         versionName = versionName,
         onOpenSource = { runCatching { uriHandler.openUri(SOURCE_URL) } },
         onOpenLicenses = onOpenLicenses,
+        updateSource = updateSource,
+        onOpenUpdater = {
+            val launch = installerPackage?.let { pkg ->
+                runCatching { context.packageManager.getLaunchIntentForPackage(pkg) }.getOrNull()
+            }
+            if (launch != null) {
+                runCatching { context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            } else {
+                runCatching { uriHandler.openUri(RELEASES_URL) }
+            }
+        },
+        onOpenReleases = { runCatching { uriHandler.openUri(RELEASES_URL) } },
+        onCopyNavLog = {
+            val info = runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
+            val header = "Emberbyte $versionName (code ${info?.longVersionCode ?: 0}) | Android ${Build.VERSION.RELEASE} " +
+                "(API ${Build.VERSION.SDK_INT}) | ${Build.MANUFACTURER} ${Build.MODEL}"
+            val count = NavDiagnostics.copyToClipboard(context, header)
+            Toast.makeText(context, "Copied navigation log ($count events)", Toast.LENGTH_SHORT).show()
+        },
         onOpenBatterySettings = {
             runCatching {
                 context.startActivity(
@@ -219,6 +247,10 @@ internal fun SettingsContent(
     onOpenAppearance: () -> Unit = {},
     mayPostLiveUpdates: Boolean = true,
     onOpenLiveUpdatesSettings: () -> Unit = {},
+    onCopyNavLog: () -> Unit = {},
+    updateSource: UpdateSource = UpdateSource.Unknown,
+    onOpenUpdater: () -> Unit = {},
+    onOpenReleases: () -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
@@ -369,6 +401,10 @@ internal fun SettingsContent(
                     versionName = versionName,
                     onOpenSource = onOpenSource,
                     onOpenLicenses = onOpenLicenses,
+                    onCopyNavLog = onCopyNavLog,
+                    updateSource = updateSource,
+                    onOpenUpdater = onOpenUpdater,
+                    onOpenReleases = onOpenReleases,
                 )
             }
         }
@@ -570,6 +606,10 @@ private fun AboutGroupContent(
     versionName: String,
     onOpenSource: () -> Unit,
     onOpenLicenses: () -> Unit,
+    onCopyNavLog: () -> Unit,
+    updateSource: UpdateSource,
+    onOpenUpdater: () -> Unit,
+    onOpenReleases: () -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -582,6 +622,14 @@ private fun AboutGroupContent(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
+            modifier = Modifier
+                .pointerInput(onCopyNavLog) { detectTapGestures(onLongPress = { onCopyNavLog() }) }
+                .semantics {
+                    onLongClick(label = "Copy navigation log") {
+                        onCopyNavLog()
+                        true
+                    }
+                },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -599,6 +647,13 @@ private fun AboutGroupContent(
                 )
             }
         }
+
+        UpdatesRow(
+            updateSource = updateSource,
+            versionName = versionName,
+            onOpenUpdater = onOpenUpdater,
+            onOpenReleases = onOpenReleases,
+        )
 
         if (singleColumn) {
             Column(

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,7 +36,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import io.github.khaledbahaaeldin.emberbyte.nav.BackTransitions
+import io.github.khaledbahaaeldin.emberbyte.nav.AppTransitions
+import io.github.khaledbahaaeldin.emberbyte.nav.NavDiagnostics
 import io.github.khaledbahaaeldin.emberbyte.nav.DeepLinkPatterns
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailScreen
 import io.github.khaledbahaaeldin.emberbyte.apps.AppDetailViewModel
@@ -47,10 +49,9 @@ import io.github.khaledbahaaeldin.emberbyte.home.HomeScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Destination
 import io.github.khaledbahaaeldin.emberbyte.nav.PredictiveBackSubScreen
 import io.github.khaledbahaaeldin.emberbyte.nav.Routes
+import io.github.khaledbahaaeldin.emberbyte.nav.navigateToTab
 import io.github.khaledbahaaeldin.emberbyte.nav.openDeepLink
 import io.github.khaledbahaaeldin.emberbyte.nav.rememberPermissionActions
-import io.github.khaledbahaaeldin.emberbyte.nav.tabEnterTransition
-import io.github.khaledbahaaeldin.emberbyte.nav.tabExitTransition
 import io.github.khaledbahaaeldin.emberbyte.onboarding.OnboardingScreen
 import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorScreen
 import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorViewModel
@@ -142,22 +143,33 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     val motion = MaterialTheme.motionScheme
     val reduceMotion = LocalReduceMotion.current
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val transitions = remember(motion, reduceMotion, layoutDirection) {
+        AppTransitions(motion, reduceMotion, layoutDirection) { lambda, kind, from, to ->
+            NavDiagnostics.record("TRANSITION", "kind=$kind lambda=$lambda from=$from to=$to")
+        }
+    }
+    DisposableEffect(navController) {
+        val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
+            NavDiagnostics.record(
+                "NAV_RESULT",
+                "route=${destination.route} previous=${controller.previousBackStackEntry?.destination?.route}",
+            )
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
 
     Box(Modifier.fillMaxSize().nestedScroll(visibility.connection), contentAlignment = Alignment.TopCenter) {
         NavHost(
             navController = navController,
             startDestination = if (startOnboarding) Routes.ONBOARDING else Destination.Home.route,
             modifier = Modifier.contentWidth().fillMaxHeight(),
-            enterTransition = { tabEnterTransition(motion, reduceMotion) },
-            exitTransition = { tabExitTransition(motion, reduceMotion) },
-            popEnterTransition = {
-                if (reduceMotion) BackTransitions.popEnterReducedMotion()
-                else BackTransitions.popEnter(layoutDirection)(this)
-            },
-            popExitTransition = {
-                if (reduceMotion) BackTransitions.popExitReducedMotion()
-                else BackTransitions.popExit(layoutDirection)(this)
-            },
+            enterTransition = transitions.enter,
+            exitTransition = transitions.exit,
+            popEnterTransition = transitions.popEnter,
+            popExitTransition = transitions.popExit,
+            predictivePopEnterTransition = transitions.predictivePopEnter,
+            predictivePopExitTransition = transitions.predictivePopExit,
         ) {
             composable(Routes.ONBOARDING) {
                 val viewModel: OnboardingViewModel = viewModel(factory = graph.onboardingViewModelFactory())
@@ -186,7 +198,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
                     onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
-                    onNavigateToApps = { navController.navigate(Destination.Apps.route) },
+                    onNavigateToApps = { navController.navigateToTab(Destination.Apps) },
                     iconProvider = graph.appIcons,
                 )
             }
@@ -306,34 +318,30 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             }
         }
         val isTopLevel = route in setOf(Destination.Home.route, Destination.Apps.route, Destination.Plans.route)
-        if (isTopLevel) {
-            CompactNavBar(
-                items = items,
-                selectedId = selected.id,
-                onSelect = { id ->
-                    navController.navigate(Destination.fromId(id).route) {
-                        popUpTo(Destination.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                visible = visibility.visible,
-                hapticsEnabled = hapticsEnabled,
-                trailing = if (route == Destination.Plans.route) {
-                    {
-                        PlusButton(
-                            onClick = { navController.navigate(Routes.PLAN_NEW) },
-                            contentDescription = "New plan",
-                        )
-                    }
-                } else null,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .contentWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 12.dp),
-            )
-        }
+        CompactNavBar(
+            items = items,
+            selectedId = selected.id,
+            onSelect = { id ->
+                NavDiagnostics.record("NAV_REQUEST", "route=$id from=$route")
+                navController.navigateToTab(Destination.fromId(id))
+            },
+            visible = visibility.visible && isTopLevel,
+            onDiagnostic = NavDiagnostics::record,
+            hapticsEnabled = hapticsEnabled,
+            trailing = if (route == Destination.Plans.route) {
+                {
+                    PlusButton(
+                        onClick = { navController.navigate(Routes.PLAN_NEW) },
+                        contentDescription = "New plan",
+                    )
+                }
+            } else null,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .contentWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 12.dp),
+        )
     }
 }
 

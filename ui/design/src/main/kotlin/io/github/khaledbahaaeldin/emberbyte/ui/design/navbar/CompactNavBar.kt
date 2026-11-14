@@ -3,10 +3,16 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.navbar
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -65,6 +71,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +112,7 @@ fun CompactNavBar(
     modifier: Modifier = Modifier,
     hapticsEnabled: Boolean = true,
     trailing: (@Composable () -> Unit)? = null,
+    onDiagnostic: (kind: String, detail: String) -> Unit = { _, _ -> },
 ) {
     val reduceMotion = LocalReduceMotion.current
     val motion = MaterialTheme.motionScheme
@@ -116,6 +124,7 @@ fun CompactNavBar(
             onSelect = onSelect,
             hapticsEnabled = hapticsEnabled,
             trailing = trailing,
+            onDiagnostic = onDiagnostic,
         )
     }
 
@@ -144,10 +153,15 @@ private fun NavBarRow(
     onSelect: (String) -> Unit,
     hapticsEnabled: Boolean,
     trailing: (@Composable () -> Unit)?,
+    onDiagnostic: (kind: String, detail: String) -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
+    val reduceMotion = LocalReduceMotion.current
+    val motion = MaterialTheme.motionScheme
+    val lastTrailing = remember { arrayOfNulls<@Composable () -> Unit>(1) }
+    if (trailing != null) lastTrailing[0] = trailing
 
     val labelStyle = MaterialTheme.typography.labelLarge.copy(
         fontSize = 13.sp,
@@ -208,6 +222,7 @@ private fun NavBarRow(
                 selectedId = selectedId,
                 onSelect = onSelect,
                 hapticsEnabled = hapticsEnabled,
+                onDiagnostic = onDiagnostic,
                 totalBarWidthDp = totalBarWidthDp,
                 totalBarWidthPx = totalBarWidthPx,
                 collapsedCellPx = collapsedCellPx,
@@ -217,9 +232,23 @@ private fun NavBarRow(
             )
         }
 
-        if (trailing != null) {
-            Spacer(Modifier.width(12.dp))
-            trailing()
+        // Animated so the centred row slides the bar over instead of making it jump when the button comes and goes.
+        // The last content is kept so the exit animation still has something to draw.
+        AnimatedVisibility(
+            visible = trailing != null,
+            enter = if (reduceMotion) EnterTransition.None else {
+                expandHorizontally(motion.defaultSpatialSpec<IntSize>(), expandFrom = Alignment.Start) +
+                    scaleIn(motion.defaultSpatialSpec<Float>()) + fadeIn(motion.defaultEffectsSpec())
+            },
+            exit = if (reduceMotion) ExitTransition.None else {
+                shrinkHorizontally(motion.defaultSpatialSpec<IntSize>(), shrinkTowards = Alignment.Start) +
+                    scaleOut(motion.defaultSpatialSpec<Float>()) + fadeOut(motion.defaultEffectsSpec())
+            },
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.width(12.dp))
+                lastTrailing[0]?.invoke()
+            }
         }
     }
 }
@@ -230,6 +259,7 @@ private fun NavBarSlots(
     selectedId: String,
     onSelect: (String) -> Unit,
     hapticsEnabled: Boolean,
+    onDiagnostic: (kind: String, detail: String) -> Unit,
     totalBarWidthDp: androidx.compose.ui.unit.Dp,
     totalBarWidthPx: Float,
     collapsedCellPx: Float,
@@ -252,6 +282,10 @@ private fun NavBarSlots(
     val currentHapticsEnabled by rememberUpdatedState(hapticsEnabled)
     val currentReduceMotion by rememberUpdatedState(reduceMotion)
     val currentIsRtl by rememberUpdatedState(isRtl)
+    val currentOnDiagnostic by rememberUpdatedState(onDiagnostic)
+    // Set by a cell's own click during a gesture. If the finger lifts outside the pressed cell that click is cancelled,
+    // and the gesture handler selects the pressed tab itself.
+    val clickFired = remember { booleanArrayOf(false) }
 
     val pillHeightPx = with(density) { 52.dp.toPx() }
     val pillTopPx = with(density) { 6.dp.toPx() }
@@ -407,6 +441,15 @@ private fun NavBarSlots(
                 val touchSlop = viewConfiguration.touchSlop
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
+                    clickFired[0] = false
+                    run {
+                        val (dXs, dWs) = computeCells(currentSelectedIndex, currentIsRtl)
+                        val cellAtDown = itemIndexAt(down.position.x, dXs.toList(), List(items.size) { i -> dXs[i] + dWs[i] })
+                        currentOnDiagnostic(
+                            "TAB_DOWN",
+                            "x=${down.position.x.roundToInt()} cell=${items[cellAtDown].id} selected=${items[currentSelectedIndex].id}",
+                        )
+                    }
                     val velocityTracker = VelocityTracker()
                     velocityTracker.addPosition(down.uptimeMillis, down.position)
                     val startX = down.position.x
@@ -436,6 +479,7 @@ private fun NavBarSlots(
                         val dxTotal = change.position.x - startX
                         if (!dragging && abs(dxTotal) > touchSlop) {
                             dragging = true
+                            currentOnDiagnostic("TAB_DRAG_START", "dx=${dxTotal.roundToInt()}")
                         }
                         if (dragging) {
                             change.consume()
@@ -450,6 +494,7 @@ private fun NavBarSlots(
                         }
                     }
 
+                    currentOnDiagnostic("TAB_UP", "x=${endX.roundToInt()} dragging=$dragging")
                     if (dragging) {
                         val trackerVel = velocityTracker.calculateVelocity().x
                         val rawVel = if (abs(trackerVel) > abs(lastVelPxPerSec)) trackerVel else lastVelPxPerSec
@@ -459,8 +504,19 @@ private fun NavBarSlots(
                         val selLeft = curXs[currentSelectedIndex]
                         val selRight = selLeft + curWs[currentSelectedIndex]
                         val stayedInsideSelected = startX in selLeft..selRight && endX in selLeft..selRight && momentumVel == 0f
+                        val tapLanding = resolveTapLanding(
+                            startX = startX,
+                            totalDragPx = endX - startX,
+                            flickPxPerSec = rawVel,
+                            starts = curXs.toList(),
+                            ends = List(items.size) { i -> curXs[i] + curWs[i] },
+                            tapSlopPx = NavBarSpring.TAP_SLOP_DP.dp.toPx(),
+                            flickThresholdPx = flickThresholdPxPerSec,
+                        )
 
-                        val landingIdx = if (stayedInsideSelected) {
+                        val landingIdx = if (tapLanding != null) {
+                            tapLanding
+                        } else if (stayedInsideSelected) {
                             currentSelectedIndex
                         } else {
                             NavBarSpring.landingIndex(
@@ -478,6 +534,7 @@ private fun NavBarSlots(
                             velocityPxPerSec = rawVel,
                             snap = currentReduceMotion,
                         )
+                        currentOnDiagnostic("TAB_LANDING", "landing=${items[landingIdx].id} selected=${items[currentSelectedIndex].id}")
                         if (landingIdx != currentSelectedIndex) {
                             if (currentHapticsEnabled) {
                                 haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
@@ -488,13 +545,30 @@ private fun NavBarSlots(
                         val (curXs, curWs) = computeCells(currentSelectedIndex, currentIsRtl)
                         val starts = curXs.toList()
                         val ends = List(items.size) { i -> curXs[i] + curWs[i] }
-                        val tappedIdx = itemIndexAt(endX, starts, ends)
+                        // The pressed cell, not the cell under the lifted finger: a tap that drifted out of its cell
+                        // still means the cell it started on.
+                        val tappedIdx = resolveTapLanding(
+                            startX = startX,
+                            totalDragPx = endX - startX,
+                            flickPxPerSec = 0f,
+                            starts = starts,
+                            ends = ends,
+                            tapSlopPx = NavBarSpring.TAP_SLOP_DP.dp.toPx(),
+                            flickThresholdPx = Float.MAX_VALUE,
+                        ) ?: itemIndexAt(endX, starts, ends)
+                        currentOnDiagnostic("TAB_TAP", "pressed=${items[tappedIdx].id} clickFired=${clickFired[0]}")
                         if (tappedIdx != currentSelectedIndex) {
                             launchTargetTransition(
                                 targetIdx = tappedIdx,
                                 velocityPxPerSec = 0f,
                                 snap = currentReduceMotion,
                             )
+                            if (!clickFired[0]) {
+                                if (currentHapticsEnabled) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                }
+                                currentOnSelect(items[tappedIdx].id)
+                            }
                         }
                     }
                 }
@@ -527,6 +601,8 @@ private fun NavBarSlots(
                         .selectable(
                             selected = isSelected,
                             onClick = {
+                                clickFired[0] = true
+                                currentOnDiagnostic("TAB_CLICK", "id=${item.id} selected=$selectedId")
                                 if (item.id != selectedId) {
                                     if (hapticsEnabled) {
                                         haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)

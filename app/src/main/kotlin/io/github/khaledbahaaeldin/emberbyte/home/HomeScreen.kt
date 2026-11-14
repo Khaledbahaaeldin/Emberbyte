@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.GapBanner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -83,6 +84,7 @@ internal fun HomeContent(
     onNavigateToApps: () -> Unit = {},
     icons: (String) -> ImageBitmap? = { null },
 ) {
+    val motion = rememberEmberbyteMotion()
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -95,7 +97,15 @@ internal fun HomeContent(
             val usagePrompt = state.prompts.firstOrNull { it.id == "usage_access" }
             if (usagePrompt != null) {
                 item(key = "prompt_usage_access") {
-                    PermissionPrompt(usagePrompt, onAction = { onPromptAction(usagePrompt.id) })
+                    PermissionPrompt(
+                        usagePrompt,
+                        onAction = { onPromptAction(usagePrompt.id) },
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                    )
                 }
             }
         }
@@ -129,7 +139,15 @@ internal fun HomeContent(
             state.prompts
         }
         items(remainingPrompts, key = { it.id }) { prompt ->
-            PermissionPrompt(prompt, onAction = { onPromptAction(prompt.id) })
+            PermissionPrompt(
+                prompt,
+                onAction = { onPromptAction(prompt.id) },
+                modifier = Modifier.animateItem(
+                    fadeInSpec = motion.effects(),
+                    placementSpec = motion.spatial(),
+                    fadeOutSpec = motion.effects(),
+                ),
+            )
         }
 
         // Bento row: Forecast & Speed tiles

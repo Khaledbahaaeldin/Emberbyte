@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTouchInput
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
@@ -46,11 +47,12 @@ class AppsAccessibilityTest {
 
     @Test
     fun apps_icon_and_filter_buttons_have_content_descriptions() {
-        show(sampleAppsState.copy(range = AppsRange.LAST_7_DAYS, network = AppsNetwork.WIFI))
+        show(sampleAppsState.copy(range = AppsRange.LAST_7_DAYS, network = AppsNetwork.WIFI, query = "test"))
         // Screen headline, search field, and Filters button have clear text labels/names
         rule.onNodeWithText("Apps").assertIsDisplayed()
         rule.onNodeWithText("Search apps").assertIsDisplayed()
         rule.onNodeWithText("Filters").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Clear search").assertIsDisplayed()
         // Removable filter chips have accessible remove descriptions
         rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
         rule.onNodeWithContentDescription("Remove Wi-Fi filter").assertIsDisplayed()
@@ -62,7 +64,17 @@ class AppsAccessibilityTest {
     @Test
     @Config(qualifiers = "w411dp-h3000dp")
     fun apps_touch_targets_are_at_least_48dp() {
-        show()
+        show(sampleAppsState.copy(query = "test"))
+        assertNoTouchTargetSmallerThan48dp(rule)
+    }
+
+    @Test
+    fun icon_buttons_keep_48dp_and_their_content_description() {
+        show(sampleAppsState.copy(query = "test"))
+        val clearButton = rule.onNodeWithContentDescription("Clear search")
+        clearButton
+            .assertIsDisplayed()
+            .performTouchInput { down(center); up() }
         assertNoTouchTargetSmallerThan48dp(rule)
     }
 }
