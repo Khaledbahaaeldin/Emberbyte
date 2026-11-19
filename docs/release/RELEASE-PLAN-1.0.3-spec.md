@@ -2,7 +2,7 @@
 
 > **For agentic workers (Antigravity, Claude Code and humans):** implement this plan task by task. Each task is self-contained: it names the findings it closes, the files, the signatures, the tests to write first, and the acceptance criteria. Read the **Global constraints**, **Agent operating rules** and your own task before touching code. Steps use the RED, GREEN, commit rhythm.
 
-**Goal:** make every screen of Emberbyte readable, consistent, correctly animated and faithful to Material 3 Expressive, closing all 72 findings of the 1.0.2 UI audit, which include the tester's History report (C8 to C10).
+**Goal:** make every screen of Emberbyte readable, consistent, correctly animated and faithful to Material 3 Expressive, closing all 72 findings of the 1.0.2 UI audit, which include the tester's History report (C8 to C10), and add an offline "What's new" sheet shown once after each update (T16, the answer to "tell users what changed without adding the INTERNET permission").
 **Architecture:** fix the contrast gate and colour roles first, add shared building blocks (screen scaffold, width-aware button group, animated visibility wrappers, press morph, typography and shape tokens), then migrate screens onto them.
 **Tech stack:** Kotlin, Jetpack Compose, Material 3 Expressive `1.5.0-alpha29`, Navigation Compose 2.10.2, Robolectric Compose tests.
 **Spec of record:** `docs/release/RELEASE-PLAN-1.0.3-report.md` (the findings, with reproduction steps and root causes; IDs A1 to H7 and C8 to C10).
@@ -25,21 +25,75 @@
 
 | Task | Owner | Status |
 |---|---|---|
-| T1 Contrast gate and roles | | |
-| T2 Screen scaffold and insets | | |
-| T3 Width-aware ConnectedButtonGroup | | |
-| T4 Loading states | | |
-| T5 Data correctness and History | | |
-| T6 New-plan flow | | |
-| T7 Plan editor, Plans, what-if | | |
-| T8 Settings, dialogs, AMOLED | | |
-| T9 Motion foundations | | |
-| T10 Numbers, rings, charts | | |
-| T11 Press, Plus exit, back cancel | | |
-| T12 Typography and shape scale | | |
-| T13 Navbar and adaptive | | |
-| T14 Localisation groundwork and cleanup | | |
-| T15 Release 1.0.3 | | |
+| T1 Contrast gate and roles | Khaled | not started |
+| T2 Screen scaffold and insets | Khaled (scaffold); each owner adopts it in their own screens | not started |
+| T3 Width-aware ConnectedButtonGroup | Khaled | not started |
+| T4 Loading states | Omar | not started |
+| T5 Data correctness and History | Omar | not started |
+| T6 New-plan flow | Joe | not started |
+| T7 Plan editor, Plans, what-if | Joe | not started |
+| T8 Settings, dialogs, AMOLED | Joe | not started |
+| T9 Motion foundations | Khaled (wrappers); each owner applies them in their own screens | not started |
+| T10 Numbers, rings, charts | Omar | not started |
+| T11 Press, Plus exit, back cancel | Omar (press morph and back cancel only) | not started |
+| T12 Typography and shape scale | Khaled (T12a tokens first, T12b migration sweep last) | not started |
+| T13 Navbar and adaptive | Khaled (also the Plus button exit) | not started |
+| T14 Localisation groundwork and cleanup | Khaled (last) | not started |
+| T16 What's new sheet (offline) | Joe | not started |
+| T15 Release 1.0.3 | Khaled | not started |
+
+---
+
+## Team split, sync points and re-homed items
+
+**People.** Khaled (maintainer: foundations, navigation, release, and the only person who merges into `release/1.0.3`), Omar, Joe (Youssef Elbanna).
+**Principle.** Khaled owns every task that others depend on, so nobody waits for another developer: Omar and Joe start immediately on work that has no dependency, and pick up the dependent parts after Khaled announces a sync point. Each person owns a disjoint set of files.
+
+### Branches (one per task, created from the latest `release/1.0.3`, pull request into `release/1.0.3`)
+
+| Person | Order of work | Branch | Starts when |
+|---|---|---|---|
+| Khaled | T9 wrappers | `t9-motion-foundations` | now |
+| Khaled | T3 group | `t3-connected-group` | now |
+| Khaled | T1 contrast (design module) | `t1-contrast` | now |
+| Khaled | T2 scaffold (new files and Licences) | `t2-screen-scaffold` | now |
+| Khaled | T12a tokens (typography, shapes, theme wiring) | `t12a-theme-tokens` | now |
+| Khaled | T13 navbar (incl. Plus exit) | `t13-navbar` | after S1 |
+| Khaled | T12b migration sweep | `t12b-token-migration` | after S2 (everyone merged) |
+| Khaled | T14 localisation and cleanup | `t14-localisation` | after T12b |
+| Khaled | T15 release | `t15-release` | last |
+| Omar | T5 data and History | `t5-data-history` | now |
+| Omar | T11 press morph and back cancel | `t11-press-back` | now |
+| Omar | T4 loading states | `t4-loading` | after S1 |
+| Omar | T10 numbers, rings, charts | `t10-numbers-charts` | after S1 |
+| Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
+| Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
+| Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
+| Joe | T16 What's new sheet | `t16-whats-new` | data layer now, UI after T8 merges and S1 |
+
+### Sync points (Khaled announces each one in Discord when merged)
+
+- **S1 (first, small pull requests in this order):** `T9` (new `EmberbyteVisibility.kt` file, `animatePaletteAsState`, no screen wiring), `T3` (`ConnectedButtonGroup`, public signature unchanged), `T1` (design-module palette, `ContrastPairs`, derived roles, `PlanCard`), `T2` (new `ScreenScaffold.kt` and its test, plus Licences only), `T12a` (tokens and theme wiring, no migration). After S1, Omar and Joe run `git merge origin/release/1.0.3` into their branches and use the new building blocks.
+- **S2:** Omar's and Joe's pull requests are audited and merged by Khaled (merge order: Omar `t5`, `t11`, `t4`, `t10`; Joe `t6`, `t8`, `t7`, `t16`; they touch disjoint files, so any order works, but `t4` before `t16` because both touch `EmberbyteApp.kt`).
+- **S3:** after S2, Khaled does T12b (token migration sweep across all files), T14, T13 leftovers and T15, then the cleanup commit.
+
+### Re-homed items (so each person's files never overlap with another's)
+
+- **T2 adoption.** Khaled builds `EmberbyteScreenScaffold` and migrates Licences. Each owner migrates their own screens after S1: Omar (Home, Apps, History), Joe (Settings, Appearance, Plan editor). Do not migrate a screen you do not own.
+- **T9 wiring.** Khaled delivers the wrappers. Each owner applies them at the G4 cut sites in their own files (Omar: Home, Apps, App detail; Joe: Plan editor, Plans, plan flow, Data section, dialogs). Khaled fixes Licences reduced motion.
+- **T1 call sites.** Khaled changes the design module and `PlanCard.kt`. Call sites in app-module files are adopted by their owner: Joe (`PlansBento.kt`, `BudgetEditorDialog.kt`, `PassphraseDialogs.kt`, Settings), Omar (`AppDetail.kt` legend colours).
+- **Plus button exit (G13)** moves from T11 to T13 (Khaled, because `CompactNavBar.kt` is his file). Omar's T11 keeps `pressMorph` (including `PlusButton.kt` press) and `GuardedBack.kt`.
+- **Plan-flow progress (G8)** moves from T11 to T6 (Joe, because `PlanFlowScreen.kt` is his).
+- **Appearance selection and onboarding motion (G16, G15)** move from T11 to T8 (Joe).
+- **T12 split.** T12a (tokens, merged first) and T12b (migration sweep, last, by Khaled) so the 31 radius sites and 66 size literals are migrated once, after everyone else has merged.
+
+### Conflict rules
+
+- Edit only the files your tasks list. A needed change in someone else's file goes into your pull request description; Khaled applies it or asks the owner.
+- `EmberbyteApp.kt` is touched by Omar (T4 startup placeholder fade) and Joe (T16 What's new wiring): Omar merges first, Joe rebases.
+- `strings.xml`: add your keys under your own comment block at the end of the file, with your prefix (Omar `home_`, `apps_`, `history_`; Joe `plan_`, `settings_`, `dialog_`, `whatsnew_`; Khaled `common_`, `nav_`). Never reorder or reformat existing entries.
+- `ContrastPairs.kt`, `EmberbyteTheme.kt`, `ConnectedButtonGroup.kt`, `MotionSpecs.kt`: Khaled only.
+- After every sync point announcement, merge `origin/release/1.0.3` into your task branch before you continue, and re-run your tests.
 
 ---
 
@@ -83,12 +137,13 @@
 | Theme foundation | `EmberbyteTheme.kt`, new `theme/EmberbyteTypography.kt`, new `theme/EmberbyteShapeScale.kt` (the `AppShape` tokens already live in `shapes/EmberbyteShapes.kt`) | T12 |
 | Navbar and adaptive | `CompactNavBar.kt`, `PillSpring.kt`, adaptive navigation | T13 |
 | Localisation and cleanup | `strings.xml`, `LicensesScreen.kt` (delete) | T14 |
+| What's new | new `whatsnew/` package in `app` (`WhatsNewRepository.kt`, `WhatsNewViewModel.kt`, `WhatsNewSheet.kt`), new asset `app/src/main/assets/whats_new.json`, `EmberbyteApp.kt`, `settings/SettingsScreen.kt` (one row), `settings/UpdatesRow.kt`, `core/data/.../AppPreferences.kt` | T16 |
 | Release | `app/build.gradle.kts`, `CHANGELOG.md`, `fastlane/.../changelogs/4.txt`, `RELEASE-NOTES-1.0.3.md` | T15 |
 
 ## Order and branches
 
-T1 first (it makes the contrast gate honest; every other task relies on it). T2 and T3 are independent and unblock most visual work. T9 (motion foundations) before T4, T7, T10, T11. T12 before the radius and size migration inside T7, T8. T6 and T7 share vocabulary strings: T6 first. T15 last, then the cleanup commit that removes the spec documents (same procedure as 1.0.2). One branch per task off `release/1.0.3`; each branch merged only with green CI and the audit done.
-Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8, T13, T14, T15) and design system and motion (T3, T9, T10, T11, T12). Files named in both lists need an owner agreed first.
+T1 first (it makes the contrast gate honest; every other task relies on it). T2 and T3 are independent and unblock most visual work. T9 (motion foundations) before T4, T7, T10, T11. T12 before the radius and size migration inside T7, T8. T6 and T7 share vocabulary strings: T6 first. T16 starts after T8 (it adds one row to `SettingsScreen.kt` and edits `UpdatesRow.kt`, both owned by T8), T9 (animation wrappers) and T12 (shape scale); its data layer and tests can start earlier. T15 last (it also writes the 1.0.3 entry of `whats_new.json`), then the cleanup commit that removes the spec documents (same procedure as 1.0.2). One branch per task off `release/1.0.3`; each branch merged only with green CI and the audit done.
+The agreed split is under "Team split, sync points and re-homed items" above. The earlier suggested split is superseded: visual and data (T1, T2, T4, T5, T6, T7, T8, T13, T14, T15) and design system and motion (T3, T9, T10, T11, T12). Files named in both lists need an owner agreed first.
 
 ---
 
@@ -105,7 +160,7 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 1. **RED: widen the gate.** Register in `ContrastPairs`: `"accent as text on surface2"` (`accent`, `surface2`, 4.5), `"danger as text on surface2"` (`danger`, `surface2`, 4.5), `"danger as text on background"` (`danger`, `background`, 4.5), `"primary as link on surface2"` (`primary`, `surface2`, 4.5), `"muted on surface2"` (`muted`, `surface2`, 4.5). Run `PaletteContrastTest`: expect FAIL listing the palettes in findings A3 (Dusk light 1.02 and 1.25, Ember light, Gruvbox dark, Nord, Solarized, Everforest, Tokyo Night light, and others). Record the failing list in the ledger as the baseline.
 2. **GREEN, palette data.** In `palettes.json` give Dusk light and Ember light `danger #BA1A1A`, `onDanger #FFFFFF` (M3 baseline; keep `#FFB4AB` only in dark entries). Give Monochrome light a real red (`#B3261E`) for danger. Regenerate. Re-run: remaining failures are the other palettes.
 3. **GREEN, derived roles.** Implement `ensureContrast`; add `accentText`, `dangerText`, `linkText`. Unit tests `ensure_contrast_keeps_a_passing_colour_unchanged`, `ensure_contrast_keeps_hue_and_meets_the_ratio`, `ensure_contrast_is_monotonic_toward_black_on_light`. Change registered pairs to use the derived roles where the UI uses roles as text. The gate must be green for all 24 combinations.
-4. **Call sites.** `PlanCard.kt:98`: `val textColor = if (isExceeded) palette.dangerText else palette.accentText`; same in `PlansBento.kt`. Dialog errors, "Remove", "Discard changes?" and "Delete plan?" titles, text-button "See all" and "Set a budget" use `dangerText`/`linkText`. App detail legend swatches keep the pale colour as the swatch only; the legend *text* uses `text`. `grep -rn "palette.accent," app/src/main ui/design/src/main` must show no remaining use as `Text(color = ...)`.
+4. **Call sites.** Khaled changes the design module and `PlanCard.kt`; call sites in app-module files are adopted by their owner after S1 (Joe: `PlansBento.kt`, dialogs, Settings; Omar: `AppDetail.kt` legend). `PlanCard.kt:98`: `val textColor = if (isExceeded) palette.dangerText else palette.accentText`; same in `PlansBento.kt`. Dialog errors, "Remove", "Discard changes?" and "Delete plan?" titles, text-button "See all" and "Set a budget" use `dangerText`/`linkText`. App detail legend swatches keep the pale colour as the swatch only; the legend *text* uses `text`. `grep -rn "palette.accent," app/src/main ui/design/src/main` must show no remaining use as `Text(color = ...)`.
 5. **Monochrome (A4).** State glyph next to the ring percentage (check, warning, error icon, 16 dp) so state is never colour-only; test `monochrome_exceeded_shows_error_glyph`.
 
 **Tests (names).** `every_pair_passes_in_every_theme_and_mode` (extended), `text_roles_meet_aa_for_all_palettes`, `plan_card_status_text_is_at_least_4_5_to_1_in_light_themes`, `dialog_error_text_is_at_least_4_5_to_1`, `monochrome_exceeded_shows_error_glyph`.
@@ -123,7 +178,7 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 
 **Steps.**
 1. RED: `scrim_is_drawn_over_scrolling_content`, `title_stays_visible_when_collapsed`, `content_never_starts_under_the_status_bar`, `bottom_reserve_is_120dp_by_default` (and the editor passes 120 dp, not 112).
-2. GREEN: implement the scaffold; migrate in this order: Settings, Appearance, History, Plan editor (these overlap the clock today), then Home, Apps, Licences (these hard-clip today). Delete the per-screen `statusBarsPadding()` workarounds (`ScreenHeader.kt:32`, `HomeScreen.kt:91`, `AppsScreen.kt:137`, `LicencesScreen.kt:112`) and the three `contentPadding` variants.
+2. GREEN: implement the scaffold and migrate **Licences only** (Khaled). Every other screen is migrated by its owner after S1: Joe (Settings, Appearance, Plan editor), Omar (History, Home, Apps). Settings, Appearance, History and the Plan editor overlap the clock today; Home, Apps and Licences hard-clip today. Delete the per-screen `statusBarsPadding()` workarounds (`ScreenHeader.kt:32`, `HomeScreen.kt:91`, `AppsScreen.kt:137`, `LicencesScreen.kt:112`) and the three `contentPadding` variants.
 3. Home and Apps keep their large "Today" and "Apps" display titles as the expanded state of the same bar.
 4. Device check: top 300 px of every screen after scrolling, light and dark, font 2.0.
 
@@ -186,6 +241,8 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 - Continue = filled `Button`; disabled state clearly greyed; Back = `TextButton`. Review step = `BentoTile` summary reusing `PlanCard` preview with rows: name, cap, cycle, SIM, next renewal ("Renews 17 Dec"), start option.
 
 **Steps.** RED: `numeric_fields_use_numeric_keyboards`, `invalid_cap_shows_an_error_and_keeps_continue_enabled`, `one_point_five_point_two_is_rejected`, `day_401_shows_a_range_error`, `step_total_does_not_change_while_typing`, `review_shows_sim_and_next_renewal`, `continue_is_a_filled_button_when_valid`. Then GREEN.
+**Plan-flow progress (G8, moved here from T11).** Replace the stock `LinearProgressIndicator` at `PlanFlowScreen.kt:227` with `LinearWavyProgressIndicator` whose value animates with `rememberEmberbyteMotion().spatial()`; the step label and the Continue to Create swap use `EmberbyteCrossfade` once S1 has landed. Tests: `plan_flow_progress_is_wavy_and_animated`, `step_label_crossfades`.
+
 **Acceptance.** Fuzz table of inputs (empty, "0", "-", "1.5.2", "401", "99999999999", pasted text with spaces) never crashes and always shows a message; the step counter is constant.
 
 ---
@@ -223,6 +280,8 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 7. **Updates row (F7).** One line plus an external-link glyph; subtitle "Opens your browser".
 8. **Onboarding (B8).** Rename page 1-3 secondary to "Skip intro", add a Back control, `Button` (not tonal) for "Set up a plan", centre the page-1 copy block. Test: `onboarding_page_three_cta_is_a_filled_button`.
 
+9. **Appearance and onboarding motion (G16, G15, moved here from T11).** Selection border and check badge (`AppearanceScreen.kt:219,256`) and enabled/disabled alpha (`SettingsGroups.kt:182-210`, `AppearanceScreen.kt:314`) animate with `animateFloatAsState`/`animateColorAsState` on `rememberEmberbyteMotion()`; onboarding dot colour (`OnboardingScreen.kt:196`) animates and the bottom bar swap uses `EmberbyteCrossfade` (stretch). Tests: `selection_border_animates`, `disabled_row_alpha_animates`, `onboarding_dot_color_animates`, each with a reduced-motion twin that snaps.
+
 **Acceptance.** Device screenshots of Settings, Appearance, every dialog, in light, dark and AMOLED.
 
 ---
@@ -240,7 +299,7 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 @Composable fun <T> EmberbyteCrossfade(targetState: T, modifier: Modifier = Modifier, content: @Composable (T) -> Unit)   // effects(); snap when reduced
 @Composable fun animatePaletteAsState(target: EmberbytePalette): EmberbytePalette   // animateColorAsState per token, effects(); snap when reduced
 ```
-**Steps.** RED: `visibility_has_in_between_frames`, `visibility_snaps_when_reduced`, `crossfade_has_in_between_frames`, `palette_change_animates_every_token`, `licences_uses_reduced_motion`. GREEN: implement; `EmberbyteTheme` wraps the palette in `animatePaletteAsState`; replace Licences default specs; add stable `key`s and `Modifier.animateItem(...)` (as in `PlansScreen`) to the un-keyed Home and Apps `item {}` blocks. Wrap each G4 cut site listed in the findings with the new wrappers (a checklist in the ledger, one tick per file).
+**Steps.** RED: `visibility_has_in_between_frames`, `visibility_snaps_when_reduced`, `crossfade_has_in_between_frames`, `palette_change_animates_every_token`, `licences_uses_reduced_motion`. GREEN: implement; `EmberbyteTheme` wraps the palette in `animatePaletteAsState`; replace Licences default specs; add stable `key`s and `Modifier.animateItem(...)` (as in `PlansScreen`) to the un-keyed Home and Apps `item {}` blocks. Khaled delivers the wrappers and the Licences fix only. Each owner wraps the G4 cut sites in their own files after S1 (Omar: Home, Apps, App detail; Joe: Plan editor, Plans, plan flow, Data section, dialogs), with a checklist in their pull request, one tick per file.
 **Acceptance.** A repo test `no_conditional_block_uses_a_bare_if_for_a_listed_site` is not practical; instead the ledger checklist plus device recordings at 4x slow show in-between frames for each listed site.
 
 ---
@@ -257,14 +316,13 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 
 ---
 
-## T11. Press feedback, Plus exit, back cancel
+## T11. Press feedback and back cancel
 
-**Closes:** G7, G12, G13, G8, G15 (stretch), G16. **Files:** `tiles/BentoTile.kt`, `AppRow.kt`, `navbar/PlusButton.kt`, `CompactNavBar.kt` (trailing exit), `nav/GuardedBack.kt:44-47,78`, `plans/flow/PlanFlowScreen.kt:227`, `settings/AppearanceScreen.kt:219,256,314`, `SettingsGroups.kt:182-210`, `onboarding/OnboardingScreen.kt:196`.
+**Closes:** G7, G12. (G13 Plus exit moved to T13; G8 moved to T6; G15 and G16 moved to T8.) **Owner:** Omar. **Files:** `tiles/BentoTile.kt`, `tiles/AppRow.kt`, `navbar/PlusButton.kt` (press only), `nav/GuardedBack.kt:44-47,78`, new `ui/design/.../motion/PressMorph.kt`. **Tests next to each.** No dependency: starts immediately (uses the existing `rememberEmberbyteMotion()`).
 
-**Interfaces.** `Modifier.pressMorph(shape: CornerBasedShape, pressedScale: Float = 0.97f, pressedCorner: Dp = 12.dp): Modifier` in `ui/design/.../motion/PressMorph.kt` using `rememberEmberbyteMotion().fastSpatial()`; snaps when reduced.
-**Steps.** RED: `bento_tile_morphs_corners_when_pressed`, `plus_button_animates_out`, `guarded_back_cancel_springs_back_to_full_size` (progress passes through values between the shrink and 1 using the test clock), `plan_flow_progress_is_wavy_and_animated`, `selection_border_animates`. GREEN. Replace `LinearProgressIndicator` with `LinearWavyProgressIndicator` (value animated); keep the last trailing content so the Plus exit can play.
-**Acceptance.** Recordings at 4x: pressed tile, Plus exit, cancelled back gesture show in-between frames; reduced motion snaps.
-
+**Interfaces.** `Modifier.pressMorph(shape: CornerBasedShape, pressedScale: Float = 0.97f, pressedCorner: Dp = 12.dp): Modifier` in `PressMorph.kt` using `rememberEmberbyteMotion().fastSpatial()`; snaps when reduced.
+**Steps.** RED: `bento_tile_morphs_corners_when_pressed`, `app_row_morphs_corners_when_pressed`, `plus_button_morphs_when_pressed`, `guarded_back_cancel_springs_back_to_full_size` (progress passes through values between the shrink and 1 using the test clock), `reduced_motion_press_snaps`. GREEN: implement; in `GuardedBack.kt` replace the snap on cancel and dialog dismiss with an `Animatable` progress using `BackTransitions.cancelSpring`.
+**Acceptance.** Recordings at 4x: pressed tile and row, cancelled back gesture show in-between frames; reduced motion snaps.
 ---
 
 ## T12. Theme foundation: typography and shape scale
@@ -276,6 +334,7 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 - `val EmberbyteShapeScale: Shapes` (in `theme/EmberbyteShapeScale.kt`, not to be confused with `AppShape` in `shapes/EmberbyteShapes.kt`) with `extraSmall = 8.dp, small = 12.dp, medium = 16.dp, large = 24.dp, extraLarge = 32.dp, largeIncreased = 28.dp, extraLargeIncreased = 36.dp` (adjust to the design agreed at kickoff, but the set is the only radii allowed).
 - `MaterialExpressiveTheme(colorScheme, motionScheme, shapes = EmberbyteShapeScale, typography = EmberbyteTypography, content)`.
 **Steps.** RED: `theme_passes_typography_and_shapes`, `emphasized_styles_are_defined`, `no_raw_rounded_corner_shape_outside_tokens` (source scan, allow-list starts with the 31 current sites and must shrink to the token files), `no_raw_sp_outside_tokens`. GREEN in stages: tokens, then migrate file by file with a ledger checklist (radii: 10→8/12, 14→12/16, 20→16/24, 22→24, 26→24/28, 30→28/32, 36→36).
+**Split.** T12a (tokens, the two scan tests with the current allow-list, theme wiring) merges first at S1. T12b (the migration of the 31 radius sites, 66 size literals and 23 weight overrides) is done last by Khaled, after S2, so it never conflicts with Omar's or Joe's files.
 **Acceptance.** Scan tests green with an empty allow-list; visual diff of Home, Apps, Plans, Settings shows no regression beyond the intended snap to the scale.
 
 ---
@@ -288,7 +347,8 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 1. **Reduced-motion offset (investigate first).** Reproduce by toggling animation scale to 0 *while the app is open* (adb) and in an `android.test` with `LocalReduceMotion = true` and a cold start. If confirmed, find the `snap()` placement path that is measured before layout and fix it; RED test `pill_is_centered_when_reduced_motion`. If it does not reproduce, log it as "not reproducible" in the ledger and keep the test as a guard.
 2. Pill outline: 1 dp `outlineVariant` stroke or 3 dp elevation (`pill_has_a_visible_edge_on_surface2_cards`).
 3. Reappear at list end: `NavBarVisibility` shows the pill when the list can no longer scroll forward (`pill_reappears_at_the_end_of_a_list`).
-4. **Adaptive (stretch).** `WindowSizeClass`: at width 600 dp and up use `WideNavigationRail`; cap sheets at 560 dp. Test: `uses_a_rail_at_600dp`.
+4. **Plus button exit (G13, moved here from T11).** Mirror the entrance on exit and keep the last trailing content while it plays (`CompactNavBar.kt` `AnimatedVisibility` exit with `scaleOut + fadeOut + shrinkHorizontally` on the motion specs). Tests: `plus_button_animates_out` (in-between frames with the test clock), `plus_exit_snaps_when_reduced`.
+5. **Adaptive (stretch).** `WindowSizeClass`: at width 600 dp and up use `WideNavigationRail`; cap sheets at 560 dp. Test: `uses_a_rail_at_600dp`.
 
 ---
 
@@ -300,9 +360,57 @@ Suggested split (decide at kickoff): visual and data (T1, T2, T4, T5, T6, T7, T8
 
 ---
 
+## T16. What's new sheet (offline)
+
+**Closes:** feature request from the maintainer (decision: keep the app free of the `INTERNET` permission; tell users what changed from the changelog bundled in the APK). **Files:** new `app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/whatsnew/{WhatsNewRepository,WhatsNewViewModel,WhatsNewSheet}.kt`; new asset `app/src/main/assets/whats_new.json`; `EmberbyteApp.kt`; `settings/SettingsScreen.kt` (one row, after T8 lands); `settings/UpdatesRow.kt` (one link, after T8); `core/data/.../AppPreferences.kt` and `DataStoreSettingsRepository.kt` (one key); `res/values/strings.xml`; `ReleaseApkVerificationTest.kt` (two checks). **Depends on:** T8, T9, T12 (for the finished UI); T15 writes the release entry.
+**Hard rule:** this task must not add any network code, any `INTERNET` permission, or any URL fetch. `UpdatesPermissionTest` and `ReleaseApkVerificationTest` must stay green; the sheet's "See all changes" link only opens the browser through the system (`UriHandler`), exactly like the Updates row does today.
+
+**Behaviour.**
+- On the first launch after an update the app shows a "What's new in X.Y.Z" bottom sheet **once**.
+- A **fresh install** never shows it: if onboarding is not completed, record the current `versionCode` silently. After onboarding completes, nothing is shown.
+- **Upgrade from 1.0.2** (no stored value, onboarding already completed): show it.
+- Dismissing by the button, swipe, back or scrim all count as seen: the stored `lastSeenWhatsNewVersionCode` is written on dismiss (and on a skipped fresh install), never before the sheet is visible.
+- It is never shown over onboarding, a permission request, a dialog, or a back-gesture in progress; if another surface is up, wait until it closes. Rotation and process death do not show it twice.
+- Entry points that always work: Settings > About > "What's new" (opens the sheet with the current version expanded and older versions below), and a "See what's new" link on the Updates row.
+
+**Interfaces.**
+- Asset `whats_new.json`: `{ "entries": [ { "versionCode": 4, "versionName": "1.0.3", "date": "2026-11-24", "highlights": [ { "kind": "added" | "changed" | "fixed", "text": "..." } ] }, ... ] }`, newest first, English, one entry per release from 1.0.2 onward (copy the 1.0.2 entry from `CHANGELOG.md` in user words, short). Each `text` is at most 120 characters and written for users, not developers.
+- `internal interface WhatsNewRepository { val entries: List<WhatsNewEntry>; suspend fun lastSeenVersionCode(): Int?; suspend fun markSeen(versionCode: Int) }` with `data class WhatsNewEntry(val versionCode: Int, val versionName: String, val date: LocalDate, val highlights: List<Highlight>)` and `data class Highlight(val kind: Kind, val text: String)`, `enum class Kind { Added, Changed, Fixed }`. Parsing uses `kotlinx.serialization` if already a dependency, otherwise `org.json` from the platform (no new dependency).
+- `fun shouldShowWhatsNew(currentVersionCode: Int, lastSeen: Int?, onboardingCompleted: Boolean, hasEntryForCurrent: Boolean): Boolean` (pure, unit-tested): `onboardingCompleted && hasEntryForCurrent && (lastSeen == null || lastSeen < currentVersionCode)`.
+- `AppPreferences` gains `val lastSeenWhatsNewVersionCode: Int?` (a DataStore key; **not** a Room schema change, so no migration test is needed).
+- `@Composable fun WhatsNewSheet(entry: WhatsNewEntry, olderEntries: List<WhatsNewEntry>, onDismiss: () -> Unit, onOpenChangelog: () -> Unit)`.
+
+**Design (Material 3 Expressive, premium).**
+- `ModalBottomSheet` with the Expressive top shape from T12, skip partial expansion, drag handle, max width 560 dp.
+- Header: a Cookie-shaped tile with the app mark, title "What's new in 1.0.3", a tonal date chip ("24 Nov 2026"), one-line subtitle "No account, no internet, still just your data."
+- Body: one tonal card per kind, in the order Added, Changed, Fixed. Each card has a leading icon in a shaped tile (`NewReleases`/`AutoAwesome` for Added, `Tune` for Changed, `Build` for Fixed), a heading and bullet rows. Colours come from the palette and must meet 4.5:1 (T1 roles).
+- Motion: the cards enter with a staggered fade and slide (40 ms stagger, `spatial()` spring); the sheet content scrolls; everything snaps under reduced motion (`rememberEmberbyteMotion()` only).
+- Footer: a filled "Got it" button and a text button "See all changes" (opens `https://github.com/Khaledbahaaeldin/Emberbyte/blob/main/CHANGELOG.md` in the browser). Below, an "Earlier versions" section with collapsible entries (expand with `EmberbyteAnimatedVisibility`).
+- Works at font 2.0 (scrolls, no clipped text), density 320 to 560, RTL (leading icons mirror, bullets stay readable), dark, light and AMOLED, and landscape.
+- Accessibility: the sheet title is a heading; each card is announced as "Added, 3 items"; bullet rows are single nodes; "Got it" and "See all changes" are 48 dp targets; focus moves to the title when the sheet opens.
+
+**Steps (work items, each its own commit).**
+1. **RED: logic.** Unit tests for `shouldShowWhatsNew`: `fresh_install_does_not_show`, `upgrade_from_102_shows`, `already_seen_does_not_show`, `missing_entry_for_current_version_does_not_show`, `downgrade_or_same_version_does_not_show`. GREEN: implement.
+2. **RED: persistence.** `last_seen_is_written_only_on_dismiss`, `fresh_install_records_current_version_silently`, `process_death_does_not_show_twice` (repository fake plus ViewModel). GREEN: DataStore key and ViewModel.
+3. **RED: asset.** Add to `ReleaseApkVerificationTest` (or a new `WhatsNewAssetTest`): `whats_new_newest_entry_matches_version_name_and_code_in_build_gradle`, `whats_new_newest_entry_matches_the_newest_changelog_version`, `whats_new_entries_are_newest_first_and_non_empty`, `every_highlight_is_at_most_120_characters`. These fail until T15 writes the 1.0.3 entry, which makes the release checklist unforgettable. GREEN: create `whats_new.json` with the 1.0.2 entry and (in T15) the 1.0.3 entry.
+4. **RED: UI.** `sheet_shows_title_date_and_three_sections`, `got_it_dismisses_and_marks_seen`, `swipe_dismiss_marks_seen`, `see_all_changes_opens_the_changelog_url`, `earlier_versions_expand_and_collapse`, `sheet_scrolls_at_font_scale_2`, `reduced_motion_shows_content_without_stagger`, `rtl_renders` (Robolectric Compose tests). GREEN: implement the sheet.
+5. **Wiring.** `EmberbyteApp.kt` shows the sheet after onboarding when `shouldShowWhatsNew` is true and no dialog or permission flow is active; Settings > About gets a "What's new" row (icon `NewReleases`, subtitle "Changes in 1.0.3") and the Updates row a "See what's new" link. Tests: `settings_about_row_opens_the_sheet`, `updates_row_link_opens_the_sheet`, `sheet_is_not_shown_over_onboarding`.
+6. **Guards.** Run `UpdatesPermissionTest` and `ReleaseApkVerificationTest` (no `INTERNET`), and add `whats_new_adds_no_network_permission_or_client` (source scan: no `HttpURLConnection`, `OkHttp`, `URL(` fetch, `java.net.Socket` under `whatsnew/`).
+
+**Review Focus for this task.**
+1. Upgrade from 1.0.2 shows once; fresh install and onboarding never show.
+2. Swipe, back and scrim dismissals persist as "seen".
+3. A missing or malformed `whats_new.json` entry must not crash: the sheet is simply skipped and the Settings row shows "No changes recorded" (test `malformed_asset_does_not_crash`).
+4. Font scale 2.0, RTL and landscape do not clip.
+5. Airplane mode and a device with no browser: "See all changes" fails quietly (wrap `openUri` in `runCatching`).
+
+**Acceptance.** On a device updated from the 1.0.2 build the sheet appears once with the 1.0.3 changes, never again after dismissal, reopens from Settings > About, and the APK still has no `INTERNET` permission.
+
+---
+
 ## T15. Release 1.0.3
 
-**Files:** `app/build.gradle.kts` (`versionName = "1.0.3"`, `versionCode = 4`), `CHANGELOG.md` (dated the release day; categories Fixed, Changed, Added), `fastlane/metadata/android/en-US/changelogs/4.txt` (under 500 characters), `docs/release/RELEASE-NOTES-1.0.3.md` (certificate fingerprint `72:AD:25:A3:D8:36:6A:07:33:9C:7B:23:9B:E0:DF:D7:0D:42:7C:FB:7D:FE:49:8B:92:62:1E:4C:60:45:95:EF`, known limits, the "no INTERNET permission" sentence). Then the per-release checklist from `RELEASE-PLAN-2026-Q4.md`: tag on `main`, release workflow, draft, fingerprint check, publish, check website, Obtainium and Orion Store, install over 1.0.2. The last commit on the release branch removes this spec and the findings document (nothing after it), then squash-merge.
+**Files:** `app/build.gradle.kts` (`versionName = "1.0.3"`, `versionCode = 4`), `CHANGELOG.md` (dated the release day; categories Fixed, Changed, Added), `fastlane/metadata/android/en-US/changelogs/4.txt` (under 500 characters), `app/src/main/assets/whats_new.json` (the 1.0.3 entry, user wording, newest first; `whats_new_newest_entry_matches_version_name_and_code_in_build_gradle` fails until it exists), `docs/release/RELEASE-NOTES-1.0.3.md` (certificate fingerprint `72:AD:25:A3:D8:36:6A:07:33:9C:7B:23:9B:E0:DF:D7:0D:42:7C:FB:7D:FE:49:8B:92:62:1E:4C:60:45:95:EF`, known limits, the "no INTERNET permission" sentence). Then the per-release checklist from `RELEASE-PLAN-2026-Q4.md`: tag on `main`, release workflow, draft, fingerprint check, publish, check website, Obtainium and Orion Store, install over 1.0.2. The last commit on the release branch removes this spec and the findings document (nothing after it), then squash-merge.
 **Note for the maintainer:** `gh` on the release PC is signed in as a read-only account; use the GitHub web UI for the pull request and the release environment approval.
 
 ---
@@ -324,6 +432,7 @@ Same format as 1.0.2 (one poll per verdict, one reply per failure with the copie
 11. Plan states: create a 1 MB cap to see Warn and Exceeded on every palette (this was not tested in the audit).
 12. Fresh install onboarding: Skip intro, Back, filled "Set up a plan".
 13. History (Day, Week, Month): every bar shows its value, the selected bar is obvious, Day labels make a month change visible, Week and Month labels read as dates.
+14. Update from 1.0.2 to the 1.0.3 build: the "What's new in 1.0.3" sheet appears once on the first launch, never again after dismissing it (also not after swiping it away); a fresh install and onboarding never show it; Settings > About > What's new reopens it; Updates row has a "See what's new" link; works in airplane mode.
 
 ## Out of scope (record, do not build)
 
