@@ -45,6 +45,7 @@
 | T19 Home plan setup card | Khaled | not started |
 | T20 Home usage card (Top apps + History) | Khaled | not started |
 | T21 Apps page redesign | Khaled | not started |
+| T22 App detail redesign | Khaled | not started |
 | T15 Release 1.0.3 | Khaled | not started |
 
 ---
@@ -76,6 +77,7 @@
 | Khaled | T19 Home plan setup card (merged call to action) | `t19-plan-setup-card` | after T18 merges |
 | Khaled | T20 Home usage card (Top apps with History inside) | `t20-usage-card` | after T19, and Omar's T5 and T11 merge |
 | Khaled | T21 Apps page redesign (search and Filters pair, period buttons, summary card) | `t21-apps-page` | after T20, and Omar's T4, T5 and T11 merge |
+| Khaled | T22 App detail redesign (range, statistics, hour pattern, plan impact) | `t22-app-detail` | after T21, and Omar's T4, T5, T10 and T11 merge |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -97,6 +99,7 @@
 - **Appearance selection and onboarding motion (G16, G15)** move from T11 to T8 (Joe).
 - **Home redesign (T17 to T20) is Khaled's.** The hero, bento tiles, plan setup card and usage card (Top apps with History inside) are the maintainer's own tasks. They edit `HomeSections.kt`, `HomeScreen.kt`, `HomeViewModel.kt` and the History screen, which Omar's T4, T5, T10 and T11 also edit, so Khaled starts them **only after those four Omar pull requests have merged**. Omar does not touch T17 to T20.
 - **Apps page (T21) is Khaled's.** It reuses T20's row and share-fill work and edits `AppsViewModel.kt` and `AppsScreen.kt`, which Omar's T4 and T5 also edit, so Khaled starts it only after T20 and those Omar pull requests have merged.
+- **App detail (T22) is Khaled's.** It edits `AppDetail.kt` and `AppDetailBudget.kt`, which Omar's T5 also edits, and uses T10's number and ring components, so Khaled starts it only after T21 and those Omar pull requests have merged.
 - **T12 split.** T12a (tokens, merged first) and T12b (migration sweep, last, by Khaled) so the 31 radius sites and 66 size literals are migrated once, after everyone else has merged.
 
 ### Conflict rules
@@ -155,6 +158,7 @@
 | Home plan setup card | `home/HomeSections.kt`, `home/HomeScreen.kt`, `ui/design/.../plan/PlanSetupCard.kt`, `progress/WavyRing.kt` | T19 |
 | Home usage card | `home/HomeSections.kt`, `home/HomeScreen.kt`, `home/HomeViewModel.kt`, `ui/design/.../usage/*`, nav History transition | T20 |
 | Apps page | `apps/AppsScreen.kt`, `AppsViewModel.kt`, `FeaturedAppCard.kt`, `FiltersSheet.kt`, `AppsSummaryCard.kt`, `PeriodButtons.kt` | T21 |
+| App detail | `apps/AppDetail.kt`, `AppDetailBudget.kt`, `apps/detail/*` (stats, header, chart, hour pattern, plan impact, budget card) | T22 |
 | Release | `app/build.gradle.kts`, `CHANGELOG.md`, `fastlane/.../changelogs/4.txt`, `RELEASE-NOTES-1.0.3.md` | T15 |
 
 ## Order and branches
@@ -654,6 +658,67 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
 
 ---
 
+## T22. App detail redesign: statistics that mean something
+
+**Closes:** E4 (audit) and the maintainer request of 2026-11-20. **Owner:** Khaled. **Branch:** `t22-app-detail`, started **after T21 merges** (it reuses T21's `PeriodButtons`, the split bar and the share-fill helper) and after Omar's T4 (loading states), T5 (data correctness: `AppDetail.kt:466-500`, `AppDetailBudget.kt`) , T10 (`MorphingNumber`, expressive rings) and T11 (`pressMorph`) have merged. **Files:** `app/.../apps/AppDetail.kt`, `AppDetailBudget.kt`, new `apps/detail/AppDetailStats.kt` (pure functions), `apps/detail/DetailHeader.kt`, `DetailChart.kt`, `HourPattern.kt`, `PlanImpactCard.kt`, `BudgetCard.kt`, `ui/design/.../progress/WavyRing.kt` (reuse). **Tests next to each.**
+**Mockup (the source of every number below):** https://claude.ai/artifact/Bv9pHkDykhgWteUPJEFV1S . Approved by the maintainer on 2026-11-20 as the direction; sections may be refined in review.
+
+**Principle.** Every figure answers one question (how much, compared with what, when, on which network, what it means for the plan) and says where it came from in its accessibility text. A figure that cannot be computed from stored data is **not shown**: there is no foreground and background split (Android does not report it per app), so `foregroundBytes` and `backgroundBytes` are removed from `AppDetailUiState`, with a one-line note under the content.
+
+**Decisions (locked).**
+1. **Header (E4).** One left edge for back, icon and title. Back is a 48 dp tonal circle; the icon is **76 dp** in its `AppShape`; title 28 sp bold (T18 grotesque), package name 13 sp muted under it. Under the title a row of pills: **"#2 of 47 apps"**, **"34% of all app data"**, and "Mostly Wi-Fi" or "Uses mobile" (mobile share above 20 percent).
+2. **Range.** Three connected buttons **7 days, 30 days, 90 days** (the T21 `PeriodButtons` component, generalised to take a list). Default 7 days. Session only. Changing it re-queries and re-animates the numbers, chart and cells.
+3. **Total and change.** "Used in the last 7 days" (the label follows the range), the total at **64 sp bold** in the primary colour with the unit at 24 sp (`MorphingNumber` count-up, 1.1 s on first show, 0.7 s on a range change, ease-out, never above the target), then a change pill: **"▲ 12% more than the 7 days before"**, "▼ 8% less ...", or "About the same ..." when the change is under 3 percent. More is the warn tint, less the green tint, same neutral. The previous period is the equal-length range immediately before. When the previous period has no data (for example a new install) the pill is replaced by "First week of data" and no percentage is shown.
+4. **The sentence.** One plain sentence built from the numbers: "YouTube is your **biggest** data user: **34%** of everything your apps used. About **84%** goes over Wi-Fi, and most of it flows in the **evening**, peaking around **7 PM**." Rank words: "biggest", "second biggest", "third biggest", then "number N". Hidden when the app has under 3 days of data. Copy lives in string resources with plural handling; the sentence is the screen's accessibility summary.
+5. **Chart.** A `Card` with: title "Each day" (or "Each week" for 90 days) and "average 322 MB a day" on the right; **stacked bars** (Wi-Fi primary at the bottom, Mobile green above, 2 dp gap, 12 dp top corners), 150 dp tall, 6 dp between bars (2 dp when there are more than 20); a **dashed average line** at the mean of the bars with a small "avg" label; today's bar has a 2 dp outline. 7 days: weekday initials; 30 days: a day-of-month label every 5th bar and the last; 90 days: 13 weekly bars labelled by month every third bar. Tapping a bar selects it (the others dim to 40 percent) and the caption row shows "Sat 14 Nov · 426 MB" with "Wi-Fi X · Mobile Y"; tapping again clears. With nothing selected the caption shows the busiest bar. Legend: Wi-Fi, Mobile, average. Bars use `contentDescription` like "Saturday 14 November, 426 megabytes". (Closes the History charts-need-numbers feedback for this screen.)
+6. **Four tiles** (2 x 2, 10 dp gap, interlocking corners 28 dp / 10 dp, min height 122 dp): **Daily average** (value, and "Down from 289 MB a day" or "Steady compared with before"); **Busiest day** ("Sat 14", its amount, and "a weekend" when it is Saturday or Sunday); **Share of all apps** (primary-container tile, value in percent and a 54 dp ring that draws to the share, "Rank #1 of 47 apps"); **At this pace** (average x 30, "in 30 days, if this week is typical"). Numbers count up with `MorphingNumber`.
+7. **When you use it.** Card "When you use it, by hour": **24 cells** (46 dp tall, 7 dp corners, 3 dp gap, primary at opacity `0.14 + 0.86 x hour / maxHour`), labels 12 AM, 6 AM, 12 PM, 6 PM, 11 PM; a dot under the **busiest 3-hour window**; **four part-of-day boxes** (Night 0 to 6, Morning 6 to 12, Afternoon 12 to 18, Evening 18 to 24) with their share in percent, the largest in the primary container; a caption "Busiest: 7 PM to 10 PM, 33% of its data". Tapping a cell outlines it and shows "9 PM · 612 MB · 7% of its data". Each cell has a content description with the hour and amount. Source: the app's `HOUR` series summed per hour of day over the range, in the user's time zone.
+8. **Wi-Fi and mobile.** Card with a split bar (22 dp, 3 dp gap, 14 dp minimum segment, spring flex) and the two figures with their percentages, then an **impact line** when the user has an active plan: "Its mobile data is **1.7%** of your 20 GB plan in a week." (7 days: the mobile bytes against the plan allowance; 30 days: "this cycle"; 90 days: the 90-day mobile bytes divided by 3, "in a typical cycle") with a thin progress bar (minimum 3 percent so it stays visible). With no plan the line is hidden.
+9. **Budget card.** With a budget: a 96 dp ring (`WavyRing` or the plain ring when reduced), centre text "75%" meaning left, title "99 MB left today", body "301 MB of 400 MB. At today's pace you will stay **under** the limit by about 54 MB." (or "...will **pass** the limit around 9 PM", using the existing projection); the ring turns the warn colour above the warn percent. **No budget:** an empty ring with "—", "No limit yet" and a suggestion built from the average ("At 322 MB a day, a limit of 450 MB would catch the heavy days without nagging": average x 1.3 rounded up to the next 50 MB). This replaces the broken 0 percent ring (E4). Edit and Remove stay available through the connected buttons below.
+10. **Spikes.** Kept, in a card with the Warn tint at 16 percent per row: "Fri 17 · 9 PM", "410 MB in one hour · 3.4 times normal" and a 44 dp Dismiss text button; a dismissed row slides out 30 dp and fades over 300 ms. Hidden when empty.
+11. **Actions.** Two connected buttons at the end: **"Set a budget" / "Edit budget"** (primary) and **"App settings"** (tonal, hidden for `uid:` packages as today). Both 52 dp, outer corners 26 dp, inner 9 dp.
+12. **Header collapse.** A top bar (92 dp, status-bar aware) holds the back button and a mini icon (30 dp) with the app name; its background and the mini content fade in over the first 90 dp of scroll (starting after 40 dp) while the big icon scales down to 65 percent and the title scrolls under. `EmberbyteScreenScaffold` (T2) is not used: this screen has a custom header, but it must use the same status-bar inset handling and the same tonal back button.
+13. **Motion** (all on `rememberEmberbyteMotion()` specs; static when reduced).
+    - **Icon entrance:** scale 0 to 1 with a 40 degree turn, spring (dampingRatio 0.5, low stiffness), shape settling from a circle to its `AppShape` over 700 ms; **pressing the icon** morphs it to the alternate shape and back (`pressMorph`, T11).
+    - **Title:** fades and slides from 14 dp, 200 ms after the icon.
+    - **Sections reveal on first visibility** (rise 22 dp, scale 0.97 to 1, fade 450 ms, spatial spring), staggered 90 ms when several appear together; each section animates **once** per visit.
+    - **Chart bars** grow from 0 in a 35 ms stagger on a spatial spring (about 900 ms); the average line slides to its level over 800 ms.
+    - **Hour cells** pop in (scale 0.3 to 1, fade) as a wave from 12 AM, 30 ms per cell.
+    - **Rings** (share, budget) draw from empty over 1.1 to 1.2 s; the plan progress bar and split bars flex on a spring.
+    - **Range change** replays the chart, the cells, the tiles and the split bar; the total counts to the new value.
+    - **Bar selection** dims the others and moves the caption with a 150 ms crossfade.
+    - **Reduced motion:** everything is at its final state, counts show the final value, no stagger, no turn.
+14. **Loading.** Uses Omar's T4 state: nothing but the loading indicator until the first emission (no package name as a title, no "0 B").
+
+**Interfaces (data and pure logic; all in `AppDetailStats.kt`, unit-tested without Compose).**
+- `enum class DetailRange(val days: Int) { Week(7), Month(30), Quarter(90) }`.
+- `AppDetailUiState` gains `range: DetailRange`, `previousTotalBytes: Long`, `rank: Int`, `appCount: Int`, `shareOfAll: Float`, `dailySeries: List<UsagePoint>` (the range, oldest first), `hourTotals: LongArray` (24 entries, local hours), `planMobileImpact: PlanImpact?`, `budgetProjection: BudgetProjection?`; it loses `foregroundBytes` and `backgroundBytes`. `AppDetailEvent` gains `SetRange(range: DetailRange)`.
+- `internal fun changeFraction(current: Long, previous: Long): Float?` (null when `previous == 0`), `internal fun changeLabel(change: Float?, rangeDays: Int): ChangeLabel`, `internal fun busiestDay(series: List<UsagePoint>, zone: ZoneId): UsagePoint?`, `internal fun dailyAverage(total: Long, days: Int): Long`, `internal fun pace30(total: Long, days: Int): Long`, `internal fun weeklyBuckets(series: List<UsagePoint>, zone: ZoneId): List<UsagePoint>` (13 buckets aligned to the end), `internal fun partsOfDay(hours: LongArray): List<PartShare>`, `internal fun busiestWindow(hours: LongArray, width: Int = 3): HourWindow`, `internal fun hourIntensity(value: Long, max: Long): Float` (0.14 to 1.0), `internal fun rankOf(packageName: String, apps: List<AppUsage>): RankInfo`, `internal fun planImpact(mobileBytes: Long, rangeDays: Int, plan: Plan?): PlanImpact?`, `internal fun suggestedLimit(averageDaily: Long): Long` (x 1.3, up to the next 50 MB).
+- Repository: no new methods. `observeAppSeries(pkg, range, Granularity.DAY)` for 2 x the range (the second half is the previous period) and `Granularity.HOUR` for the range; `observeApps(range)` for rank and share; plan and budget flows as today. Keep the 2 x range read to one query where possible.
+
+**Steps (each its own commit, test first, watch it fail).**
+1. **Pure logic.** RED `change_is_null_without_a_previous_period`, `change_label_says_about_the_same_under_3_percent`, `busiest_day_picks_the_largest_in_the_zone`, `weekly_buckets_cover_90_days_in_13_aligned_buckets`, `parts_of_day_sum_to_100_percent`, `busiest_window_finds_the_best_three_hours`, `hour_intensity_is_clamped_between_014_and_1`, `rank_and_share_use_the_apps_list`, `plan_impact_divides_by_cycles_for_90_days`, `plan_impact_is_null_without_a_plan`, `suggested_limit_rounds_up_to_50_mb`. GREEN.
+2. **ViewModel.** RED (`AppDetailViewModelTest`) `range_defaults_to_7_days`, `set_range_requeries_series_and_previous_period`, `hour_totals_use_the_users_zone`, `foreground_and_background_are_gone`, `loading_state_until_first_emission` (with T4). GREEN.
+3. **Header and range.** RED (Compose) `header_has_one_left_edge`, `pills_show_rank_share_and_network`, `range_buttons_mark_the_selected_one`, `total_counts_up_and_ends_on_the_value`, `change_pill_uses_the_right_tint_and_wording`, `no_percentage_when_there_is_no_previous_period`. GREEN.
+4. **Chart.** RED `bars_stack_wifi_and_mobile`, `average_line_sits_at_the_mean`, `selecting_a_bar_dims_the_others_and_updates_the_caption`, `tapping_again_clears`, `ninety_days_shows_13_weekly_bars`, `bars_announce_day_and_amount`, `empty_range_shows_the_empty_state`. GREEN.
+5. **Tiles, hours, network and plan.** RED `tiles_show_average_busiest_share_and_pace`, `share_ring_matches_the_share`, `hour_cells_have_24_entries_with_labels`, `tapping_an_hour_shows_its_amount_and_share`, `parts_of_day_highlight_the_largest`, `impact_line_hidden_without_a_plan`, `split_bar_keeps_a_minimum_segment`. GREEN.
+6. **Budget, spikes and actions.** RED `budget_ring_shows_percent_left_and_turns_warn`, `no_budget_shows_an_empty_ring_and_a_suggestion`, `projection_says_under_or_pass`, `dismissed_spike_leaves_the_list`, `action_buttons_open_the_editor_and_settings`, `settings_button_hidden_for_uid_packages`. GREEN.
+7. **Motion and header collapse.** RED `icon_entrance_has_in_between_frames`, `pressing_the_icon_morphs_the_shape`, `sections_reveal_once`, `bars_grow_in_a_stagger`, `hour_cells_wave_in`, `range_change_replays_the_chart`, `header_collapses_on_scroll`, `reduced_motion_is_static`, `rings_draw_and_end_at_the_value`. GREEN.
+8. **Wiring.** Replace the old content in `AppDetailContent`; remove the old foreground and background tiles; update the existing App detail tests that asserted the old structure and say why in the pull request. App budget editing, `BudgetEditorDialog` and the settings intent are unchanged.
+9. **Performance gate (device).** Record the screen scrolling with all sections and a range change on a mid-range phone and report the janky-frame percentage; if above 5 percent, lazy-load the hour cells and chart only when visible (already the plan) and drop the cell wave.
+
+**Review Focus for this task.**
+1. A brand-new app with one day of data, an app with no data in the previous period, and an app that is not in the apps list (for example a `uid:` entry): no crash, no "Infinity%", no "#0 of 0".
+2. Time zones and DST days: the hour totals and the busiest day use the user's zone; a 23 or 25 hour day does not break the cells.
+3. Font scale 2.0, display size 560 and RTL: the four tiles stack to one column, pills wrap, the chart labels do not overlap, the connected buttons keep their labels.
+4. Budget with a limit already passed, a budget with a CYCLE period and a plan, and the editor dialog opening from the new buttons.
+5. Switching range quickly while data loads does not show stale numbers; going back and returning keeps Week as the default.
+6. Every statistic has text a screen reader can use, and none is conveyed by colour alone (change pill has an arrow and words).
+
+**Acceptance.** On a device an app's page opens with the icon springing in, a collapsing header, a range selector, a count-up total with an honest comparison to the previous period, a one-sentence summary, a stacked daily chart with an average line and tap-for-numbers, four meaningful tiles, an hour-of-day pattern with the busiest window, a Wi-Fi and mobile split with its meaning for the user's plan, a budget card (or a suggestion when none is set) and spikes; sections reveal as you scroll; changing the range updates and re-animates everything; the old Foreground and Background tiles are gone; with animations off everything is static.
+
+---
+
 ## T15. Release 1.0.3
 
 **Files:** `app/build.gradle.kts` (`versionName = "1.0.3"`, `versionCode = 4`), `CHANGELOG.md` (dated the release day; categories Fixed, Changed, Added), `fastlane/metadata/android/en-US/changelogs/4.txt` (under 500 characters), `app/src/main/assets/whats_new.json` (the 1.0.3 entry, user wording, newest first; `whats_new_newest_entry_matches_version_name_and_code_in_build_gradle` fails until it exists), `docs/release/RELEASE-NOTES-1.0.3.md` (certificate fingerprint `72:AD:25:A3:D8:36:6A:07:33:9C:7B:23:9B:E0:DF:D7:0D:42:7C:FB:7D:FE:49:8B:92:62:1E:4C:60:45:95:EF`, known limits, the "no INTERNET permission" sentence). Then the per-release checklist from `RELEASE-PLAN-2026-Q4.md`: tag on `main`, release workflow, draft, fingerprint check, publish, check website, Obtainium and Orion Store, install over 1.0.2. The last commit on the release branch removes this spec and the findings document (nothing after it), then squash-merge.
@@ -684,6 +749,7 @@ Same format as 1.0.2 (one poll per verdict, one reply per failure with the copie
 17. Home with no plan: one setup card under the hero (ghost ring drawing itself, "Set up your data plan", one big "Set up plan" button) replaces the old link and card; the button opens the new-plan flow; creating a plan removes the card; with a plan nothing of it remains; with animations off everything is static.
 18. Home: one Top apps card with a week strip (tap a day: the apps re-rank with a glide), a featured first app with share-fill rows, and three connected buttons; Filters (Network, System apps) narrows strip, summary and ranking together with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.
 19. Apps: header with the app count, search and Filters at the same height (badge when filters are active), Today / 7 days / 30 days / Cycle buttons that change the numbers at once, full-label removable chips, a summary card (total, Wi-Fi and Mobile split, "apps only"), a Most used card and share-fill rows that glide on re-rank; Filters has Network, Sort and System apps only; searching for nothing shows one message and no zero total; with animations off everything is static.
+20. App detail: icon springs in and the header collapses on scroll; 7 / 30 / 90 day range with a count-up total and an honest change against the previous period; one-sentence summary; stacked chart with an average line (tap a bar for numbers); four tiles (average, busiest day, share, pace); hour-of-day pattern with the busiest window; Wi-Fi and mobile split with its meaning for the plan; budget ring or a suggested limit; no Foreground and Background tiles; with animations off everything is static.
 
 ## Out of scope (record, do not build)
 

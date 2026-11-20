@@ -35,6 +35,7 @@
 | Khaled | T19 Home plan setup card (merged call to action) | `t19-plan-setup-card` | after T18 merges |
 | Khaled | T20 Home usage card (Top apps with History inside) | `t20-usage-card` | after T19, and Omar's T5 and T11 merge |
 | Khaled | T21 Apps page redesign (search and Filters pair, period buttons, summary card) | `t21-apps-page` | after T20, and Omar's T4, T5 and T11 merge |
+| Khaled | T22 App detail redesign (range, statistics, hour pattern, plan impact) | `t22-app-detail` | after T21, and Omar's T4, T5, T10 and T11 merge |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -56,6 +57,7 @@
 - **Appearance selection and onboarding motion (G16, G15)** move from T11 to T8 (Joe).
 - **Home redesign (T17 to T20) is Khaled's.** The hero, bento tiles, plan setup card and usage card (Top apps with History inside) are the maintainer's own tasks. They edit `HomeSections.kt`, `HomeScreen.kt`, `HomeViewModel.kt` and the History screen, which Omar's T4, T5, T10 and T11 also edit, so Khaled starts them **only after those four Omar pull requests have merged**. Omar does not touch T17 to T20.
 - **Apps page (T21) is Khaled's.** It reuses T20's row and share-fill work and edits `AppsViewModel.kt` and `AppsScreen.kt`, which Omar's T4 and T5 also edit, so Khaled starts it only after T20 and those Omar pull requests have merged.
+- **App detail (T22) is Khaled's.** It edits `AppDetail.kt` and `AppDetailBudget.kt`, which Omar's T5 also edits, and uses T10's number and ring components, so Khaled starts it only after T21 and those Omar pull requests have merged.
 - **T12 split.** T12a (tokens, merged first) and T12b (migration sweep, last, by Khaled) so the 31 radius sites and 66 size literals are migrated once, after everyone else has merged.
 
 ### Conflict rules
@@ -224,3 +226,4 @@ Same format as 1.0.2 (one poll per verdict, one reply per failure with the copie
 17. Home with no plan: one setup card under the hero (ghost ring drawing itself, "Set up your data plan", one big "Set up plan" button) replaces the old link and card; the button opens the new-plan flow; creating a plan removes the card; with a plan nothing of it remains; with animations off everything is static.
 18. Home: one Top apps card with a week strip (tap a day: the apps re-rank with a glide), a featured first app with share-fill rows, and three connected buttons; Filters (Network, System apps) narrows strip, summary and ranking together with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.
 19. Apps: header with the app count, search and Filters at the same height (badge when filters are active), Today / 7 days / 30 days / Cycle buttons that change the numbers at once, full-label removable chips, a summary card (total, Wi-Fi and Mobile split, "apps only"), a Most used card and share-fill rows that glide on re-rank; Filters has Network, Sort and System apps only; searching for nothing shows one message and no zero total; with animations off everything is static.
+20. App detail: icon springs in and the header collapses on scroll; 7 / 30 / 90 day range with a count-up total and an honest change against the previous period; one-sentence summary; stacked chart with an average line (tap a bar for numbers); four tiles (average, busiest day, share, pace); hour-of-day pattern with the busiest window; Wi-Fi and mobile split with its meaning for the plan; budget ring or a suggested limit; no Foreground and Background tiles; with animations off everything is static.
