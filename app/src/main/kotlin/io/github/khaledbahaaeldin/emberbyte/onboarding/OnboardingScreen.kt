@@ -25,7 +25,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,20 +82,12 @@ internal fun OnboardingContent(
     val scope = rememberCoroutineScope()
 
     var hasFinished by remember { mutableStateOf(false) }
-    var previousUsageAccess by remember { mutableStateOf(state.usageAccess) }
 
     fun completeOnce() {
         if (!hasFinished) {
             hasFinished = true
             onFinish()
         }
-    }
-
-    LaunchedEffect(state.usageAccess) {
-        if (!previousUsageAccess && state.usageAccess) {
-            completeOnce()
-        }
-        previousUsageAccess = state.usageAccess
     }
 
     fun moveToPage(targetPage: Int) {

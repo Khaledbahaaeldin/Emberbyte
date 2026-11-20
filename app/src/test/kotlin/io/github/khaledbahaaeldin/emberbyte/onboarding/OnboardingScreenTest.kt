@@ -173,7 +173,7 @@ class OnboardingScreenTest {
     }
 
     @Test
-    fun permission_granted_completes_onboarding_exactly_once() {
+    fun granting_a_permission_keeps_the_user_on_the_page_and_continue_finishes_once() {
         var finishCount = 0
         var uiState by mutableStateOf(OnboardingUiState(usageAccess = false))
 
@@ -194,13 +194,20 @@ class OnboardingScreenTest {
         rule.onNodeWithContentDescription("Page 4 of 4").assertIsDisplayed()
         assertEquals(0, finishCount)
 
-        // Grant usage access -> should complete onboarding once
+        // Granting usage access must NOT leave onboarding: the user still has
+        // the other permissions to grant.
         uiState = OnboardingUiState(usageAccess = true)
         rule.waitForIdle()
-        assertEquals(1, finishCount)
+        assertEquals(0, finishCount)
+        rule.onNodeWithContentDescription("Page 4 of 4").assertIsDisplayed()
 
-        // Subsequent state emissions with usageAccess = true must not re-fire onFinish
+        // Granting notifications afterwards does not finish either.
         uiState = OnboardingUiState(usageAccess = true, notifications = true)
+        rule.waitForIdle()
+        assertEquals(0, finishCount)
+
+        // Only the explicit Continue button finishes, and only once.
+        rule.onNodeWithText("Continue").performClick()
         rule.waitForIdle()
         assertEquals(1, finishCount)
     }
