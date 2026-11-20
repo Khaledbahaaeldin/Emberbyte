@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -83,8 +84,7 @@ fun HistoryHeader(
         val selectedPoint = state.selectedIndex?.let { state.points.getOrNull(it) }
         val displayBytes = selectedPoint?.totalBytes ?: state.totalBytes
         val formatted = formatBytes(displayBytes, state.units)
-
-        val spokenTotal = io.github.khaledbahaaeldin.emberbyte.common.spokenBytes(displayBytes, state.units)
+        val spokenTotal = spokenBytes(displayBytes, state.units)
         val totalDescription = when (state.granularity) {
             Granularity.WEEK -> "$spokenTotal this week"
             Granularity.MONTH -> "$spokenTotal this month"

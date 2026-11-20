@@ -43,18 +43,19 @@ import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
 import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
-import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
-import io.github.khaledbahaaeldin.emberbyte.R
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import io.github.khaledbahaaeldin.emberbyte.R
+import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 import java.time.Clock
@@ -97,13 +98,7 @@ data class HistoryUiState(
     val loaded: Boolean = false,
     val selectedIndex: Int? = null,
     val comparisonText: String? = null,
-    val trendDirection: TrendDirection = when {
-        comparisonText == null -> TrendDirection.NONE
-        comparisonText.contains("more than", ignoreCase = true) -> TrendDirection.UP
-        comparisonText.contains("less than", ignoreCase = true) -> TrendDirection.DOWN
-        comparisonText.contains("the same", ignoreCase = true) -> TrendDirection.FLAT
-        else -> TrendDirection.NONE
-    },
+    val trendDirection: TrendDirection = TrendDirection.NONE,
     val heroDescription: String? = null,
     val rangeLabel: String? = null,
     val heroLabel: String? = null,
@@ -177,7 +172,7 @@ internal fun computeHeroLabel(
     points: List<UsagePoint>,
     zone: ZoneId,
     locale: Locale,
-): String {
+): String? {
     if (selectedIndex != null && selectedIndex in points.indices) {
         val date = points[selectedIndex].start.atZone(zone).toLocalDate()
         return when (granularity) {
@@ -193,11 +188,7 @@ internal fun computeHeroLabel(
             }
         }
     }
-    return when (granularity) {
-        Granularity.WEEK -> "Last 12 weeks"
-        Granularity.MONTH -> "Last 12 months"
-        else -> "Last 14 days"
-    }
+    return null
 }
 
 internal fun buildHistoryUiState(
@@ -353,7 +344,7 @@ fun HistoryContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette.current
+    val palette = LocalEmberbytePalette.current
     val unit = when (state.granularity) {
         Granularity.WEEK -> "week"
         Granularity.MONTH -> "month"

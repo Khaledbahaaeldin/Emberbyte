@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -21,7 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalDensity
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.contrastRatio
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -124,7 +132,7 @@ class UsageBarRowTest {
     @Test
     fun selecting_a_bar_does_not_jump_scroll_position() {
         val bars = (1..60).map { BarUi(bytes = 100L * it, label = "$it", description = "Bar $it") }
-        var selected by androidx.compose.runtime.mutableStateOf<Int?>(null)
+        var selected by mutableStateOf<Int?>(null)
 
         rule.setContent {
             Box(Modifier.size(360.dp, 200.dp)) {
@@ -144,10 +152,10 @@ class UsageBarRowTest {
 
     @Test
     fun selected_bar_has_a_distinct_colour_in_every_palette() {
-        for (preset in io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets) {
-            for (palette in listOf(preset.dark, preset.light, preset.dark.copy(background = androidx.compose.ui.graphics.Color.Black))) {
-                val ratio = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.contrastRatio(palette.primary, palette.surface)
-                org.junit.Assert.assertTrue(
+        for (preset in ThemePresets) {
+            for (palette in listOf(preset.dark, preset.light, preset.dark.copy(background = Color.Black))) {
+                val ratio = contrastRatio(palette.primary, palette.surface)
+                assertTrue(
                     "Palette ${preset.name} must have contrast >= 3:1 between primary and surface (got $ratio)",
                     ratio >= 3.0,
                 )
@@ -157,10 +165,10 @@ class UsageBarRowTest {
 
     @Test
     fun values_respect_decimal_and_binary_units() {
-        val decVal = io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue(1_200_000_000L, io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits.DECIMAL)
-        val binVal = io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue(1_200_000_000L, io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits.BINARY)
-        org.junit.Assert.assertEquals("1.2 GB", decVal)
-        org.junit.Assert.assertEquals("1.1 GiB", binVal)
+        val decVal = formatBarValue(1_200_000_000L, ByteUnits.DECIMAL)
+        val binVal = formatBarValue(1_200_000_000L, ByteUnits.BINARY)
+        assertEquals("1.2 GB", decVal)
+        assertEquals("1.1 GiB", binVal)
     }
 
     @Test
@@ -214,8 +222,8 @@ class UsageBarRowTest {
             }
         }
         // In the unmerged semantics tree, valueText has clearAndSetSemantics {}, so no Text semantics node exists for it
-        val textNodes = rule.onAllNodes(androidx.compose.ui.test.hasText("100 MB")).fetchSemanticsNodes()
-        org.junit.Assert.assertTrue(textNodes.isEmpty())
+        val textNodes = rule.onAllNodes(hasText("100 MB")).fetchSemanticsNodes()
+        assertTrue(textNodes.isEmpty())
     }
 
     @Test

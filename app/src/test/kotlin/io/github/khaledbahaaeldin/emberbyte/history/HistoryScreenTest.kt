@@ -146,6 +146,7 @@ class HistoryScreenTest {
             loaded = true,
             totalBytes = 1_000_000_000L,
             comparisonText = "12% more than last week",
+            trendDirection = TrendDirection.UP,
         )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
@@ -170,6 +171,7 @@ class HistoryScreenTest {
             loaded = true,
             totalBytes = 1_000_000_000L,
             comparisonText = "12% more than last week",
+            trendDirection = TrendDirection.UP,
         )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
