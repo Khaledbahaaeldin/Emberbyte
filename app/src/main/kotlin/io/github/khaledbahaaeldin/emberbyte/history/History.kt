@@ -23,8 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
-import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import kotlinx.coroutines.flow.onEach
 import androidx.lifecycle.ViewModel
@@ -57,6 +55,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 import java.time.Clock
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -290,7 +289,7 @@ class HistoryViewModel(
         .flatMapLatest { (date, g) ->
             selectedBar.value = null
             val zone = clock.zone
-            var lastKeys: List<java.time.Instant>? = null
+            var lastKeys: List<Instant>? = null
             val pointsFlow = usage.observeSeries(rangeForHistory(g, date, zone), g)
                 .onEach { pts ->
                     val keys = pts.map { it.start }
@@ -347,7 +346,6 @@ fun HistoryContent(
         Granularity.MONTH -> "month"
         else -> "day"
     }
-    val motion = rememberEmberbyteMotion()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

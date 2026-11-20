@@ -127,10 +127,10 @@ class HistoryTest {
     @Test fun the_average_counts_only_days_with_data() {
         val base = Instant.parse("2026-09-24T00:00:00Z")
         val points = (0 until 12).map { day ->
-            UsagePoint(base.plus(day.toLong(), java.time.temporal.ChronoUnit.DAYS), 0L, 0L)
+            UsagePoint(base.plus(day.toLong(), ChronoUnit.DAYS), 0L, 0L)
         } + listOf(
-            UsagePoint(base.plus(12, java.time.temporal.ChronoUnit.DAYS), 300L, 0L),
-            UsagePoint(base.plus(13, java.time.temporal.ChronoUnit.DAYS), 100L, 0L),
+            UsagePoint(base.plus(12, ChronoUnit.DAYS), 300L, 0L),
+            UsagePoint(base.plus(13, ChronoUnit.DAYS), 100L, 0L),
         )
         assertEquals(14, points.size)
         val state = buildHistoryUiState(Granularity.DAY, points, ByteUnits.DECIMAL, zone, Locale.ENGLISH)

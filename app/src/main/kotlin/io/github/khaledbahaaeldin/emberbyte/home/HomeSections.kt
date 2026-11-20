@@ -368,7 +368,6 @@ internal fun HomeHistorySection(
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalEmberbytePalette.current
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
