@@ -2,6 +2,12 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.navbar
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import io.github.khaledbahaaeldin.emberbyte.ui.design.layout.contentWidth
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Apps
@@ -82,6 +88,79 @@ class CompactNavBarMotionTest {
     }
 
     private fun plusExists(): Boolean = rule.onAllNodesWithContentDescription("New plan").fetchSemanticsNodes().isNotEmpty()
+
+    // ---- the app's real layout: EmberbyteApp.kt aligns the bar with `align(BottomCenter).contentWidth()` ------------
+
+    private fun setUpAsInTheApp(
+        reduceMotion: Boolean,
+        rtl: Boolean = false,
+        plus: Boolean = false,
+        fontScale: Float = 1f,
+    ) {
+        reduce = reduceMotion
+        showPlus = plus
+        rule.setContent {
+            CompositionLocalProvider(
+                LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+                LocalDensity provides Density(density = 1f, fontScale = fontScale),
+            ) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    CompositionLocalProvider(LocalReduceMotion provides reduce) {
+                        Box(Modifier.fillMaxSize()) {
+                            CompactNavBar(
+                                items = items,
+                                selectedId = "home",
+                                onSelect = {},
+                                visible = true,
+                                modifier = Modifier.align(Alignment.BottomCenter).contentWidth(),
+                                trailing = if (showPlus) {
+                                    { PlusButton(onClick = {}, contentDescription = "New plan") }
+                                } else null,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun bar_is_centered_in_the_app_layout_with_normal_motion() {
+        setUpAsInTheApp(reduceMotion = false)
+        assertEquals(0f, centreOffset(), 1f)
+    }
+
+    @Test
+    fun bar_is_centered_in_the_app_layout_under_reduced_motion() {
+        setUpAsInTheApp(reduceMotion = true)
+        assertEquals("1.0.2 pinned the bar to the left edge under reduced motion", 0f, centreOffset(), 1f)
+    }
+
+    @Test
+    fun bar_is_centered_in_the_app_layout_under_reduced_motion_in_rtl() {
+        setUpAsInTheApp(reduceMotion = true, rtl = true)
+        assertEquals(0f, centreOffset(), 1f)
+    }
+
+    @Test
+    fun bar_is_centered_in_the_app_layout_under_reduced_motion_with_the_plus_button() {
+        setUpAsInTheApp(reduceMotion = true, plus = true)
+        // With the Plus the whole row (bar + gap + button) is centred, so the bar sits half the button plus gap to the left.
+        val root = rule.onRoot().getBoundsInRoot()
+        val bar = rule.onNodeWithTag("compact_nav_bar").getBoundsInRoot()
+        val plus = rule.onAllNodesWithContentDescription("New plan").fetchSemanticsNodes().first().boundsInRoot
+        val left = bar.left.value - root.left.value
+        val right = root.right.value - plus.right
+        assertEquals("the bar and the Plus together must be centred", 0f, left - right, 1.5f)
+    }
+
+    @Test
+    fun bar_is_centered_in_the_app_layout_under_reduced_motion_at_font_scale_2() {
+        setUpAsInTheApp(reduceMotion = true, fontScale = 2f)
+        assertEquals(0f, centreOffset(), 1f)
+    }
+
 
     @Test
     fun pill_is_centered_with_normal_motion() {

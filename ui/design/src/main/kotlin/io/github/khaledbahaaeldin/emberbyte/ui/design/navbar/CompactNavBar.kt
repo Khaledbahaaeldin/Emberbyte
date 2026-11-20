@@ -131,7 +131,9 @@ fun CompactNavBar(
 
     if (reduceMotion) {
         if (visible) {
-            Box(modifier) { content() }
+            // A bare Box aligns its child to the top start and loosens the minimum width, so under reduced motion the
+            // bar sat at the left edge (right edge in RTL). AnimatedVisibility passes the width through, so centre here.
+            Box(modifier, contentAlignment = Alignment.Center) { content() }
         }
     } else {
         AnimatedVisibility(
