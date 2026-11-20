@@ -11,6 +11,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -141,7 +142,7 @@ class HistoryTest {
         val base = Instant.parse("2026-09-24T00:00:00Z")
         // 14 days, first 7 days sum = 700MB, last 7 days sum = 700MB
         val points = (0 until 14).map { day ->
-            UsagePoint(base.plus(day.toLong(), java.time.temporal.ChronoUnit.DAYS), 100_000_000L, 0L)
+            UsagePoint(base.plus(day.toLong(), ChronoUnit.DAYS), 100_000_000L, 0L)
         }
         val state = buildHistoryUiState(Granularity.DAY, points, ByteUnits.DECIMAL, zone, Locale.ENGLISH)
         assertEquals(TrendDirection.FLAT, state.trendDirection)

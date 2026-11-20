@@ -82,7 +82,7 @@ class HistoryScreenTest {
             }
         }
         rule.onAllNodes(hasScrollAction())[0]
-            .performScrollToNode(androidx.compose.ui.test.hasText("Mobile", substring = true))
+            .performScrollToNode(hasText("Mobile", substring = true))
         rule.onNodeWithText("Mobile", substring = true).assertExists()
         rule.onNodeWithText("Wi-Fi", substring = true).assertExists()
     }
@@ -141,7 +141,7 @@ class HistoryScreenTest {
 
     @Test
     fun period_group_selects_and_reloads() {
-        var selectedGranularity: io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity? = null
+        var selectedGranularity: Granularity? = null
         val state = HistoryUiState(
             loaded = true,
             totalBytes = 1_000_000_000L,
@@ -162,7 +162,7 @@ class HistoryScreenTest {
             }
         }
         rule.onNodeWithText("Week").performClick()
-        org.junit.Assert.assertEquals(io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity.WEEK, selectedGranularity)
+        assertEquals(Granularity.WEEK, selectedGranularity)
     }
 
     @Test

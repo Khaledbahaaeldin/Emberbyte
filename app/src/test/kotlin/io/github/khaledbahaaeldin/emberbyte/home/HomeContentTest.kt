@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.GapUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
@@ -247,7 +248,7 @@ class HomeContentTest {
     fun home_weekly_bar_click_routes_to_history() {
         var openedHistory = false
         val weekBars = listOf(
-            io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi(
+            BarUi(
                 label = "M\n5",
                 bytes = 100_000_000L,
                 description = "Monday, 5 October, 100 megabytes",

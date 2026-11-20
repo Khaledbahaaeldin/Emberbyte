@@ -110,8 +110,8 @@ class UsageBarRowTest {
     fun switching_key_or_granularity_rescrolls_to_end() {
         val barsDay = (1..60).map { BarUi(bytes = 100L * it, label = "D$it", description = "Day $it") }
         val barsWeek = (1..20).map { BarUi(bytes = 100L * it, label = "W$it", description = "Week $it") }
-        var currentBars by androidx.compose.runtime.mutableStateOf(barsDay)
-        var scrollKey by androidx.compose.runtime.mutableStateOf("DAY")
+        var currentBars by mutableStateOf(barsDay)
+        var scrollKey by mutableStateOf("DAY")
 
         rule.setContent {
             Box(Modifier.size(360.dp, 200.dp)) {
@@ -278,7 +278,7 @@ class UsageBarRowTest {
             BarUi(label = "Mon", bytes = 100L, description = "Monday"),
             BarUi(label = "Tue", bytes = 200L, description = "Tuesday"),
         )
-        var selected by androidx.compose.runtime.mutableStateOf<Int?>(null)
+        var selected by mutableStateOf<Int?>(null)
         rule.setContent {
             Box(Modifier.size(360.dp, 200.dp)) {
                 UsageBarRow(points = bars, selectedIndex = selected, onSelect = { selected = it })
@@ -289,8 +289,8 @@ class UsageBarRowTest {
         selected = 0
         rule.waitForIdle()
         val afterBounds = rule.onNodeWithContentDescription("Monday").fetchSemanticsNode().boundsInRoot
-        org.junit.Assert.assertEquals(beforeBounds.top, afterBounds.top, 1f)
-        org.junit.Assert.assertEquals(beforeBounds.bottom, afterBounds.bottom, 1f)
+        assertEquals(beforeBounds.top, afterBounds.top, 1f)
+        assertEquals(beforeBounds.bottom, afterBounds.bottom, 1f)
     }
 }
 
