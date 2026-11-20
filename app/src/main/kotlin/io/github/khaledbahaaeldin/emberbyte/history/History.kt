@@ -1,13 +1,20 @@
 package io.github.khaledbahaaeldin.emberbyte.history
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
@@ -39,6 +46,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
@@ -72,6 +80,8 @@ data class HistoryUiState(
     val selectedIndex: Int? = null,
     val comparisonText: String? = null,
     val heroDescription: String? = null,
+    val rangeLabel: String? = null,
+    val heroLabel: String? = null,
 )
 
 sealed interface HistoryEvent {
@@ -96,20 +106,90 @@ internal fun historyBars(
     units: ByteUnits,
     zone: ZoneId,
     locale: Locale,
-): List<BarUi> = points.map { point ->
-    val date = point.start.atZone(zone).toLocalDate()
-    val month = date.month.getDisplayName(TextStyle.FULL, locale)
-    val spoken = spokenBytes(point.totalBytes, units)
-    val (label, description) = when (granularity) {
-        Granularity.DAY, Granularity.HOUR ->
-            date.dayOfMonth.toString() to
-                "${date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)}, ${date.dayOfMonth} $month, $spoken"
-        Granularity.WEEK ->
-            DateTimeFormatter.ofPattern("d MMM", locale).format(date) to "Week of ${date.dayOfMonth} $month, $spoken"
-        Granularity.MONTH ->
-            date.month.getDisplayName(TextStyle.SHORT, locale) to "$month ${date.year}, $spoken"
+): List<BarUi> {
+    var prevDate: LocalDate? = null
+    return points.map { point ->
+        val date = point.start.atZone(zone).toLocalDate()
+        val formatted = HistoryLabels.format(date, prevDate, granularity, point.totalBytes, units, locale)
+        prevDate = date
+        BarUi(
+            label = formatted.label,
+            bytes = point.totalBytes,
+            description = formatted.description,
+            valueText = formatBarValue(point.totalBytes, units),
+        )
     }
-    BarUi(label, point.totalBytes, description)
+}
+
+internal fun computeRangeLabel(points: List<UsagePoint>, granularity: Granularity, zone: ZoneId, locale: Locale): String? {
+    if (points.isEmpty()) return null
+    val firstDate = points.first().start.atZone(zone).toLocalDate()
+    val lastDate = points.last().start.atZone(zone).toLocalDate()
+    return when (granularity) {
+        Granularity.DAY, Granularity.HOUR -> {
+            val firstMonth = firstDate.month.getDisplayName(TextStyle.SHORT, locale)
+            val lastMonth = lastDate.month.getDisplayName(TextStyle.SHORT, locale)
+            if (firstDate.month == lastDate.month && firstDate.year == lastDate.year) {
+                "${firstDate.dayOfMonth} to ${lastDate.dayOfMonth} $firstMonth"
+            } else {
+                "${firstDate.dayOfMonth} $firstMonth to ${lastDate.dayOfMonth} $lastMonth"
+            }
+        }
+        Granularity.WEEK -> {
+            val endOfWeek = lastDate.plusDays(6)
+            val firstMonth = firstDate.month.getDisplayName(TextStyle.SHORT, locale)
+            val endMonth = endOfWeek.month.getDisplayName(TextStyle.SHORT, locale)
+            if (firstDate.month == endOfWeek.month && firstDate.year == endOfWeek.year) {
+                "${firstDate.dayOfMonth} to ${endOfWeek.dayOfMonth} $firstMonth"
+            } else {
+                "${firstDate.dayOfMonth} $firstMonth to ${endOfWeek.dayOfMonth} $endMonth"
+            }
+        }
+        Granularity.MONTH -> {
+            val firstMonth = firstDate.month.getDisplayName(TextStyle.SHORT, locale)
+            val lastMonth = lastDate.month.getDisplayName(TextStyle.SHORT, locale)
+            if (firstDate.year == lastDate.year) {
+                "$firstMonth to $lastMonth ${firstDate.year}"
+            } else {
+                "$firstMonth ${firstDate.year} to $lastMonth ${lastDate.year}"
+            }
+        }
+    }
+}
+
+internal fun computeHeroLabel(
+    granularity: Granularity,
+    selectedIndex: Int?,
+    points: List<UsagePoint>,
+    zone: ZoneId,
+    locale: Locale,
+): String {
+    if (selectedIndex != null && selectedIndex in points.indices) {
+        val date = points[selectedIndex].start.atZone(zone).toLocalDate()
+        return when (granularity) {
+            Granularity.DAY, Granularity.HOUR -> {
+                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
+            }
+            Granularity.WEEK -> {
+                val endOfWeek = date.plusDays(6)
+                val startMonth = date.month.getDisplayName(TextStyle.SHORT, locale)
+                val endMonth = endOfWeek.month.getDisplayName(TextStyle.SHORT, locale)
+                if (date.month == endOfWeek.month) {
+                    "${date.dayOfMonth} to ${endOfWeek.dayOfMonth} $startMonth"
+                } else {
+                    "${date.dayOfMonth} $startMonth to ${endOfWeek.dayOfMonth} $endMonth"
+                }
+            }
+            Granularity.MONTH -> {
+                "${date.month.getDisplayName(TextStyle.FULL, locale)} ${date.year}"
+            }
+        }
+    }
+    return when (granularity) {
+        Granularity.WEEK -> "Last 12 weeks"
+        Granularity.MONTH -> "Last 12 months"
+        else -> "Last 14 days"
+    }
 }
 
 internal fun buildHistoryUiState(
@@ -126,10 +206,17 @@ internal fun buildHistoryUiState(
     val average = if (activeBuckets == 0) 0L else total / activeBuckets
     val comparison = computePeriodComparison(granularity, points)
     val spokenTotal = spokenBytes(total, units)
-    val heroDesc = when (granularity) {
-        Granularity.WEEK -> "$spokenTotal this week"
-        Granularity.MONTH -> "$spokenTotal this month"
-        else -> "$spokenTotal total"
+    val rangeLbl = computeRangeLabel(points, granularity, zone, locale)
+    val heroLbl = computeHeroLabel(granularity, selectedIndex, points, zone, locale)
+    val heroDesc = if (selectedIndex != null && selectedIndex in points.indices) {
+        val selBytes = points[selectedIndex].totalBytes
+        "${spokenBytes(selBytes, units)}, $heroLbl"
+    } else {
+        when (granularity) {
+            Granularity.WEEK -> "$spokenTotal this week"
+            Granularity.MONTH -> "$spokenTotal this month"
+            else -> "$spokenTotal total"
+        }
     }
     return HistoryUiState(
         granularity = granularity,
@@ -143,6 +230,8 @@ internal fun buildHistoryUiState(
         selectedIndex = selectedIndex,
         comparisonText = comparison,
         heroDescription = heroDesc,
+        rangeLabel = rangeLbl,
+        heroLabel = heroLbl,
     )
 }
 
@@ -287,54 +376,6 @@ fun HistoryContent(
                 )
             }
         } else {
-            // Selected bar readout row if any
-            val selectedIndex = state.selectedIndex
-            if (selectedIndex != null && selectedIndex in state.bars.indices) {
-                val bar = state.bars[selectedIndex]
-                val point = state.points.getOrNull(selectedIndex)
-                item(key = "selected_bar_$selectedIndex") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = bar.description.substringBefore(","),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = palette.text,
-                            )
-                            androidx.compose.material3.TextButton(
-                                onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
-                                modifier = Modifier.sizeIn(minHeight = 48.dp),
-                            ) {
-                                Text("Show total")
-                            }
-                        }
-
-                        if (point != null) {
-                            io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar(
-                                mobileBytes = point.mobileBytes,
-                                wifiBytes = point.wifiBytes,
-                                mobileColor = palette.primary,
-                                wifiColor = palette.accent,
-                                units = state.units,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
-            }
-
             // Chart
             item {
                 val summary = when (state.granularity) {
@@ -364,33 +405,153 @@ fun HistoryContent(
                 )
             }
 
-            // Bento tiles: Total and Average
+            // Detail slot below chart: reserved height so selecting a bar does not jump the chart or tiles
+            val selectedIndex = state.selectedIndex
+            val isSelected = selectedIndex != null && selectedIndex in state.bars.indices
+            val bar = if (isSelected) state.bars[selectedIndex] else null
+            val point = if (isSelected) state.points.getOrNull(selectedIndex) else null
+
+            item(key = "chart_detail_slot") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(72.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isSelected && bar != null && point != null) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = bar.description.substringBefore(","),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = palette.text,
+                                )
+                                androidx.compose.material3.TextButton(
+                                    onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
+                                    modifier = Modifier.sizeIn(minHeight = 40.dp),
+                                ) {
+                                    Text("Show total")
+                                }
+                            }
+
+                            io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar(
+                                mobileBytes = point.mobileBytes,
+                                wifiBytes = point.wifiBytes,
+                                mobileColor = palette.primary,
+                                wifiColor = palette.accent,
+                                units = state.units,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+
+                            // Legend row with Mobile and Wi-Fi dots
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = palette.primary,
+                                                shape = CircleShape,
+                                            )
+                                    )
+                                    val mobileFormatted = io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes(point.mobileBytes, state.units)
+                                    Text(
+                                        text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = palette.muted,
+                                    )
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = palette.accent,
+                                                shape = CircleShape,
+                                            )
+                                    )
+                                    val wifiFormatted = io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes(point.wifiBytes, state.units)
+                                    Text(
+                                        text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = palette.muted,
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "Tap a bar for mobile and Wi-Fi breakdown",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = palette.muted,
+                        )
+                    }
+                }
+            }
+
+            // Bento tiles: Total/Active days and Average
             item {
                 val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+                val isDay = state.granularity == Granularity.DAY
+                val firstTileTitle = if (isDay) "Active days" else "Total"
+                val firstTileValue = if (isDay) {
+                    "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
+                } else {
+                    plainBytes(state.totalBytes, state.units)
+                }
+                val avgTitle = "Avg / active $unit"
+
                 if (fontScale >= 1.5f) {
-                    androidx.compose.foundation.layout.Column(
+                    Column(
                         Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        BentoTile(title = "Total", modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
+                        BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
                             ForceLtr {
-                                Text(plainBytes(state.totalBytes, state.units), style = MaterialTheme.typography.headlineSmall)
+                                Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
                             }
                         }
-                        BentoTile(title = "Average per active $unit", modifier = Modifier.fillMaxWidth()) {
+                        BentoTile(title = avgTitle, modifier = Modifier.fillMaxWidth()) {
                             ForceLtr {
                                 Text(plainBytes(state.averageBytes, state.units), style = MaterialTheme.typography.headlineSmall)
                             }
                         }
                     }
                 } else {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        BentoTile(title = "Total", modifier = Modifier.weight(1f), container = TileContainer.Primary) {
+                    Row(
+                        Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        BentoTile(
+                            title = firstTileTitle,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            container = TileContainer.Primary,
+                        ) {
                             ForceLtr {
-                                Text(plainBytes(state.totalBytes, state.units), style = MaterialTheme.typography.headlineSmall)
+                                Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
                             }
                         }
-                        BentoTile(title = "Average per active $unit", modifier = Modifier.weight(1f)) {
+                        BentoTile(
+                            title = avgTitle,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        ) {
                             ForceLtr {
                                 Text(plainBytes(state.averageBytes, state.units), style = MaterialTheme.typography.headlineSmall)
                             }

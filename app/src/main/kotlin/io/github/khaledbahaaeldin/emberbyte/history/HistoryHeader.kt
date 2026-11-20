@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -76,7 +77,7 @@ fun HistoryHeader(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        // Period total as HeroNumber (or selected day/week/month when a bar is selected)
+        // Period total and labels grouped compactly
         val selectedPoint = state.selectedIndex?.let { state.points.getOrNull(it) }
         val displayBytes = selectedPoint?.totalBytes ?: state.totalBytes
         val formatted = formatBytes(displayBytes, state.units)
@@ -88,26 +89,56 @@ fun HistoryHeader(
             else -> "$spokenTotal total"
         }
 
-        HeroNumber(
-            value = formatted.value,
-            unit = formatted.unit,
-            contentDescription = state.heroDescription ?: totalDescription,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Visible range label if present
+            state.rangeLabel?.let { range ->
+                Text(
+                    text = range,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.muted,
+                )
+            }
 
-        // Comparison against previous period
-        state.comparisonText?.let { compText ->
+            // Hero caption (e.g. "Last 14 days" or selected bar date)
+            Text(
+                text = state.heroLabel ?: when (state.granularity) {
+                    Granularity.WEEK -> "Last 12 weeks"
+                    Granularity.MONTH -> "Last 12 months"
+                    else -> "Last 14 days"
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = palette.muted,
+            )
+
+            HeroNumber(
+                value = formatted.value,
+                unit = formatted.unit,
+                contentDescription = state.heroDescription ?: totalDescription,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Comparison against previous period: fixed height to prevent layout shift
+            val compText = state.comparisonText ?: when (state.granularity) {
+                Granularity.MONTH -> "No previous month"
+                Granularity.WEEK -> "No previous week"
+                else -> "No previous period"
+            }
+            val hasComparison = state.comparisonText != null
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.semantics(mergeDescendants = true) {},
+                modifier = Modifier
+                    .height(24.dp)
+                    .semantics(mergeDescendants = true) {},
             ) {
                 val icon = when {
+                    !hasComparison -> Icons.AutoMirrored.Rounded.TrendingFlat
                     compText.contains("more than", ignoreCase = true) -> Icons.AutoMirrored.Rounded.TrendingUp
                     compText.contains("less than", ignoreCase = true) -> Icons.AutoMirrored.Rounded.TrendingDown
                     else -> Icons.AutoMirrored.Rounded.TrendingFlat
                 }
                 val iconDesc = when {
+                    !hasComparison -> "No comparison available"
                     compText.contains("more than", ignoreCase = true) -> "Increased usage"
                     compText.contains("less than", ignoreCase = true) -> "Decreased usage"
                     else -> "Steady usage"
@@ -115,7 +146,7 @@ fun HistoryHeader(
                 Icon(
                     imageVector = icon,
                     contentDescription = iconDesc,
-                    tint = palette.primary,
+                    tint = if (hasComparison) palette.primary else palette.muted,
                     modifier = Modifier.size(18.dp),
                 )
                 ForceLtr {

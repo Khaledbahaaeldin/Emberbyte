@@ -27,17 +27,27 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
@@ -57,7 +67,15 @@ fun UsageBarRow(
     summaryDescription: String? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
+    showValues: Boolean = true,
 ) {
+    val palette = LocalEmberbytePalette.current
+    val density = LocalDensity.current
+    val isCrowded = points.size > 7 || density.fontScale > 1.3f
+    var showAllValues by rememberSaveable { mutableStateOf(false) }
+    val highestIndex = points.indices.maxByOrNull { points[it].bytes }
+    val todayIndex = points.lastIndex
+
     val max = (points.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
     val summary = summaryDescription ?: run {
         if (points.isNotEmpty()) {
@@ -71,82 +89,154 @@ fun UsageBarRow(
         } else "Daily usage"
     }
 
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { this.contentDescription = summary },
-    ) {
-
-        val count = points.size
-        val totalNeeded = (count * 48).dp + ((count - 1).coerceAtLeast(0) * 8).dp
-        val scrollable = totalNeeded > maxWidth
-        val scrollState = rememberScrollState()
-
-        if (scrollable && openAtEnd) {
-            LaunchedEffect(points.size, scrollKey) {
-                scrollState.scrollTo(scrollState.maxValue)
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (isCrowded && showValues) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                EmberbyteFilterChip(
+                    selected = showAllValues,
+                    onClick = { showAllValues = !showAllValues },
+                    label = { Text(if (showAllValues) "Hide values" else "Show values") },
+                )
             }
         }
 
-        Row(
-            modifier = if (scrollable) {
-                Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(contentPadding)
-            } else {
-                Modifier.fillMaxWidth().padding(contentPadding)
-            },
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Bottom,
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { this.contentDescription = summary },
         ) {
-            points.forEachIndexed { index, bar ->
-                val isSelected = index == selectedIndex
-                Column(
-                    modifier = if (scrollable) {
-                        Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .clickable(role = Role.Tab) { onSelect(index) }
-                            .semantics {
-                                contentDescription = bar.description
-                                selected = isSelected
-                            }
-                    } else {
-                        Modifier
-                            .weight(1f)
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .clickable(role = Role.Tab) { onSelect(index) }
-                            .semantics {
-                                contentDescription = bar.description
-                                selected = isSelected
-                            }
-                    },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom,
-                ) {
-                    val resolvedColor = barColor?.invoke(index, isSelected)
-                        ?: if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.primaryContainer
-                    Box(
-                        Modifier
-                            .widthIn(max = 24.dp)
-                            .fillMaxWidth()
-                            .height((8 + 56 * (bar.bytes.toFloat() / max)).dp)
-                            .background(
-                                color = resolvedColor,
-                                shape = MaterialTheme.shapes.small,
-                            )
-                            .then(
-                                if (!isSelected && barColor == null) {
-                                    Modifier.border(1.dp, MaterialTheme.colorScheme.outline, shape = MaterialTheme.shapes.small)
-                                } else {
-                                    Modifier
-                                }
-                            ),
+            val count = points.size
+            val totalNeeded = (count * 48).dp + ((count - 1).coerceAtLeast(0) * 8).dp
+            val scrollable = totalNeeded > maxWidth
+            val scrollState = rememberScrollState()
+
+            if (scrollable && openAtEnd) {
+                LaunchedEffect(points.size, scrollKey) {
+                    scrollState.scrollTo(scrollState.maxValue)
+                }
+            }
+
+            Row(
+                modifier = if (scrollable) {
+                    Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(contentPadding)
+                } else {
+                    Modifier.fillMaxWidth().padding(contentPadding)
+                },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                points.forEachIndexed { index, bar ->
+                    val isSelected = index == selectedIndex
+                    val isToday = index == todayIndex
+                    val shouldShowValue = showValues && bar.valueText.isNotEmpty() && (
+                        !isCrowded || showAllValues || isSelected || index == highestIndex || isToday
                     )
-                    ForceLtr {
-                        Text(
-                            bar.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+                    Column(
+                        modifier = if (scrollable) {
+                            Modifier
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .clickable(role = Role.Tab) { onSelect(index) }
+                                .semantics {
+                                    contentDescription = bar.description
+                                    selected = isSelected
+                                }
+                        } else {
+                            Modifier
+                                .weight(1f)
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .clickable(role = Role.Tab) { onSelect(index) }
+                                .semantics {
+                                    contentDescription = bar.description
+                                    selected = isSelected
+                                }
+                        },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                    ) {
+                        // Value label above bar
+                        Box(
+                            modifier = Modifier
+                                .height(18.dp)
+                                .clearAndSetSemantics {},
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (shouldShowValue) {
+                                ForceLtr {
+                                    Text(
+                                        text = bar.valueText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) palette.text else palette.muted,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+
+                        // Bar fill & styling
+                        val resolvedColor = barColor?.invoke(index, isSelected)
+                            ?: if (isSelected) palette.primary
+                            else palette.surface
+                        val barShape = if (isSelected) CircleShape else MaterialTheme.shapes.small
+                        Box(
+                            Modifier
+                                .widthIn(max = 24.dp)
+                                .fillMaxWidth()
+                                .height((8 + 56 * (bar.bytes.toFloat() / max)).dp)
+                                .background(
+                                    color = resolvedColor,
+                                    shape = barShape,
+                                )
+                                .then(
+                                    when {
+                                        isToday && !isSelected -> Modifier.border(1.5.dp, palette.primary, barShape)
+                                        !isSelected && barColor == null -> Modifier.border(1.dp, palette.surface2, barShape)
+                                        else -> Modifier
+                                    }
+                                ),
                         )
+
+                        // Label with tonal pill for selection
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .then(
+                                    if (isSelected) {
+                                        Modifier
+                                            .background(palette.surface2, shape = CircleShape)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    } else {
+                                        Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ForceLtr {
+                                Text(
+                                    bar.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) palette.text else palette.muted,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
+
+                        // Marker dot under selected label (fixed height so layout never shifts)
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .size(4.dp)
+                                    .background(palette.primary, CircleShape),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                     }
                 }
             }

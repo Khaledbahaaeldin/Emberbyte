@@ -235,4 +235,30 @@ class HomeContentTest {
         rule.onNodeWithText("Prompt 2").assertIsDisplayed()
         rule.onNodeWithText("Prompt 1").assertDoesNotExist()
     }
+
+    @Test
+    fun home_hero_labeled_today_with_system_traffic_footnote() {
+        show(HomeUiState(heroBytes = 500_000_000L))
+        rule.onNodeWithText("Today").assertIsDisplayed()
+        rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_weekly_bar_click_routes_to_history() {
+        var openedHistory = false
+        val weekBars = listOf(
+            io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi(
+                label = "M\n5",
+                bytes = 100_000_000L,
+                description = "Monday, 5 October, 100 megabytes",
+            )
+        )
+        show(
+            state = HomeUiState(week = weekBars),
+            onHistory = { openedHistory = true },
+        )
+        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Monday, 5 October, 100 megabytes"))
+        rule.onNodeWithContentDescription("Monday, 5 October, 100 megabytes").performClick()
+        assertEquals(true, openedHistory)
+    }
 }

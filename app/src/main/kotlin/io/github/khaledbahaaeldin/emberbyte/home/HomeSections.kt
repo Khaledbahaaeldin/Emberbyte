@@ -153,6 +153,14 @@ internal fun HomeHeroSection(
             color = palette.primary,
         )
 
+        if (state.heroBytes > 0L) {
+            Text(
+                text = "Includes system traffic",
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.muted,
+            )
+        }
+
         val lineText = state.planLine ?: state.subtitle
         if (lineText != null) {
             ForceLtr {
@@ -382,7 +390,10 @@ internal fun HomeHistorySection(
         UsageBarRow(
             points = state.week,
             selectedIndex = state.selectedDay,
-            onSelect = onSelectDay,
+            onSelect = { index ->
+                onSelectDay(index)
+                onOpenHistory()
+            },
             openAtEnd = true,
             summaryDescription = weekSummary,
         )

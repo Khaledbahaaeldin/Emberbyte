@@ -55,10 +55,10 @@ class HistoryTest {
 
     @Test fun bar_labels_and_descriptions_follow_the_granularity() {
         val day = historyBars(listOf(point("2026-10-05T00:00:00Z", 100_000_000)), Granularity.DAY, ByteUnits.DECIMAL, zone, Locale.ENGLISH).single()
-        assertEquals("5", day.label)
+        assertEquals("M\n5", day.label)
         assertEquals("Monday, 5 October, 100 megabytes", day.description)
         val week = historyBars(listOf(point("2026-10-05T00:00:00Z", 1)), Granularity.WEEK, ByteUnits.DECIMAL, zone, Locale.ENGLISH).single()
-        assertEquals("5 Oct", week.label)
+        assertEquals("5 to 11 Oct", week.label)
         assertEquals("Week of 5 October, 1 bytes", week.description)
         val month = historyBars(listOf(point("2026-10-01T00:00:00Z", 2_000_000_000)), Granularity.MONTH, ByteUnits.DECIMAL, zone, Locale.ENGLISH).single()
         assertEquals("Oct", month.label)
