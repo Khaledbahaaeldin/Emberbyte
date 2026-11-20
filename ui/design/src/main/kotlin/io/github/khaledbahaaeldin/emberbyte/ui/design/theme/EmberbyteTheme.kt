@@ -94,6 +94,8 @@ fun EmberbyteTheme(
         MaterialExpressiveTheme(
             colorScheme = scheme,
             motionScheme = motionScheme,
+            shapes = EmberbyteShapeScale,
+            typography = EmberbyteTypography,
             content = content,
         )
     }
