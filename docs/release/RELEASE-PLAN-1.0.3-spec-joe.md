@@ -30,6 +30,10 @@
 | Omar | T11 press morph and back cancel | `t11-press-back` | now |
 | Omar | T4 loading states | `t4-loading` | after S1 |
 | Omar | T10 numbers, rings, charts | `t10-numbers-charts` | after S1 |
+| Khaled | T17 Home hero (44 dp mark, weight bloom, live GB badge) | `t17-home-hero` | after Omar's T4, T10, T11 merge |
+| Khaled | T18 Home bento tiles (Live and Network, upload switch) | `t18-home-bento` | after T17 merges |
+| Khaled | T19 Home plan setup card (merged call to action) | `t19-plan-setup-card` | after T18 merges |
+| Khaled | T20 Home usage card (Top apps with History inside) | `t20-usage-card` | after T19, and Omar's T5 and T11 merge |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -49,6 +53,7 @@
 - **Plus button exit (G13)** moves from T11 to T13 (Khaled, because `CompactNavBar.kt` is his file). Omar's T11 keeps `pressMorph` (including `PlusButton.kt` press) and `GuardedBack.kt`.
 - **Plan-flow progress (G8)** moves from T11 to T6 (Joe, because `PlanFlowScreen.kt` is his).
 - **Appearance selection and onboarding motion (G16, G15)** move from T11 to T8 (Joe).
+- **Home redesign (T17 to T20) is Khaled's.** The hero, bento tiles, plan setup card and usage card (Top apps with History inside) are the maintainer's own tasks. They edit `HomeSections.kt`, `HomeScreen.kt`, `HomeViewModel.kt` and the History screen, which Omar's T4, T5, T10 and T11 also edit, so Khaled starts them **only after those four Omar pull requests have merged**. Omar does not touch T17 to T20.
 - **T12 split.** T12a (tokens, merged first) and T12b (migration sweep, last, by Khaled) so the 31 radius sites and 66 size literals are migrated once, after everyone else has merged.
 
 ### Conflict rules
@@ -266,3 +271,7 @@ Same format as 1.0.2 (one poll per verdict, one reply per failure with the copie
 12. Fresh install onboarding: Skip intro, Back, filled "Set up a plan".
 13. History (Day, Week, Month): every bar shows its value, the selected bar is obvious, Day labels make a month change visible, Week and Month labels read as dates.
 14. Update from 1.0.2 to the 1.0.3 build: the "What's new in 1.0.3" sheet appears once on the first launch, never again after dismissing it (also not after swiping it away); a fresh install and onboarding never show it; Settings > About > What's new reopens it; Updates row has a "See what's new" link; works in airplane mode.
+15. Home: a cold start blooms the big number digit by digit with an overshoot, the Emberbyte mark is 44 dp and still, the GB badge turns and speeds up while data flows, a changing value pulses only the changed digit, and with animations off all of it is static. App detail, History and Onboarding hero numbers are unchanged.
+16. Home: the Live and Today by network tiles sit side by side in Space Grotesk with interlocking corners; pressing the Live tile rolls between download and upload (arrow flip, trace morph, tint change) and back; the network number counts up once and the mobile segment is visible; with animations off everything is static and the switch is instant.
+17. Home with no plan: one setup card under the hero (ghost ring drawing itself, "Set up your data plan", one big "Set up plan" button) replaces the old link and card; the button opens the new-plan flow; creating a plan removes the card; with a plan nothing of it remains; with animations off everything is static.
+18. Home: one Top apps card with a week strip (tap a day: the apps re-rank with a glide), a featured first app with share-fill rows, and three connected buttons; Filters (Network, System apps) narrows strip, summary and ranking together with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.

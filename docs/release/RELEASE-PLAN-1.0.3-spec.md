@@ -40,6 +40,10 @@
 | T13 Navbar and adaptive | Khaled (also the Plus button exit) | not started |
 | T14 Localisation groundwork and cleanup | Khaled (last) | not started |
 | T16 What's new sheet (offline) | Joe | not started |
+| T17 Home hero motion | Khaled | not started |
+| T18 Home bento tiles | Khaled | not started |
+| T19 Home plan setup card | Khaled | not started |
+| T20 Home usage card (Top apps + History) | Khaled | not started |
 | T15 Release 1.0.3 | Khaled | not started |
 
 ---
@@ -66,6 +70,10 @@
 | Omar | T11 press morph and back cancel | `t11-press-back` | now |
 | Omar | T4 loading states | `t4-loading` | after S1 |
 | Omar | T10 numbers, rings, charts | `t10-numbers-charts` | after S1 |
+| Khaled | T17 Home hero (44 dp mark, weight bloom, live GB badge) | `t17-home-hero` | after Omar's T4, T10, T11 merge |
+| Khaled | T18 Home bento tiles (Live and Network, upload switch) | `t18-home-bento` | after T17 merges |
+| Khaled | T19 Home plan setup card (merged call to action) | `t19-plan-setup-card` | after T18 merges |
+| Khaled | T20 Home usage card (Top apps with History inside) | `t20-usage-card` | after T19, and Omar's T5 and T11 merge |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -85,6 +93,7 @@
 - **Plus button exit (G13)** moves from T11 to T13 (Khaled, because `CompactNavBar.kt` is his file). Omar's T11 keeps `pressMorph` (including `PlusButton.kt` press) and `GuardedBack.kt`.
 - **Plan-flow progress (G8)** moves from T11 to T6 (Joe, because `PlanFlowScreen.kt` is his).
 - **Appearance selection and onboarding motion (G16, G15)** move from T11 to T8 (Joe).
+- **Home redesign (T17 to T20) is Khaled's.** The hero, bento tiles, plan setup card and usage card (Top apps with History inside) are the maintainer's own tasks. They edit `HomeSections.kt`, `HomeScreen.kt`, `HomeViewModel.kt` and the History screen, which Omar's T4, T5, T10 and T11 also edit, so Khaled starts them **only after those four Omar pull requests have merged**. Omar does not touch T17 to T20.
 - **T12 split.** T12a (tokens, merged first) and T12b (migration sweep, last, by Khaled) so the 31 radius sites and 66 size literals are migrated once, after everyone else has merged.
 
 ### Conflict rules
@@ -138,6 +147,10 @@
 | Navbar and adaptive | `CompactNavBar.kt`, `PillSpring.kt`, adaptive navigation | T13 |
 | Localisation and cleanup | `strings.xml`, `LicensesScreen.kt` (delete) | T14 |
 | What's new | new `whatsnew/` package in `app` (`WhatsNewRepository.kt`, `WhatsNewViewModel.kt`, `WhatsNewSheet.kt`), new asset `app/src/main/assets/whats_new.json`, `EmberbyteApp.kt`, `settings/SettingsScreen.kt` (one row), `settings/UpdatesRow.kt`, `core/data/.../AppPreferences.kt` | T16 |
+| Home hero | `home/HomeSections.kt`, `ui/design/.../number/HeroNumber.kt`, `tiles/UnitBadge.kt`, `theme/EmberbyteType.kt` | T17 |
+| Home bento tiles | `home/HomeSections.kt`, `HomeViewModel.kt`, `ui/design/.../tiles/{LiveBentoTile,NetworkBentoTile,Tiles}.kt`, `theme/palette/TileColours.kt`, `theme/EmberbyteType.kt`, `res/font/space_grotesk.ttf`, `assets/licences.json`, `NOTICE` | T18 |
+| Home plan setup card | `home/HomeSections.kt`, `home/HomeScreen.kt`, `ui/design/.../plan/PlanSetupCard.kt`, `progress/WavyRing.kt` | T19 |
+| Home usage card | `home/HomeSections.kt`, `home/HomeScreen.kt`, `home/HomeViewModel.kt`, `ui/design/.../usage/*`, nav History transition | T20 |
 | Release | `app/build.gradle.kts`, `CHANGELOG.md`, `fastlane/.../changelogs/4.txt`, `RELEASE-NOTES-1.0.3.md` | T15 |
 
 ## Order and branches
@@ -408,6 +421,188 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
 
 ---
 
+## T17. Home hero: bigger mark, weight-bloom entrance, live GB badge
+
+**Closes:** maintainer request of 2026-11-20 (not an audit finding). **Owner:** Khaled. **Branch:** `t17-home-hero`, started **after T10 merges** (Omar's T10 wires `MorphingNumber` into the Home hero and edits `HomeSections.kt`; T17 builds on that file and the number components, so it starts only after Omar's T4, T10 and T11 have merged into `release/1.0.3`). **Files:** `app/.../home/HomeSections.kt` (`BrandMark(size = 32.dp)` at the Home header, and the `HeroNumber(` call in the hero section), `ui/design/.../number/HeroNumber.kt`, `ui/design/.../tiles/UnitBadge.kt`, `ui/design/.../theme/EmberbyteType.kt` (axis factory), `app/.../home/HomeUiState.kt` / `HomeMapping.kt` (live rate to the badge). **Tests next to each.**
+**Mockup (the source of the numbers below):** https://claude.ai/artifact/EWJvWQLRst5pWkNVnJFDWM . The maintainer chose these options on 2026-11-20 and nothing else from the mockup ships.
+
+**Decisions (locked).**
+1. **Mark: bigger and still.** The Emberbyte `BrandMark` beside the day (the Home header) goes from **32 dp to 44 dp**, with **no motion**. The day title keeps its style and the row stays vertically centred; the settings button does not move.
+2. **Hero entrance: "weight bloom, digit by digit".**
+   - Each digit of the value starts at Roboto Flex `wght` **100** and settles at today's hero weight **800** (`wdth` 36 and `opsz` 144 stay constant, exactly as `EmberbyteType.hero` has them now).
+   - Digits start **70 ms apart**, left to right, the first one **150 ms** after the screen's first composition.
+   - Each digit scales from **0.93** to **1.0** in step with its weight.
+   - Spring: weight uses `spring(dampingRatio = 0.35f, stiffness = 750f)`. The maintainer set the mockup's bounce slider to its maximum (1.00), which is this damping ratio; the overshoot reaches the font's **1000** cap and is clamped there before settling at 800. `wght` is always clamped to 100..1000.
+   - The entrance plays **once per app start** (the first time Home is shown), not on every tab switch, rotation or value update. *Open question for the maintainer: replay on every Home visit instead?* Until answered, implement once per app start behind a single constant `HERO_ENTRANCE_REPLAYS = false`.
+3. **Live pulse on change.** When the displayed value changes, only the digits whose character changed get a kick of **+1500 wght/s** (a short surge to about 850 that springs back to 800); the others stay still and the entrance never re-runs. This is the mockup's "Simulate live usage" behaviour, kept.
+4. **GB badge: spins with live speed.** The unit badge (the cookie shape) rotates continuously. Speed in degrees per second = `8 + 46 x speedMBps`, with `speedMBps` clamped to 0..5 (idle about 45 s per turn; at 5 MB/s about 238 degrees per second). The "GB" label is counter-rotated so it always reads upright. The speed comes from the Live tile's existing throughput (the same value that shows "10 B/s"); when it is unknown the badge turns at the idle speed.
+5. **Reduced motion.** The hero shows the final weight immediately, no pulse; the badge does not rotate. Nothing else changes.
+6. **Other screens unchanged.** `HeroNumber` is also used by App detail, History and Onboarding. The entrance and the spinning badge are opt-in parameters that only Home passes.
+
+**Interfaces.**
+- `enum class HeroEntrance { None, WeightBloom }` and new `HeroNumber` parameters `entrance: HeroEntrance = HeroEntrance.None`, `badgeSpinDegPerSec: Float = 0f`. Default behaviour is identical to today.
+- Pure helpers, unit-tested without Compose: `internal fun badgeSpinDegPerSec(speedMBps: Float?): Float` (the formula above, `null` gives 8, clamps to 0..5); `internal fun changedDigitIndices(old: String, new: String): List<Int>` (indices whose character differs; a length change returns all indices); `internal data class HeroBloomSpec(val startWght: Float = 100f, val endWght: Float = 800f, val staggerMs: Int = 70, val delayMs: Int = 150, val dampingRatio: Float = 0.35f, val stiffness: Float = 750f)` with `fun startAtMs(index: Int): Int`.
+- `EmberbyteType.heroAxes(size: TextUnit, wght: Float): TextStyle` builds the hero style with a given weight on the same Roboto Flex font and the fixed `wdth` 36 / `opsz` 144 axes.
+- `UnitBadge(unit, size, spinDegPerSec: Float = 0f, ...)`. Rotation uses `graphicsLayer { rotationZ = ... }` driven by an `Animatable` or `withInfiniteAnimationFrameNanos` loop, so no text recomposes per frame. Text remains upright through a counter-rotation.
+
+**Steps (each its own commit, test first, watch it fail).**
+1. **Mark.** RED `home_brand_mark_is_44dp` (assert the mark node's size) and `other_screens_keep_their_mark_size`. Change `BrandMark(size = 32.dp)` to 44.dp in the Home header only. Check the header at font scale 2.0 and RTL for clipping.
+2. **Pure logic.** RED `badge_spin_speed_follows_the_formula` (null, 0, 1.2, 5 and 9 give 8, 8, 63.2, 238, 238), `changed_digit_indices_marks_only_changed_digits` ("3.71" to "3.72" gives [3]; "3.79" to "3.80" gives [2, 3]; "9.99" to "10.00" gives all), `bloom_spec_staggers_digits_70ms_after_150ms`. GREEN the three helpers.
+3. **Hero entrance.** RED (use the test clock, `mainClock.autoAdvance = false`): `hero_starts_thin_and_ends_at_final_weight` (expose the current weight per digit through a test-only semantics key or a `Modifier.testTag`-readable state), `hero_digits_start_in_order`, `hero_weight_overshoots_then_settles_at_800`, `hero_weight_never_exceeds_1000`, `entrance_snaps_when_reduced`, `entrance_does_not_replay_on_value_change`, `entrance_plays_once_per_app_start`, `other_screens_hero_has_no_entrance`. GREEN: per-digit `Animatable` weights, `EmberbyteType.heroAxes`. Keep the single accessibility node (`clearAndSetSemantics`) and the auto-shrink size logic of `HeroNumber`; the digits must not change the measured width in a way that clips at font scale 2.0 (measure with the final weight, then animate inside that box).
+4. **Live pulse.** RED `changed_digit_pulses_not_the_others`, `pulse_is_skipped_when_reduced`. GREEN.
+5. **Badge.** RED `badge_rotates_over_time`, `badge_label_stays_upright`, `badge_spins_faster_with_higher_speed`, `badge_idles_when_speed_is_unknown`, `badge_is_still_when_reduced`, `badge_does_not_recompose_text_each_frame` (count recompositions of the label). GREEN. Wire `HomeUiState` so the hero receives the live download rate; Home passes `badgeSpinDegPerSec(rate)` and `HeroEntrance.WeightBloom`.
+6. **Performance gate (device).** Rebuilding font variation settings per frame allocates a typeface each time. On a mid-range phone record the entrance with `adb shell dumpsys gfxinfo` (or the profiler) and report the janky-frame percentage in the PR. If more than 5 percent of frames are janky, implement the fallback and say so in "Rulings": a cross-fade between three pre-built hero styles (wght 100, 400, 800) with the same stagger.
+
+**Review Focus for this task.**
+1. Font scale 2.0, display size 560 and RTL: the number never clips during the entrance (a heavier weight is wider).
+2. A value that changes length ("9.99" to "10.00", "999 MB" to "1.00 GB") must not replay the entrance or crash.
+3. Reduced motion toggled while the entrance is running snaps to the final weight.
+4. App detail, History and Onboarding look exactly as before.
+5. Battery and CPU: the badge loop must stop when Home is not visible (lifecycle-aware).
+
+**Acceptance.** On a device, a cold start shows the Home number blooming digit by digit with an overshoot and a bigger still mark; the GB badge turns slowly and visibly faster while data is flowing; a ticking value pulses only the changed digit; with animations off everything is static; the other three screens that show a hero number are unchanged.
+
+---
+
+## T18. Home bento tiles: Live and Today by network
+
+**Closes:** maintainer request of 2026-11-20 (not an audit finding). **Owner:** Khaled. **Branch:** `t18-home-bento`, started **after T17 merges** (both edit `HomeSections.kt`; T11 provides `pressMorph`, T12a the shape scale, T1 the contrast helpers). **Files:** `app/.../home/HomeSections.kt` (`HomeBentoRow`, `HomeNetworkTile`, the Live `SpeedTile` call sites), `app/.../home/HomeViewModel.kt`, `HomeUiState.kt`, `HomeMapping.kt`, `ui/design/.../tiles/Tiles.kt` (existing `SpeedTile`), new `ui/design/.../tiles/LiveBentoTile.kt` and `NetworkBentoTile.kt`, new `ui/design/.../theme/palette/TileColours.kt`, `ui/design/.../theme/EmberbyteType.kt` (grotesque family), new font `ui/design/src/main/res/font/space_grotesk.ttf`, `app/src/main/assets/licences.json` and `NOTICE` (licence entry for the font). **Tests next to each.**
+**Mockup (the source of every number below):** https://claude.ai/artifact/JzNkx4P5r5P5nLmZi8HaeH . The maintainer chose these options on 2026-11-20: bento pair, colour-blocked, interlocking corners, Space Grotesk, "Roll and morph", session-only direction. Nothing else from the mockup ships.
+
+**Decisions (locked).**
+1. **Layout.** The Live tile and the Today by network tile sit **side by side**, equal width, 10 dp apart, directly under the hero and "Set up a plan" line. Min height 212 dp. Corners interlock: Live uses 28 dp on three corners and 8 dp on the bottom end; Network uses 8 dp on the top start and 28 dp on the rest (`mixedCorners`, which mirrors in RTL). *With a plan:* the existing `ForecastTile` moves to its own full-width row above the pair. *Open question for the maintainer:* confirm this plan-state layout; the mockup shows only the no-plan state.
+2. **Colour-blocked.** Live is tinted from the theme's primary, Network from its green accent, and Upload (see 8) from its warm warn colour. New file `TileColours.kt`: `internal data class TileColours(val container: Color, val onContainer: Color)` and `fun EmberbytePalette.liveTile(): TileColours`, `networkTile()`, `uploadTile()`. Container = `lerp(surface2, primary, 0.22f)`, `lerp(surface2, accent, 0.5f)` and `lerp(surface2, warn, 0.30f)`; `onContainer` = `ensureContrast(text, container, 7.0)`. A test checks 7:1 for the primary label and 4.5:1 for secondary text in all 12 palettes, light, dark and AMOLED.
+3. **Typeface.** Space Grotesk (variable, `wght` 400 to 700), bundled as `res/font/space_grotesk.ttf` (SIL Open Font License; add the licence text to `licences.json` and `NOTICE`, because `NoticeCoversDependenciesTest` and the Licences screen cover bundled fonts). Used **only in these two tiles** in this task: `EmberbyteType.grotesk(size: TextUnit, weight: Int): TextStyle`. Rolling it out app-wide is a separate decision.
+4. **No icon** beside the tile labels. Live label: "Live · Wi-Fi" (or the current network name as today) with a second small line "Download" or "Upload". Network label: "Today by network".
+5. **Live tile content (top to bottom):** the label block; the arrow disc (24 dp, a filled circle with a 13 dp arrow cut out) beside the **speed number** (grotesque, 44 sp, weight 600, letter spacing -0.03 em, tabular figures) and its unit (15 sp); the **trace** (see 10); a chip showing the **other direction** ("↑ 70 KB/s" while showing download, "↓ 1.2 MB/s" while showing upload) with a "⇅" mark.
+6. **Network tile content:** the label; one **big number centred in the free space**: the **larger** of the two networks' bytes (Wi-Fi in the mockup), grotesque 60 sp, weight 600, letter spacing -0.045 em, with a 14 sp line under it ("GB on Wi-Fi" or "MB on mobile"); the **wavy bar** (existing `WavyBar`/`NetworkBar` colours: primary for mobile, accent green for Wi-Fi) with the mobile segment given a **minimum visible width of 14 dp whenever mobile bytes are above zero** (9 MB of 3.7 GB is under 1 percent); and a centred "Mobile 9.35 MB" line (the smaller network). The big number auto-shrinks with the same binary-search logic as `HeroNumber` (minimum 36 sp) so "12.45 GB" or "103 GB" never clips, including at font scale 2.0.
+7. **Entrance.** Tiles spring in one after the other: 140 ms then +110 ms, scale 0.86 to 1.0, translate 18 dp to 0, fade, on the `spatial()` spring. The big network number **counts up** from 0 to its value over 950 ms starting 380 ms in: the value follows `1 - (1 - p)^3` (it never exceeds the real total), while the scale follows an ease-out-back from 0.9 to 1.0. Plays once per app start together with the T17 hero entrance (reuse its flag).
+8. **Switching download and upload (Roll and morph).** Pressing the Live tile toggles direction. State is `rememberSaveable { mutableStateOf(Direction.Download) }`: **session only**, default Download, never written to settings. The transition (all on `rememberEmberbyteMotion()` specs, snapping when reduced):
+   - the old number slides up by 105 percent of its height and fades out over 380 ms while the new number rolls in from 105 percent below, `spring(dampingRatio = 0.6f, stiffness = 380f)`, about 520 ms (use `MorphingNumber`);
+   - the arrow disc rotates 0 to 180 degrees (and back) with `spring(dampingRatio = 0.5f, stiffness = 330f)`, overshooting to about 208 degrees before settling;
+   - the trace morphs from the download series to the upload series point by point with `spring(dampingRatio = 0.62f, stiffness = 240f)` (it may overshoot by up to 12 percent);
+   - the container animates from the Live tint to the Upload tint over 500 ms;
+   - the second label line rolls in from 60 percent below and the chip from 70 percent below.
+   Reduced motion: everything switches at once.
+   Semantics: `Role.Button`, `stateDescription` "Showing download speed" or "Showing upload speed", `onClickLabel` "Show upload speed" or "Show download speed". Keyboard and switch access work through the normal click.
+9. **Press and ambient motion.** Both tiles use `pressMorph` (T11): scale 0.96 and corners to 16 dp on a spatial spring. Ambient: the trace scrolls smoothly, the end point pulses (radius 3.6 dp plus or minus 1.1 dp at about 0.8 Hz), the wavy bar's phase advances at 2.2 rad/s, and a faint corner shape (13 percent opacity, 96 dp, offset -26 dp from the bottom end corner) turns slowly: 9 degrees per second on Live, minus 7 on Network. Reduced motion: all static. The loops must stop when Home is not visible (lifecycle-aware).
+10. **Trace and data.** The Live tile needs a short history. `HomeViewModel` keeps an **in-memory ring buffer of the last 60 samples, one per second, for the receive and transmit rates separately** (reuse the existing `live` rate flow that already feeds `liveRxBps` and `liveTxBps`; no new service, nothing persisted, cleared on process death). `HomeUiState` gains `liveRxHistory: List<Long>` and `liveTxHistory: List<Long>` (oldest first). Each series is drawn scaled to its own maximum with a floor so an idle connection shows a flat low line, not noise: `max(observedMax, 256_000L)` bytes per second for download and `max(observedMax, 32_000L)` for upload. The line is a smooth quadratic curve with a gradient fill beneath it (28 percent to 0 percent of the label colour).
+
+**Interfaces.**
+- `@Composable fun LiveBentoTile(rxBps: Long, txBps: Long, rxHistory: List<Long>, txHistory: List<Long>, networkLabel: String, units: ByteUnits, direction: LiveDirection, onToggle: () -> Unit, modifier: Modifier = Modifier)` and `enum class LiveDirection { Download, Upload }`.
+- `@Composable fun NetworkBentoTile(mobileBytes: Long, wifiBytes: Long, units: ByteUnits, playEntrance: Boolean, modifier: Modifier = Modifier)`.
+- Pure helpers (unit tests, no Compose): `internal fun bigNetwork(mobile: Long, wifi: Long): BigNetwork` (the larger one is big; a tie picks Wi-Fi; both zero shows Wi-Fi 0), `internal fun mobileSegmentWidth(mobile: Long, wifi: Long, barWidthDp: Float): Float` (proportional, but at least 14 dp when mobile is above zero, and 0 when it is zero), `internal fun traceScale(series: List<Long>, floorBps: Long): Long`, `internal fun appendSample(history: List<Long>, sample: Long, capacity: Int = 60): List<Long>`, `internal fun countUpValue(progress: Float, target: Double): Double` (ease-out cubic, never above target).
+
+**Steps (each its own commit, test first, watch it fail).**
+1. **Pure logic.** RED: `big_network_is_the_larger_one`, `big_network_ties_pick_wifi`, `mobile_segment_has_a_minimum_visible_width`, `mobile_segment_is_zero_when_there_is_no_mobile_data`, `trace_scale_has_a_floor_for_an_idle_connection`, `append_sample_keeps_the_last_60_oldest_first`, `count_up_never_exceeds_the_target_and_ends_on_it`. GREEN.
+2. **Colours.** RED `tile_containers_meet_contrast_in_every_palette_and_mode` (7:1 label, 4.5:1 secondary text), `upload_tint_differs_from_live_tint`. GREEN `TileColours.kt`.
+3. **Font.** Add `space_grotesk.ttf`, the `licences.json` entry and the `NOTICE` line. RED `notice_covers_the_bundled_grotesque` (extend `NoticeCoversDependenciesTest`), `grotesk_style_uses_the_bundled_family`. GREEN `EmberbyteType.grotesk`.
+4. **Data.** RED (`HomeViewModelTest`) `live_history_keeps_receive_and_transmit_separately`, `live_history_is_capped_at_60`, `history_is_not_persisted`. GREEN.
+5. **Tiles.** RED (Compose, Robolectric): `live_and_network_tiles_sit_side_by_side_with_equal_width`, `corners_interlock_and_mirror_in_rtl`, `tiles_have_no_icon_beside_their_label`, `network_big_number_is_centred_and_never_clips_at_font_scale_2`, `network_tile_shows_the_larger_network_as_the_big_number`, `live_tile_shows_the_other_direction_in_the_chip`. GREEN.
+6. **Switch.** RED: `pressing_the_live_tile_switches_to_upload_and_back`, `direction_survives_recreation_but_is_not_saved_to_settings`, `semantics_announce_the_direction_and_the_action`, `roll_transition_has_in_between_frames` (test clock: the old and the new number are both present mid-transition), `arrow_overshoots_then_settles_at_180`, `trace_morphs_between_the_two_series`, `container_tint_animates`, `switch_is_instant_when_reduced`. GREEN with the spring specs in decision 8.
+7. **Entrance and ambient.** RED `tiles_enter_in_order`, `network_number_counts_up_and_never_exceeds_the_value`, `entrance_plays_once_per_app_start`, `ambient_motion_is_static_when_reduced`, `ambient_loops_stop_when_home_is_not_visible`. GREEN.
+8. **Home wiring.** Replace `HomeNetworkTile` and the Live `SpeedTile` use in `HomeBentoRow`/`HomeScreen` with the new pair; keep the plan-state `ForecastTile` row above. Existing Home tests must still pass; update them where they assert the old layout and say why in the pull request.
+9. **Performance gate (device).** Record the Home screen on a mid-range phone while the trace scrolls and report the janky-frame percentage; if more than 5 percent are janky, draw the trace and the wave with `drawWithCache` and lower the redraw rate to 30 Hz, and record it under "Rulings".
+
+**Review Focus for this task.**
+1. Font scale 2.0, display size 560 and RTL: nothing clips, corners mirror, the big number shrinks instead of overflowing.
+2. First launch with no data (all zeros), mobile-only data, and Wi-Fi-only data render sensibly.
+3. A speed that crosses 1 MB/s flips its unit ("999 KB/s" to "1.0 MB/s") without the number jumping or the roll animation replaying.
+4. Pressing during a running transition does not stack or glitch.
+5. Contrast of every label on both tints in all palettes; the Upload tint must not look like a warning state.
+6. APK size: the font adds about 100 to 150 KB; note the exact figure in the pull request.
+
+**Acceptance.** On a device the Home screen shows the two tiles side by side with the new typeface; pressing the Live tile rolls from download to upload with the arrow flip, the trace morph and the tint change, and back; the network tile counts its big number up once and shows a visible mobile segment; with animations off everything is static and the switch is instant; a plan state keeps the forecast on its own row.
+
+---
+
+## T19. Home plan call to action: one merged setup card
+
+**Closes:** maintainer request of 2026-11-20 (not an audit finding). **Owner:** Khaled. **Branch:** `t19-plan-setup-card`, started **after T18 merges** (it uses T18's bundled grotesque font, the tile colours in `TileColours.kt`, and edits the same Home files). **Files:** `app/.../home/HomeSections.kt` (the "Set up a plan" text at line 179, shown under the hero when there is no plan), `app/.../home/HomeScreen.kt` (the "Data plan" card at lines 196 to 208), new `ui/design/.../plan/PlanSetupCard.kt`, `ui/design/.../progress/WavyRing.kt` (a ghost-ring mode). **Tests next to each.**
+**Mockup (the source of every number below):** https://claude.ai/artifact/4cy3dwk2i4Jz4baTmXd3ZJ . The maintainer chose "No plan, proposed" with the **merged card with a button** on 2026-11-20. The other two variants in the mockup (inline pill, example preview) do not ship.
+
+**Decisions (locked).**
+1. **One card replaces two things.** While there is **no plan**, the floating "Set up a plan" text under the hero and the large "Data plan" card further down are both removed and replaced by one `PlanSetupCard`, shown directly under the hero. Once a plan exists, nothing changes in the hero line ("X left of Y" with its wavy bar) and the card is not shown.
+2. **Card.** `mixedCorners(28.dp, 8.dp)` with the small corner at the bottom end (RTL mirrors), container and text colours from `palette.liveTile()` (T18 `TileColours.kt`: the primary-tinted container, label at 7:1). Padding 16 dp.
+   - **Ghost ring** (76 dp, at the start): a wavy ring, track at 20 percent opacity and an arc filling **70 percent** of the circle in `palette.primary`, stroke 7 percent of the size (about 5.3 dp), wave amplitude 2.6 percent of the radius, 14 waves. It is decorative (`clearAndSetSemantics`). Reuse `WavyRing` with a ghost mode; do not draw a second ring implementation.
+   - **Text** (to the right of the ring), in the T18 grotesque: title **"Set up your data plan"** (21 sp, bold, letter spacing -0.01 em, line height 1.1) and body **"See what is left and when it runs out."** (14 sp, medium, 85 percent opacity, line height 1.35).
+   - **Button** (full width under both): a filled `Button`, `primary` on `onPrimary`, pill shape, min height **52 dp**, label **"Set up plan"** (17 sp, bold) and a trailing arrow icon (18 dp). The action is the same one the old "Set up your data plan" button has today (open the new-plan flow); do not add a new route.
+3. **Motion** (all on `rememberEmberbyteMotion()` specs, static when reduced).
+   - **Entrance:** the card fades and rises (translate 14 dp to 0, scale 0.97 to 1.0, spatial spring) 80 ms after the hero entrance, before the bento tiles (T18 starts 100 ms later).
+   - **Ghost ring:** on first show the arc draws from 0 to 70 percent over 1.3 s; the wave phase then advances at 2 rad/s. Reduced motion: the arc is simply at 70 percent, flat, with no wave.
+   - **Press:** the card and the button both use `pressMorph` (T11): scale 0.97 and 0.96, corners to 18 dp, on a spatial spring.
+   - The wave loop stops when Home is not visible (lifecycle-aware).
+4. **Accessibility.** The title is a heading; the card itself is not clickable, the button is the only action (target at least 48 dp, here 52). Focus order: title, body, button. Content description of the button: "Set up your data plan".
+5. **Plan state (shared open question with T18).** With a plan, the Forecast tile sits on its own full-width row above the Live and Network pair. This task does not change that layout; T18 owns it. The mockup shows it under "With a plan".
+
+**Interfaces.**
+- `@Composable fun PlanSetupCard(onSetUp: () -> Unit, modifier: Modifier = Modifier, playEntrance: Boolean = true)`.
+- `WavyRing` gains an optional `ghost: GhostRing? = null` parameter with `data class GhostRing(val fraction: Float = 0.7f, val drawDurationMs: Int = 1300)`; with `ghost == null` it behaves exactly as today. Pure helper `internal fun ghostArcFraction(progress: Float, target: Float): Float` (clamped linear draw, 0 to `target`).
+
+**Steps (each its own commit, test first, watch it fail).**
+1. **Pure logic.** RED `ghost_arc_grows_from_zero_to_the_target_and_stops`, `ghost_arc_is_clamped_outside_zero_to_one`. GREEN.
+2. **Card.** RED (Compose, Robolectric): `card_shows_the_title_the_body_and_the_button`, `button_is_at_least_52dp_and_calls_onSetUp`, `title_is_a_heading_and_the_ring_is_not_announced`, `corners_have_one_small_corner_and_mirror_in_rtl`, `card_text_meets_contrast_in_every_palette`, `card_does_not_clip_at_font_scale_2` (the text wraps, the button stays visible). GREEN `PlanSetupCard`.
+3. **Motion.** RED `ghost_ring_draws_over_time_and_ends_at_70_percent`, `ghost_ring_is_static_when_reduced`, `entrance_has_in_between_frames`, `entrance_snaps_when_reduced`, `press_morphs_the_card_and_the_button`, `wave_loop_stops_when_home_is_not_visible`. GREEN.
+4. **Home wiring.** RED (`HomeScreenTest`): `no_plan_shows_the_setup_card_and_neither_the_old_link_nor_the_old_card`, `with_a_plan_the_setup_card_is_not_shown`, `setup_card_button_opens_the_new_plan_flow`, `setup_card_sits_under_the_hero_above_the_tiles`. GREEN: remove the "Set up a plan" text (`HomeSections.kt:179`) and the "Data plan" card (`HomeScreen.kt:196-208`) for the no-plan state and insert `PlanSetupCard`. Update existing Home tests that assert the old strings and say why in the pull request.
+5. **Widgets and onboarding are not touched.** The widgets and onboarding still say "Set up a plan"; leave them unchanged and add `widgets_and_onboarding_keep_their_setup_copy` as a guard.
+
+**Review Focus for this task.**
+1. Font scale 2.0 and display size 560: the ring stays 76 dp while the text wraps, and the button never leaves the screen.
+2. RTL: the ring moves to the right, the arrow icon mirrors, the corner flips.
+3. Creating a plan from the card makes the card disappear without a flash of the old link or card.
+4. A user who dismissed onboarding without permission still sees a sensible card (it does not depend on usage access).
+5. The card must not look like an error or a warning: it uses the calm primary tint.
+
+**Acceptance.** On a device with no plan, Home shows one card under the hero with the ghost ring drawing itself, the two lines of copy and one big button, and nothing else about plans; pressing the button opens the new-plan flow; creating a plan removes the card; with animations off everything is static; widgets and onboarding are unchanged.
+
+---
+
+## T20. Home usage card: Top apps with History inside
+
+**Closes:** maintainer request of 2026-11-20 (not an audit finding). **Owner:** Khaled. **Branch:** `t20-usage-card`, started **after T19 merges**, and after Omar's T5 (History values, selected-day mark and labels) and T11 (`pressMorph`) have merged. **Files:** `app/.../home/HomeSections.kt` and `HomeScreen.kt` (the "Top apps today" card and the separate "History" card), `app/.../home/HomeViewModel.kt`, `HomeUiState.kt`, `HomeMapping.kt`, new `ui/design/.../usage/UsageCard.kt`, `UsageWeekStrip.kt`, `AppUsageRow.kt`, `UsageFiltersSheet.kt`, `app/.../nav/` (History transition and the day argument). **Tests next to each.**
+**Mockup (the source of every number below):** https://claude.ai/artifact/Q4pn1FJFdnMTcFu5q25JBE . The maintainer chose "one card, History inside" with **connected buttons (All apps, Filters, History)** on 2026-11-20. The split-button variant does not ship.
+
+**Decisions (locked).**
+1. **One card replaces two.** `UsageCard` replaces the "Top apps today" card and the separate "History" card on Home. Card container: the theme surface colour, `mixedCorners(30.dp, 10.dp)` with the small corner at the bottom start, padding 16 dp (14 dp sides). Type is the T18 grotesque.
+2. **Header and summary.** Title **"Top apps"** (22 sp, bold, letter spacing -0.01 em) with a pill on the right showing the selected day ("Today" or the weekday; 13 sp bold, primary-tinted container). Under it a summary line, **"3.71 GB on Friday, so far"** (the amount in bold; ", so far" only for today; the unit switches to MB below 1 GB).
+3. **Week strip = day picker.** Seven buttons for the **last seven days ending today** (rolling), each with: a value above the bar (11 sp; the selected one 12 sp bold), a bar (max width 34 dp, height 74 dp, corners 13 dp) and a weekday initial in a 26 dp disc below. Unselected bars are the primary at 28 percent; the selected bar is solid primary and its disc is filled; today's disc has a 2 dp ring. Bar height is `total / (maxTotal x 1.12)` with a floor of 6 percent. Value label: one decimal in GB at 0.095 GB and above, otherwise whole MB with an "M" suffix. Selecting a day updates the pill, the summary and the ranking; the bars animate their height on a spatial spring (about 700 ms) and the colours over 300 ms. Entrance: bars grow from 6 percent starting 420 ms after the card, 60 ms apart. Each day button announces "Friday, 3.71 gigabytes" with a pressed state.
+4. **App rows.** The **top four apps** for the selected day (after filters), ranked by usage.
+   - **Featured first row:** min height 88 dp, corners 26 dp, 60 dp icon in its `AppShape`, name 21 sp bold, amount 30 sp bold (letter spacing -0.02 em) with the unit, a sub-line "Wi-Fi 1.59 GB · Mobile 0 B", and its share in percent under the amount.
+   - **Other rows:** min height 64 dp, corners 22 dp, 44 dp icon, name 17 sp bold, amount 21 sp bold, sub-line "NN% of today" (or of the weekday).
+   - **Share fill:** a rounded rectangle behind each row from the start edge, width `max(14%, usage / firstRowUsage)`, in the T18 primary-tinted container; the row base is the text colour at 7 percent. The fill animates its width on the spatial spring (about 800 ms).
+   - **Press and expand:** rows use `pressMorph` (corners to 16 dp, scale 0.97). A tap expands the row inline (spring height, about 450 ms) to show "Wi-Fi X", "Mobile Y" and "App details", which opens the existing app detail screen. Only one row is open at a time; the row announces its expanded state.
+   - **Re-rank motion:** rows keyed by package name use `animateItem` (placement spring about 560 ms); amounts roll with `MorphingNumber`; a row entering scales from 0.9 and fades in over 420 ms; one leaving fades out. Real app icons are used (the mockup's letters are stand-ins).
+5. **Connected buttons.** Three segments in one row, 3 dp apart, min height 54 dp, outer corners 27 dp and inner corners 9 dp: **"All apps"** (tonal, text only; the old "See all" action, opens Apps), **"Filters"** (tonal, filter icon, label and a count badge) and **"History"** (filled primary, clock icon; opens History). Widths 1 : 1.1 : 1.15. With any filter active the Filters segment turns primary-tinted and shows the count badge; its label becomes "Filters, N active" for accessibility.
+6. **Filters.** The Filters button opens a bottom sheet inside Home (draft, then Apply or Reset, like the Apps `FiltersSheet`): **Network** as a connected group (All, Mobile, Wi-Fi) and **"Show system apps"** as a switch with a check in its thumb, then Reset and Apply buttons and the note "Period, sort and more are in Apps". The filters affect the strip totals and bars, the summary, and the ranking together. Active filters also show as **removable chips under the summary line**, labelled in full ("Network: Mobile", "System apps"), at least 32 dp tall, tonal primary; one tap removes that filter. State lives in `HomeViewModel`, session only, **independent of the Apps screen's filters** (*open question for the maintainer: should the two share state?*). There is no period filter in the card: the strip is the period control.
+7. **History.** The History button opens the History screen with a **container transform** that grows out of the button (clip-reveal from the button's bounds to the full screen, about 620 ms on a spring, the chart bars growing in after 260 ms, 50 ms apart); going back reverses it in about 380 ms. The **selected day is passed in** and, if changed there, **returned**, so the card keeps the day last chosen. Implement with `SharedTransitionLayout`/`sharedBounds` if Navigation Compose 2.10.2 supports it for this route; otherwise use the app's standard push transition and say so under "Rulings". Reduced motion: instant.
+8. **Data.** `HomeUiState` gains `usageDays: List<DayUsage>` (`data class DayUsage(val date: LocalDate, val totalBytes: Long, val mobileBytes: Long, val wifiBytes: Long)`, oldest first, seven entries) and `HomeViewModel` exposes per-app rows for the selected day and filters through `AppUsageRow(packageName, label, mobileBytes, wifiBytes, isSystem)`. Both come from the repository queries the History and Apps screens already use; no new permission and no network.
+9. **Reduced motion.** Everything static: bars at their height, ranking changes instantly, no glide, the History open is a plain switch.
+
+**Interfaces.**
+- `@Composable fun UsageCard(state: UsageCardState, onSelectDay: (Int) -> Unit, onOpenApp: (String) -> Unit, onAllApps: () -> Unit, onOpenFilters: () -> Unit, onRemoveFilter: (UsageFilter) -> Unit, onOpenHistory: (selectedDayIndex: Int) -> Unit, modifier: Modifier = Modifier)`.
+- `data class UsageCardState(val days: List<DayUsage>, val selectedIndex: Int, val rows: List<AppUsageRowUi>, val filters: UsageFilters, val units: ByteUnits)`; `data class UsageFilters(val network: NetworkFilter = NetworkFilter.All, val showSystemApps: Boolean = false)`, `enum class NetworkFilter { All, Mobile, WiFi }`, `enum class UsageFilter { Network, SystemApps }`.
+- Pure helpers (unit tests, no Compose): `internal fun stripBarFractions(totals: List<Long>): List<Float>` (the formula above), `internal fun stripLabel(bytes: Long, units: ByteUnits): String`, `internal fun rankApps(rows: List<AppUsageRow>, filters: UsageFilters, limit: Int = 4): List<RankedApp>` (filtered amount, descending, top four), `internal fun dayTotal(day: DayUsage, rows: List<AppUsageRow>, filters: UsageFilters): Long`, `internal fun shareFillFraction(usage: Long, first: Long): Float` (min 0.14), `internal fun summaryText(day: LocalDate, today: LocalDate, total: Long, units: ByteUnits): String`.
+
+**Steps (each its own commit, test first, watch it fail).**
+1. **Pure logic.** RED `strip_bar_fractions_scale_to_the_max_with_a_floor`, `strip_label_uses_gb_above_95_mb_and_whole_mb_below`, `rank_apps_orders_by_the_filtered_amount`, `mobile_filter_ranks_by_mobile_bytes`, `system_apps_are_included_only_when_the_filter_is_on`, `day_total_follows_the_filters`, `share_fill_has_a_14_percent_minimum`, `summary_says_so_far_only_for_today`. GREEN.
+2. **Data.** RED (`HomeViewModelTest`) `usage_days_has_seven_days_ending_today`, `per_app_rows_follow_the_selected_day`, `filters_are_session_only_and_independent_of_apps`. GREEN.
+3. **Strip and rows (Compose).** RED `strip_shows_seven_days_with_values_and_a_marked_selected_day`, `selecting_a_day_updates_the_summary_and_the_ranking`, `first_row_is_featured`, `rows_expand_one_at_a_time_and_announce_the_state`, `row_share_fill_follows_usage`, `rows_glide_to_new_positions_when_the_ranking_changes` (test clock), `reduced_motion_ranking_changes_instantly`, `day_buttons_announce_the_day_and_value`. GREEN.
+4. **Buttons and filters.** RED `connected_buttons_show_all_apps_filters_history_in_order`, `filters_segment_shows_a_badge_and_tint_when_active`, `filters_sheet_applies_and_resets_a_draft`, `active_filters_show_as_removable_full_labelled_chips`, `removing_a_chip_updates_the_card`, `network_filter_changes_totals_bars_and_ranking_together`. GREEN.
+5. **History hand-off.** RED `history_receives_the_selected_day`, `history_returns_the_changed_day_to_the_card`, `history_open_is_instant_when_reduced`. GREEN (container transform or the fallback in decision 7).
+6. **Home wiring.** Replace the two old cards with `UsageCard`; update the Home tests that asserted the old strings and say why in the pull request. Existing History screen tests must still pass.
+7. **Performance gate (device).** The card re-ranks and animates on every day change; record it on a mid-range phone and report the janky-frame percentage. If above 5 percent, drop the share-fill spring to a tween and shorten the glide, and note it under "Rulings".
+
+**Review Focus for this task.**
+1. Font scale 2.0, display size 560 and RTL: names ellipsize, the connected buttons keep their labels or drop to icons plus badge, the strip does not overflow.
+2. A day with no usage, a filter that matches nothing (empty state: "No apps match these filters" with a Reset action), and fewer than four apps.
+3. A first day of data (history shorter than seven days): missing days show as empty bars, not crashes.
+4. Switching day during a running animation does not stack or glitch; the History round trip keeps the day.
+5. The permission-missing state still shows the existing prompt instead of an empty card.
+
+**Acceptance.** On a device the Home screen has one Top apps card with a week strip, a featured first app, share-fill rows and three connected buttons; tapping a day re-ranks the apps with a glide; Filters narrows everything with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.
+
+---
+
 ## T15. Release 1.0.3
 
 **Files:** `app/build.gradle.kts` (`versionName = "1.0.3"`, `versionCode = 4`), `CHANGELOG.md` (dated the release day; categories Fixed, Changed, Added), `fastlane/metadata/android/en-US/changelogs/4.txt` (under 500 characters), `app/src/main/assets/whats_new.json` (the 1.0.3 entry, user wording, newest first; `whats_new_newest_entry_matches_version_name_and_code_in_build_gradle` fails until it exists), `docs/release/RELEASE-NOTES-1.0.3.md` (certificate fingerprint `72:AD:25:A3:D8:36:6A:07:33:9C:7B:23:9B:E0:DF:D7:0D:42:7C:FB:7D:FE:49:8B:92:62:1E:4C:60:45:95:EF`, known limits, the "no INTERNET permission" sentence). Then the per-release checklist from `RELEASE-PLAN-2026-Q4.md`: tag on `main`, release workflow, draft, fingerprint check, publish, check website, Obtainium and Orion Store, install over 1.0.2. The last commit on the release branch removes this spec and the findings document (nothing after it), then squash-merge.
@@ -433,6 +628,10 @@ Same format as 1.0.2 (one poll per verdict, one reply per failure with the copie
 12. Fresh install onboarding: Skip intro, Back, filled "Set up a plan".
 13. History (Day, Week, Month): every bar shows its value, the selected bar is obvious, Day labels make a month change visible, Week and Month labels read as dates.
 14. Update from 1.0.2 to the 1.0.3 build: the "What's new in 1.0.3" sheet appears once on the first launch, never again after dismissing it (also not after swiping it away); a fresh install and onboarding never show it; Settings > About > What's new reopens it; Updates row has a "See what's new" link; works in airplane mode.
+15. Home: a cold start blooms the big number digit by digit with an overshoot, the Emberbyte mark is 44 dp and still, the GB badge turns and speeds up while data flows, a changing value pulses only the changed digit, and with animations off all of it is static. App detail, History and Onboarding hero numbers are unchanged.
+16. Home: the Live and Today by network tiles sit side by side in Space Grotesk with interlocking corners; pressing the Live tile rolls between download and upload (arrow flip, trace morph, tint change) and back; the network number counts up once and the mobile segment is visible; with animations off everything is static and the switch is instant.
+17. Home with no plan: one setup card under the hero (ghost ring drawing itself, "Set up your data plan", one big "Set up plan" button) replaces the old link and card; the button opens the new-plan flow; creating a plan removes the card; with a plan nothing of it remains; with animations off everything is static.
+18. Home: one Top apps card with a week strip (tap a day: the apps re-rank with a glide), a featured first app with share-fill rows, and three connected buttons; Filters (Network, System apps) narrows strip, summary and ranking together with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.
 
 ## Out of scope (record, do not build)
 
