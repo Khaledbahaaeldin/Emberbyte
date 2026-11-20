@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.nav
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -24,8 +25,10 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 /**
  * Wraps form screens with a predictive back guard.
@@ -45,8 +48,9 @@ fun GuardedBack(
     onDismiss: () -> Unit = {},
     content: @Composable (shrink: Float) -> Unit,
 ) {
-    var shrink by remember { mutableFloatStateOf(1f) }
-    var gestureProgress by remember { mutableFloatStateOf(0f) }
+    val progress = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
+    val reduceMotion = LocalReduceMotion.current
     var showDiscardDialog by remember { mutableStateOf(false) }
 
     PredictiveBackHandler(enabled = dirty) { progressFlow ->
@@ -54,20 +58,26 @@ fun GuardedBack(
         try {
             progressFlow.collect { backEvent ->
                 val p = backEvent.progress.coerceIn(0f, 1f)
-                gestureProgress = p
-                shrink = BackTransitions.shrinkFor(p)
+                progress.snapTo(p)
             }
             NavDiagnostics.record("BACK_COMMIT", "guarded")
             showDiscardDialog = true
         } catch (_: CancellationException) {
             NavDiagnostics.record("BACK_CANCEL", "guarded")
-            shrink = 1f
-            gestureProgress = 0f
+            coroutineScope.launch {
+                if (reduceMotion) {
+                    progress.snapTo(0f)
+                } else {
+                    progress.animateTo(0f, BackTransitions.cancelSpring)
+                }
+            }
         }
     }
 
-    val cornerRadius = BackTransitions.cornerRadiusFor(gestureProgress)
-    val shadowElevation = BackTransitions.shadowDpFor(gestureProgress)
+    val currentProgress = progress.value
+    val shrink = BackTransitions.shrinkFor(currentProgress)
+    val cornerRadius = BackTransitions.cornerRadiusFor(currentProgress)
+    val shadowElevation = BackTransitions.shadowDpFor(currentProgress)
     val palette = LocalEmberbytePalette.current
     val layoutDirection = LocalLayoutDirection.current
     val origin = BackTransitions.transformOriginFor(layoutDirection)
@@ -93,8 +103,13 @@ fun GuardedBack(
         EmberbyteDialog(
             onDismiss = {
                 showDiscardDialog = false
-                shrink = 1f
-                gestureProgress = 0f
+                coroutineScope.launch {
+                    if (reduceMotion) {
+                        progress.snapTo(0f)
+                    } else {
+                        progress.animateTo(0f, BackTransitions.cancelSpring)
+                    }
+                }
                 onDismiss()
             },
             title = "Discard changes?",
@@ -103,8 +118,9 @@ fun GuardedBack(
                 label = "Discard",
                 onClick = {
                     showDiscardDialog = false
-                    shrink = 1f
-                    gestureProgress = 0f
+                    coroutineScope.launch {
+                        progress.snapTo(0f)
+                    }
                     onConfirmLeave()
                 },
                 modifier = Modifier.focusRequester(discardRequester),
@@ -113,8 +129,13 @@ fun GuardedBack(
                 label = "Keep editing",
                 onClick = {
                     showDiscardDialog = false
-                    shrink = 1f
-                    gestureProgress = 0f
+                    coroutineScope.launch {
+                        if (reduceMotion) {
+                            progress.snapTo(0f)
+                        } else {
+                            progress.animateTo(0f, BackTransitions.cancelSpring)
+                        }
+                    }
                     onDismiss()
                 },
             ),

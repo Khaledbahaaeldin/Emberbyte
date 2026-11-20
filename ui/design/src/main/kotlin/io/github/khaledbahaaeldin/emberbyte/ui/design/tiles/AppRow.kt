@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import androidx.compose.ui.graphics.ImageBitmap
@@ -57,8 +58,10 @@ fun AppRow(
     val mobileShare = if (model.totalBytes > 0) model.mobileBytes.toFloat() / model.totalBytes else 0f
     Row(
         modifier = modifier
+            .testTag("app_row")
             .fillMaxWidth()
             .heightIn(min = 48.dp)
+            .pressMorph(shape = MaterialTheme.shapes.medium)
             .clickable(onClick = onClick)
             .semantics {
                 stateDescription = "Mobile ${spoken(model.mobileBytes, units)}, Wi-Fi ${spoken(model.wifiBytes, units)}"
@@ -109,8 +112,10 @@ fun AppRow(
 
     Row(
         modifier = modifier
+            .testTag("app_row")
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .pressMorph(shape = MaterialTheme.shapes.medium)
             .clickable(onClick = onClick)
             .semantics(mergeDescendants = true) {
                 this.contentDescription = rowDescription
