@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,7 +63,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
@@ -108,148 +107,150 @@ fun LicencesContent(
     val fontsAndDesigns = remember(items) { items.filter { it.category == "Fonts and designs" } }
     val others = remember(items) { items.filter { it.category != "Built with" && it.category != "Fonts and designs" } }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            ScreenHeader(title = "Open-source licences", onBack = onBack)
-        }
+    EmberbyteScreenScaffold(title = "Open-source licences", onBack = onBack, modifier = modifier) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = padding.calculateTopPadding() + 8.dp,
+                bottom = padding.calculateBottomPadding(),
+            ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
 
-        // Search field
-        item {
-            TextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("LicencesSearchField"),
-                placeholder = {
-                    Text("Search licences…", color = palette.muted)
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = "Search",
-                        tint = palette.muted,
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(
-                            onClick = { onSearchQueryChange("") },
-                            shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
-                            modifier = Modifier.size(48.dp),
+            // Search field
+            item {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("LicencesSearchField"),
+                    placeholder = {
+                        Text("Search licences…", color = palette.muted)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Search,
+                            contentDescription = "Search",
+                            tint = palette.muted,
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { onSearchQueryChange("") },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Clear,
+                                    contentDescription = "Clear search",
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(percent = 50),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = palette.surface2,
+                        unfocusedContainerColor = palette.surface2,
+                        focusedTextColor = palette.text,
+                        unfocusedTextColor = palette.text,
+                        cursorColor = palette.primary,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                )
+            }
+
+            // Emberbyte lead card (visible only when search is empty or matches "Emberbyte" / "GPL")
+            if (searchQuery.isBlank() || "emberbyte".contains(searchQuery.trim(), ignoreCase = true) || "gpl".contains(searchQuery.trim(), ignoreCase = true)) {
+                item {
+                    Surface(
+                        shape = mixedCorners(large = 32.dp, small = 10.dp, smallCorner = Corner.BottomEnd),
+                        color = palette.primary,
+                        contentColor = palette.onPrimary,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Clear,
-                                contentDescription = "Clear search",
+                            Text(
+                                text = "Emberbyte is free software",
+                                style = EmberbyteType.heading(18.sp),
+                                color = palette.onPrimary,
+                            )
+                            Text(
+                                text = "GPL-3.0-or-later. You may use, study, change and share it.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.onPrimary.copy(alpha = 0.85f),
                             )
                         }
                     }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(percent = 50),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = palette.surface2,
-                    unfocusedContainerColor = palette.surface2,
-                    focusedTextColor = palette.text,
-                    unfocusedTextColor = palette.text,
-                    cursorColor = palette.primary,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-            )
-        }
+                }
+            }
 
-        // Emberbyte lead card (visible only when search is empty or matches "Emberbyte" / "GPL")
-        if (searchQuery.isBlank() || "emberbyte".contains(searchQuery.trim(), ignoreCase = true) || "gpl".contains(searchQuery.trim(), ignoreCase = true)) {
-            item {
-                Surface(
-                    shape = mixedCorners(large = 32.dp, small = 10.dp, smallCorner = Corner.BottomEnd),
-                    color = palette.primary,
-                    contentColor = palette.onPrimary,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
+            if (items.isEmpty()) {
+                item {
+                    EmptyState(
+                        icon = Icons.Rounded.Search,
+                        title = "No licences found",
+                        body = "Try searching with a different keyword or name.",
+                    )
+                }
+            } else {
+                if (builtWith.isNotEmpty()) {
+                    item {
                         Text(
-                            text = "Emberbyte is free software",
-                            style = EmberbyteType.heading(18.sp),
-                            color = palette.onPrimary,
-                        )
-                        Text(
-                            text = "GPL-3.0-or-later. You may use, study, change and share it.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.onPrimary.copy(alpha = 0.85f),
+                            text = "Built with",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            color = palette.muted,
+                            modifier = Modifier
+                                .padding(top = 10.dp, bottom = 2.dp)
+                                .semantics { heading() },
                         )
                     }
+                    items(builtWith, key = { "built-${it.name}" }) { item ->
+                        LicenceEntryRow(item = item, context = context)
+                    }
                 }
-            }
-        }
 
-        if (items.isEmpty()) {
-            item {
-                EmptyState(
-                    icon = Icons.Rounded.Search,
-                    title = "No licences found",
-                    body = "Try searching with a different keyword or name.",
-                )
-            }
-        } else {
-            if (builtWith.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Built with",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                        color = palette.muted,
-                        modifier = Modifier
-                            .padding(top = 10.dp, bottom = 2.dp)
-                            .semantics { heading() },
-                    )
+                if (fontsAndDesigns.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Fonts and designs",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            color = palette.muted,
+                            modifier = Modifier
+                                .padding(top = 10.dp, bottom = 2.dp)
+                                .semantics { heading() },
+                        )
+                    }
+                    items(fontsAndDesigns, key = { "font-${it.name}" }) { item ->
+                        LicenceEntryRow(item = item, context = context)
+                    }
                 }
-                items(builtWith, key = { "built-${it.name}" }) { item ->
-                    LicenceEntryRow(item = item, context = context)
-                }
-            }
 
-            if (fontsAndDesigns.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Fonts and designs",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                        color = palette.muted,
-                        modifier = Modifier
-                            .padding(top = 10.dp, bottom = 2.dp)
-                            .semantics { heading() },
-                    )
-                }
-                items(fontsAndDesigns, key = { "font-${it.name}" }) { item ->
-                    LicenceEntryRow(item = item, context = context)
-                }
-            }
-
-            if (others.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Other components",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                        color = palette.muted,
-                        modifier = Modifier
-                            .padding(top = 10.dp, bottom = 2.dp)
-                            .semantics { heading() },
-                    )
-                }
-                items(others, key = { "other-${it.name}" }) { item ->
-                    LicenceEntryRow(item = item, context = context)
+                if (others.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Other components",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            color = palette.muted,
+                            modifier = Modifier
+                                .padding(top = 10.dp, bottom = 2.dp)
+                                .semantics { heading() },
+                        )
+                    }
+                    items(others, key = { "other-${it.name}" }) { item ->
+                        LicenceEntryRow(item = item, context = context)
+                    }
                 }
             }
         }
