@@ -19,3 +19,6 @@ captures/
 __pycache__/
 tools/__pycache__/
 dist/
+
+# Marketing material (posters, copy, generator): local only, never published
+/tools/social/
