@@ -6,11 +6,12 @@ import android.content.Intent
 import android.provider.Settings as AndroidSettings
 import androidx.core.net.toUri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -471,7 +472,7 @@ fun AppDetailContent(
             }
         }
 
-        // Daily chart (7 bars weighted to fit card, today's bar uses primary, others primaryContainer)
+        // Daily chart (7 bars weighted to fit card, today's bar uses primary, others surface2)
         item {
             val weekSummary = run {
                 val highest = state.bars.maxByOrNull { it.bytes }
@@ -480,7 +481,7 @@ fun AppDetailContent(
             }
             BentoTile(
                 title = "Daily usage",
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("DAILY_USAGE_CARD"),
                 container = TileContainer.Standard,
             ) {
                 if (state.bars.isEmpty()) {
@@ -491,55 +492,12 @@ fun AppDetailContent(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                     )
                 } else {
-                    val maxBytes = (state.bars.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = weekSummary },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        state.bars.forEachIndexed { index, bar ->
-                            val isToday = index == state.bars.lastIndex
-                            val isSelected = index == selectedBarIndex
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .sizeIn(minWidth = 32.dp, minHeight = 48.dp)
-                                    .clickable(role = Role.Tab) {
-                                        selectedBarIndex = if (selectedBarIndex == index) null else index
-                                    }
-                                    .semantics {
-                                        contentDescription = bar.description
-                                        selected = isSelected
-                                    },
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Bottom,
-                            ) {
-                                val barColor = when {
-                                    isSelected -> palette.primary
-                                    isToday -> palette.primary
-                                    else -> palette.surface2
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .widthIn(max = 24.dp)
-                                        .fillMaxWidth()
-                                        .height((8 + 56 * (bar.bytes.toFloat() / maxBytes)).dp)
-                                        .background(
-                                            color = barColor,
-                                            shape = MaterialTheme.shapes.small,
-                                        ),
-                                )
-                                Text(
-                                    text = bar.label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (isSelected || isToday) palette.text else palette.muted,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                        }
-                    }
+                    AppDetailDailyChart(
+                        bars = state.bars,
+                        selectedIndex = selectedBarIndex,
+                        onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
+                        summaryDescription = weekSummary,
+                    )
                 }
             }
         }
@@ -717,5 +675,68 @@ private fun openAppSettings(context: Context, packageName: String) {
         context.startActivity(intent)
     } catch (_: ActivityNotFoundException) {
         // No settings screen to open; nothing to do.
+    }
+}
+
+@Composable
+private fun AppDetailDailyChart(
+    bars: List<BarUi>,
+    selectedIndex: Int?,
+    onSelect: (Int) -> Unit,
+    summaryDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalEmberbytePalette.current
+    val maxBytes = (bars.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = summaryDescription },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        bars.forEachIndexed { index, bar ->
+            val isToday = index == bars.lastIndex
+            val isSelected = index == selectedIndex
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .sizeIn(minWidth = 32.dp, minHeight = 48.dp)
+                    .clickable { onSelect(index) }
+                    .semantics {
+                        contentDescription = bar.description
+                        selected = isSelected
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom,
+            ) {
+                val barColor = when {
+                    isSelected -> palette.primary
+                    isToday -> palette.primary
+                    else -> palette.surface2
+                }
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 24.dp)
+                        .fillMaxWidth()
+                        .height((8 + 56 * (bar.bytes.toFloat() / maxBytes)).dp)
+                        .background(
+                            color = barColor,
+                            shape = MaterialTheme.shapes.small,
+                        )
+                        .then(
+                            if (isToday && !isSelected) {
+                                Modifier.border(1.5.dp, palette.primary, MaterialTheme.shapes.small)
+                            } else Modifier
+                        ),
+                )
+                Text(
+                    text = bar.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected || isToday) palette.text else palette.muted,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
     }
 }

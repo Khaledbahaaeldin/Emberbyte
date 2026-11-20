@@ -1,18 +1,24 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
 import io.github.khaledbahaaeldin.emberbyte.data.PermissionState
+import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakePermissionRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeUsageRepository
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
+import io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage
+import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
+import io.github.khaledbahaaeldin.emberbyte.engine.model.UsageFilter
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -30,11 +36,25 @@ class AppsViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-05T12:00:00Z"), ZoneOffset.UTC)
     private val dispatcher = StandardTestDispatcher()
 
+    private class SortingUsageRepository(
+        private val delegate: FakeUsageRepository,
+    ) : UsageRepository by delegate {
+        override fun observeApps(range: DateRange, filter: UsageFilter, sort: AppSort): Flow<List<AppUsage>> =
+            delegate.observeApps(range, filter, sort).map { list ->
+                when (sort) {
+                    AppSort.NAME -> list.sortedBy { it.label.lowercase() }
+                    AppSort.BYTES_ASC -> list.sortedBy { it.totalBytes }
+                    AppSort.BYTES_DESC -> list.sortedByDescending { it.totalBytes }
+                    else -> list
+                }
+            }
+    }
+
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(permissions: FakePermissionRepository = FakePermissionRepository()) = AppsViewModel(
-        usage = FakeUsageRepository(clock, MutableSharedFlow()),
+        usage = SortingUsageRepository(FakeUsageRepository(clock, MutableSharedFlow())),
         settings = FakeSettingsRepository(),
         permissions = permissions,
         clock = clock,

@@ -70,11 +70,11 @@ internal fun budgetUi(status: BudgetStatus, planName: String?, units: ByteUnits)
             BudgetState.EXCEEDED -> BudgetStateUi.Exceeded
         },
         percentText = "$percent%",
-        usedText = "${plainBytes(status.usedBytes, units)} of ${plainBytes(b.limitBytes, units)}",
+        usedText = "${plainBytes(status.usedBytes, units)} of ${plainBytes(b.limitBytes, units)} mobile data",
         periodText = when {
-            b.period == BudgetPeriod.DAILY -> "mobile data today"
-            planName != null -> "mobile data this cycle ($planName)"
-            else -> "mobile data this month"
+            b.period == BudgetPeriod.DAILY -> "today"
+            planName != null -> "this cycle ($planName)"
+            else -> "this month"
         },
         enabled = b.enabled,
     )

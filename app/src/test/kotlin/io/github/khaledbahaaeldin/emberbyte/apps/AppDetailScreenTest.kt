@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -83,7 +84,7 @@ class AppDetailScreenTest {
         // First bar's left edge must be at least the card's inner left (>= 0 inside card)
         val firstBar = rule.onNodeWithText("Wed", useUnmergedTree = true)
         val firstBarBounds = firstBar.fetchSemanticsNode().boundsInRoot
-        val cardBounds = rule.onNodeWithText("Daily usage").fetchSemanticsNode().boundsInRoot
+        val cardBounds = rule.onNodeWithTag("DAILY_USAGE_CARD").fetchSemanticsNode().boundsInRoot
         org.junit.Assert.assertTrue(
             "First bar left (${firstBarBounds.left}) must be >= card inner left (${cardBounds.left})",
             firstBarBounds.left >= cardBounds.left

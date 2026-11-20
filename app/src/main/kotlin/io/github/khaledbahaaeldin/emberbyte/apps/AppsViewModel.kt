@@ -101,11 +101,12 @@ internal fun buildAppsUiState(
     } else {
         filtered.filter { it.label.contains(text, ignoreCase = true) || it.packageName.contains(text, ignoreCase = true) }
     }
-    val largest = shown.maxByOrNull { it.mobileBytes + it.wifiBytes }
+    val largest = shown.maxByOrNull { it.totalBytes }
     val featuredRow = if (text.isEmpty() && largest != null) {
         AppRowUi(largest.packageName, largest.label, largest.mobileBytes, largest.wifiBytes)
     } else null
-    val listApps = if (text.isEmpty() && sort == AppSort.BYTES_DESC && featuredRow != null) {
+    val isUsageSort = sort == AppSort.BYTES_DESC || sort == AppSort.BYTES_ASC
+    val listApps = if (text.isEmpty() && isUsageSort && featuredRow != null) {
         shown.filter { it.packageName != featuredRow.packageName }
     } else {
         shown
@@ -152,7 +153,7 @@ class AppsViewModel(
 
     val featured: StateFlow<AppUsage?> = combine(apps, query) { list, text ->
         if (text.trim().isEmpty() && list.isNotEmpty()) {
-            list.maxByOrNull { it.mobileBytes + it.wifiBytes }
+            list.maxByOrNull { it.totalBytes }
         } else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

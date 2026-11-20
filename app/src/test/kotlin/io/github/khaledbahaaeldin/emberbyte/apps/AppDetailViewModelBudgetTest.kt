@@ -210,7 +210,7 @@ class AppDetailViewModelBudgetTest {
         val status = budgets.observeStatuses().first().first { it.budget.packageName == "com.video" }
         assertEquals(1L, status.budget.planId)
         assertEquals(BudgetPeriod.CYCLE, status.budget.period)
-        assertEquals("mobile data this cycle (Main)", vm.uiState.value.budget?.periodText)
+        assertEquals("this cycle (Main)", vm.uiState.value.budget?.periodText)
 
         // Now test when there are no plans: CYCLE without plan says "this month"
         planStore.setArchived(1L, true)
@@ -225,7 +225,7 @@ class AppDetailViewModelBudgetTest {
         vm.onEvent(AppDetailEvent.SaveBudget)
         advanceUntilIdle()
 
-        assertEquals("mobile data this month", vm.uiState.value.budget?.periodText)
+        assertEquals("this month", vm.uiState.value.budget?.periodText)
 
         job.cancel()
     }
@@ -251,13 +251,13 @@ class AppDetailViewModelBudgetTest {
         val vm = vm()
         val job = started(vm)
 
-        assertEquals("0 B of 750 MB", vm.uiState.value.budget?.usedText)
+        assertEquals("0 B of 750 MB mobile data", vm.uiState.value.budget?.usedText)
 
         // Add a 2-hour window row of usage
         usage.upsertHourly(listOf(HourlyUsage(Instant.parse("2026-10-05T10:00:00Z"), 10001, NetworkKind.MOBILE, 1, 612_000_000L, 0L)))
         advanceUntilIdle()
 
-        assertEquals("612 MB of 750 MB", vm.uiState.value.budget?.usedText)
+        assertEquals("612 MB of 750 MB mobile data", vm.uiState.value.budget?.usedText)
 
         job.cancel()
     }
@@ -384,8 +384,8 @@ class AppDetailViewModelBudgetTest {
         // Budget counts the full day (pre-existing 600 MB) and labels mobile data today
         val b = vm.uiState.value.budget
         assertNotNull(b)
-        assertEquals("600 MB of 1.00 GB", b?.usedText)
-        assertEquals("mobile data today", b?.periodText)
+        assertEquals("600 MB of 1.00 GB mobile data", b?.usedText)
+        assertEquals("today", b?.periodText)
         assertEquals("60%", b?.percentText)
 
         job.cancel()
