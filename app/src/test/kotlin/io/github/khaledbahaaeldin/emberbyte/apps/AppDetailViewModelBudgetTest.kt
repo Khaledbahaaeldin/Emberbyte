@@ -210,7 +210,7 @@ class AppDetailViewModelBudgetTest {
         val status = budgets.observeStatuses().first().first { it.budget.packageName == "com.video" }
         assertEquals(1L, status.budget.planId)
         assertEquals(BudgetPeriod.CYCLE, status.budget.period)
-        assertEquals("this cycle (Main)", vm.uiState.value.budget?.periodText)
+        assertEquals("mobile data this cycle (Main)", vm.uiState.value.budget?.periodText)
 
         // Now test when there are no plans: CYCLE without plan says "this month"
         planStore.setArchived(1L, true)
@@ -225,7 +225,7 @@ class AppDetailViewModelBudgetTest {
         vm.onEvent(AppDetailEvent.SaveBudget)
         advanceUntilIdle()
 
-        assertEquals("this month", vm.uiState.value.budget?.periodText)
+        assertEquals("mobile data this month", vm.uiState.value.budget?.periodText)
 
         job.cancel()
     }
@@ -358,6 +358,35 @@ class AppDetailViewModelBudgetTest {
         vm.onEvent(AppDetailEvent.SetBudgetWarn(50))
         advanceUntilIdle()
         assertTrue(vm.uiState.value.editor!!.errors.isEmpty())
+
+        job.cancel()
+    }
+
+    @Test fun test_11_budget_counts_preexisting_usage_for_full_period_and_labels_mobile_data() = runTest(dispatcher) {
+        // App used 600 MB of mobile data earlier today before any budget was created
+        usage.upsertAppMeta(listOf(AppMeta(10001, "com.video", "Video")))
+        usage.upsertHourly(listOf(HourlyUsage(Instant.parse("2026-10-05T08:00:00Z"), 10001, NetworkKind.MOBILE, 1, 600_000_000L, 0L)))
+
+        val vm = vm()
+        val job = started(vm)
+
+        // Initially no budget
+        assertNull(vm.uiState.value.budget)
+
+        // User sets a 1 GB daily budget
+        vm.onEvent(AppDetailEvent.OpenBudgetEditor)
+        vm.onEvent(AppDetailEvent.SetBudgetLimit("1"))
+        vm.onEvent(AppDetailEvent.SetBudgetUnit(CapUnit.GB))
+        vm.onEvent(AppDetailEvent.SetBudgetPeriod(BudgetPeriod.DAILY))
+        vm.onEvent(AppDetailEvent.SaveBudget)
+        advanceUntilIdle()
+
+        // Budget counts the full day (pre-existing 600 MB) and labels mobile data today
+        val b = vm.uiState.value.budget
+        assertNotNull(b)
+        assertEquals("600 MB of 1.00 GB", b?.usedText)
+        assertEquals("mobile data today", b?.periodText)
+        assertEquals("60%", b?.percentText)
 
         job.cancel()
     }

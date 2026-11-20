@@ -45,7 +45,7 @@ class AppsContentTest {
         show()
         rule.onNodeWithText("Video").assertIsDisplayed()
         rule.onNodeWithText("Chat").assertIsDisplayed()
-        rule.onNodeWithText("1.10 GB in total").assertIsDisplayed()
+        rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
     }
 
     @Test fun tapping_a_row_opens_that_app() {

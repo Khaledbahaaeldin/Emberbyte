@@ -46,8 +46,9 @@ class AppsViewModelTest {
         val job = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val state = vm.uiState.value
-        assertEquals(5, state.apps.size)
-        assertEquals("YouTube", state.apps.first().label)
+        assertEquals("YouTube", state.featured?.label)
+        assertEquals(4, state.apps.size)
+        assertEquals("Chrome", state.apps.first().label)
         assertEquals(1_022_000_000L, state.totalBytes)
         job.cancel()
     }
@@ -96,6 +97,34 @@ class AppsViewModelTest {
         assertEquals(null, vm.uiState.value.featured)
         jobUi.cancel()
         jobFeat.cancel()
+    }
+
+    @Test fun featured_app_is_the_largest_even_when_sorted_by_name() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.onEvent(AppsEvent.SetSort(AppSort.NAME))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("YouTube", state.featured?.label)
+        // When sorted by name, the list below contains all apps alphabetically
+        assertEquals(listOf("Chrome", "Maps", "Spotify", "Telegram", "YouTube"), state.apps.map { it.label })
+        job.cancel()
+    }
+
+    @Test fun featured_app_is_not_repeated_when_sorted_by_usage() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        // Default sort is BYTES_DESC
+        assertEquals(AppSort.BYTES_DESC, vm.uiState.value.sort)
+        assertEquals("YouTube", vm.uiState.value.featured?.label)
+        // Featured app (YouTube) must NOT be repeated in the list below
+        assertEquals(listOf("Chrome", "Maps", "Spotify", "Telegram"), vm.uiState.value.apps.map { it.label })
+        job.cancel()
     }
 
     @Test fun removing_a_chip_resets_only_that_filter() = runTest(dispatcher) {

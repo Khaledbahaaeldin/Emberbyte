@@ -53,7 +53,14 @@ class FakeUsageRepository(
         flowOf(weekSeries())
 
     override fun observeApps(range: DateRange, filter: UsageFilter, sort: AppSort): Flow<List<AppUsage>> =
-        flowOf(apps.sortedByDescending { it.totalBytes })
+        flowOf(
+            when (sort) {
+                AppSort.BYTES_DESC -> apps.sortedByDescending { it.totalBytes }
+                AppSort.BYTES_ASC -> apps.sortedBy { it.totalBytes }
+                AppSort.NAME -> apps.sortedBy { it.label.lowercase() }
+                else -> apps.sortedByDescending { it.totalBytes }
+            }
+        )
 
     override fun observeAppSeries(packageName: String, range: DateRange, granularity: Granularity): Flow<List<UsagePoint>> =
         flowOf(weekSeries())

@@ -5,6 +5,15 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings as AndroidSettings
 import androidx.core.net.toUri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -462,7 +471,7 @@ fun AppDetailContent(
             }
         }
 
-        // Daily chart (bars use primary, today's bar uses accent)
+        // Daily chart (7 bars weighted to fit card, today's bar uses primary, others primaryContainer)
         item {
             val weekSummary = run {
                 val highest = state.bars.maxByOrNull { it.bytes }
@@ -482,16 +491,55 @@ fun AppDetailContent(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                     )
                 } else {
-                    UsageBarRow(
-                        points = state.bars,
-                        selectedIndex = selectedBarIndex,
-                        onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
-                        summaryDescription = weekSummary,
-                        barColor = { index, _ ->
-                            if (index == state.bars.lastIndex) palette.accent
-                            else palette.primary
-                        },
-                    )
+                    val maxBytes = (state.bars.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = weekSummary },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        state.bars.forEachIndexed { index, bar ->
+                            val isToday = index == state.bars.lastIndex
+                            val isSelected = index == selectedBarIndex
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .sizeIn(minWidth = 32.dp, minHeight = 48.dp)
+                                    .clickable(role = Role.Tab) {
+                                        selectedBarIndex = if (selectedBarIndex == index) null else index
+                                    }
+                                    .semantics {
+                                        contentDescription = bar.description
+                                        selected = isSelected
+                                    },
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom,
+                            ) {
+                                val barColor = when {
+                                    isSelected -> palette.primary
+                                    isToday -> palette.primary
+                                    else -> palette.surface2
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .widthIn(max = 24.dp)
+                                        .fillMaxWidth()
+                                        .height((8 + 56 * (bar.bytes.toFloat() / maxBytes)).dp)
+                                        .background(
+                                            color = barColor,
+                                            shape = MaterialTheme.shapes.small,
+                                        ),
+                                )
+                                Text(
+                                    text = bar.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isSelected || isToday) palette.text else palette.muted,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

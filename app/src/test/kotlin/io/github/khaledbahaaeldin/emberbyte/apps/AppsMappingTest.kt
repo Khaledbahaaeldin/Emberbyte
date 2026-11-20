@@ -45,9 +45,16 @@ class AppsMappingTest {
 
     @Test fun rows_total_and_loaded_flag() {
         val state = build()
-        assertEquals(listOf("Video", "Chat"), state.apps.map { it.label })
+        assertEquals("Video", state.featured?.label)
+        assertEquals(listOf("Chat"), state.apps.map { it.label })
         assertEquals(1_100L, state.totalBytes)
         assertTrue(state.loaded)
+    }
+
+    @Test fun name_sort_keeps_all_apps_in_the_list() {
+        val state = buildAppsUiState(apps, AppsRange.TODAY, AppsNetwork.ALL, AppSort.NAME, "", ByteUnits.DECIMAL, false)
+        assertEquals("Video", state.featured?.label)
+        assertEquals(listOf("Video", "Chat"), state.apps.map { it.label })
     }
 
     @Test fun search_matches_label_or_package_ignoring_case_and_updates_the_total() {
@@ -57,7 +64,7 @@ class AppsMappingTest {
         assertTrue(build("nothing like this").apps.isEmpty())
     }
 
-    @Test fun blank_query_shows_everything() = assertEquals(2, build("   ").apps.size)
+    @Test fun blank_query_deduplicates_featured_when_sorted_by_bytes() = assertEquals(1, build("   ").apps.size)
 
     @Test fun the_usage_access_flag_is_passed_through() {
         assertTrue(build(needsAccess = true).needsUsageAccess)

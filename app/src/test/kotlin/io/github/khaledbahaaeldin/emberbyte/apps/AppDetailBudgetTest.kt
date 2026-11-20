@@ -19,26 +19,26 @@ class AppDetailBudgetTest {
         assertEquals("81%", ui.percentText)
         assertEquals(BudgetStateUi.Warning, ui.ringState)
         assertEquals("612 MB of 750 MB", ui.usedText)
-        assertEquals("today", ui.periodText)
+        assertEquals("mobile data today", ui.periodText)
         assertEquals(0.816f, ui.fraction, 0.001f)
     }
 
     @Test fun an_exceeded_cycle_budget_with_a_plan_names_it_and_over_100_percent_shows_more() {
-        // 900 of 750 MB: "120%", Exceeded, periodText "this cycle (Main)"
+        // 900 of 750 MB: "120%", Exceeded, periodText "mobile data this cycle (Main)"
         val status = BudgetStatus(AppBudget(1, "com.video", 750_000_000L, BudgetPeriod.CYCLE, 10L, 80, true), 900_000_000L, BudgetState.EXCEEDED)
         val ui = budgetUi(status, planName = "Main", units = ByteUnits.DECIMAL)
         assertEquals("120%", ui.percentText)
         assertEquals(BudgetStateUi.Exceeded, ui.ringState)
         assertEquals("900 MB of 750 MB", ui.usedText)
-        assertEquals("this cycle (Main)", ui.periodText)
+        assertEquals("mobile data this cycle (Main)", ui.periodText)
         assertEquals(1.2f, ui.fraction, 0.001f)
     }
 
     @Test fun a_cycle_budget_without_a_plan_says_this_month() {
-        // periodText "this month"
+        // periodText "mobile data this month"
         val status = BudgetStatus(AppBudget(1, "com.video", 750_000_000L, BudgetPeriod.CYCLE, null, 80, true), 200_000_000L, BudgetState.OK)
         val ui = budgetUi(status, planName = null, units = ByteUnits.DECIMAL)
-        assertEquals("this month", ui.periodText)
+        assertEquals("mobile data this month", ui.periodText)
     }
 
     @Test fun a_spike_row_shows_the_window_the_size_and_the_multiple() {

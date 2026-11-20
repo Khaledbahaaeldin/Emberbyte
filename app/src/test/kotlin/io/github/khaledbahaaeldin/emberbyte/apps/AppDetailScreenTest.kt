@@ -63,6 +63,34 @@ class AppDetailScreenTest {
     }
 
     @Test
+    fun seven_bars_fit_inside_the_card_and_each_has_a_label() {
+        val sevenBars = listOf(
+            BarUi(label = "Wed", bytes = 100_000_000L, description = "Wednesday, 100 megabytes"),
+            BarUi(label = "Thu", bytes = 200_000_000L, description = "Thursday, 200 megabytes"),
+            BarUi(label = "Fri", bytes = 300_000_000L, description = "Friday, 300 megabytes"),
+            BarUi(label = "Sat", bytes = 400_000_000L, description = "Saturday, 400 megabytes"),
+            BarUi(label = "Sun", bytes = 500_000_000L, description = "Sunday, 500 megabytes"),
+            BarUi(label = "Mon", bytes = 600_000_000L, description = "Monday, 600 megabytes"),
+            BarUi(label = "Tue", bytes = 700_000_000L, description = "Tuesday, 700 megabytes"),
+        )
+        show(sampleState.copy(bars = sevenBars))
+
+        // Every slot has its label displayed
+        sevenBars.forEach { bar ->
+            rule.onNodeWithText(bar.label, useUnmergedTree = true).assertIsDisplayed()
+        }
+
+        // First bar's left edge must be at least the card's inner left (>= 0 inside card)
+        val firstBar = rule.onNodeWithText("Wed", useUnmergedTree = true)
+        val firstBarBounds = firstBar.fetchSemanticsNode().boundsInRoot
+        val cardBounds = rule.onNodeWithText("Daily usage").fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue(
+            "First bar left (${firstBarBounds.left}) must be >= card inner left (${cardBounds.left})",
+            firstBarBounds.left >= cardBounds.left
+        )
+    }
+
+    @Test
     fun daily_chart_has_a_text_alternative_for_each_bar() {
         show(sampleState)
         sampleState.bars.forEach { bar ->

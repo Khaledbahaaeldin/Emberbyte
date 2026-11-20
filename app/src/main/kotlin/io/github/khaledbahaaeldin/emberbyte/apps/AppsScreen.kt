@@ -301,7 +301,7 @@ internal fun AppsContent(
         item {
             ForceLtr {
                 Text(
-                    text = "${plainBytes(state.totalBytes, state.units)} in total",
+                    text = "${plainBytes(state.totalBytes, state.units)} (apps only)",
                     style = MaterialTheme.typography.titleMedium,
                     color = palette.muted,
                 )

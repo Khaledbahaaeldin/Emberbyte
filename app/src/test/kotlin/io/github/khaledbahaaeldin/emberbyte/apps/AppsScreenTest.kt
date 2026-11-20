@@ -185,4 +185,27 @@ class AppsScreenTest {
         rule.onNodeWithText("Chat").assertIsDisplayed()
         rule.onNodeWithText("YouTube").assertDoesNotExist()
     }
+
+    @Test
+    fun total_readout_explicitly_specifies_apps_only() {
+        val state = AppsUiState(
+            apps = sampleApps,
+            totalBytes = 1_100_000_000L,
+            units = ByteUnits.DECIMAL,
+            loaded = true,
+        )
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppsContent(
+                    state = state,
+                    onEvent = {},
+                    onOpenApp = {},
+                    onPromptAction = {},
+                )
+            }
+        }
+
+        rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
+    }
 }
