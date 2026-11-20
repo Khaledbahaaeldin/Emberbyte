@@ -46,9 +46,27 @@ class TextRolesTest {
                 for ((surfaceName, surface) in listOf("surface2" to palette.surface2, "surface" to palette.surface, "background" to palette.background)) {
                     if (contrastRatio(palette.accentText, surface) < 4.5) failures += "$id/$mode accentText on $surfaceName"
                     if (contrastRatio(palette.linkText, surface) < 4.5) failures += "$id/$mode linkText on $surfaceName"
+                    if (contrastRatio(palette.warnText, surface) < 4.5) failures += "$id/$mode warnText on $surfaceName"
                 }
             }
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun ensure_contrast_keeps_the_hue_on_mid_grey_backgrounds_instead_of_falling_back_to_black() {
+        // Luminance about 0.3: white cannot reach 4.5:1 here, black can; the hue must survive.
+        val background = Color(0xFF9A9A9A)
+        val teal = Color(0xFF3DB8A6)
+        val result = ensureContrast(teal, background)
+        assertTrue(contrastRatio(result, background) >= 4.5)
+        assertTrue("hue lost, got $result", result != Color.Black && result.green > result.red)
+    }
+
+    @Test
+    fun monochrome_error_is_a_real_red_so_errors_do_not_look_like_body_text() {
+        val (dark, light) = checkNotNull(GeneratedPalettes["monochrome"])
+        assertTrue(light.danger.red > light.danger.green + 0.2f)
+        assertTrue(dark.danger.red > dark.danger.green + 0.1f)
     }
 }

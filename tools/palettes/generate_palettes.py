@@ -105,11 +105,12 @@ def check_track(cand, bg, surf, prim, is_dark):
 # (foreground role, background role, needed ratio): text and marks rules of design section 9.1
 RULES = [
     ("text", "background", 7.0), ("muted", "background", 4.5), ("muted", "surface", 4.5),
-    ("muted", "surface2", 4.5),
+    ("muted", "surface2", 4.55),
     ("text", "surface", 4.5), ("text", "surface2", 4.5),
     # danger is also used as text (dialog titles, errors, "Remove"), so it must be readable on every surface.
     # These rules run before onDanger/danger so the on-colour is checked against the final danger colour.
-    ("danger", "surface2", 4.5), ("danger", "surface", 4.5), ("danger", "background", 4.5),
+    # 4.55 leaves a margin so rounding differences between this script and Kotlin cannot flip a pass into a fail.
+    ("danger", "surface2", 4.55), ("danger", "surface", 4.55), ("danger", "background", 4.55),
     ("onPrimary", "primary", 4.5), ("onAccent", "accent", 4.5), ("onWarn", "warn", 4.5), ("onDanger", "danger", 4.5),
     ("primary", "background", 3.0), ("primary", "surface", 3.0),
 ]
