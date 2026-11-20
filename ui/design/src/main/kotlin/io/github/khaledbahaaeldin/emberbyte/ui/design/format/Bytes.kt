@@ -10,7 +10,7 @@ enum class ByteUnits(val base: Long, val labels: List<String>) {
 
 data class FormattedBytes(val value: String, val unit: String)
 
-fun formatBytes(bytes: Long, units: ByteUnits): FormattedBytes {
+internal fun scaleBytes(bytes: Long, units: ByteUnits): Pair<Double, Int> {
     val safe = bytes.coerceAtLeast(0L)
     var scaled = safe.toDouble()
     var index = 0
@@ -18,7 +18,14 @@ fun formatBytes(bytes: Long, units: ByteUnits): FormattedBytes {
         scaled /= units.base
         index++
     }
-    if (index == 0) return FormattedBytes(safe.toString(), units.labels[0])
+    return scaled to index
+}
+
+fun formatBytes(bytes: Long, units: ByteUnits): FormattedBytes {
+    val (scaledInitial, initialIndex) = scaleBytes(bytes, units)
+    var scaled = scaledInitial
+    var index = initialIndex
+    if (index == 0) return FormattedBytes(bytes.coerceAtLeast(0L).toString(), units.labels[0])
 
     var rounded = roundForDisplay(scaled)
     if (index < units.labels.lastIndex && rounded >= BigDecimal(units.base)) {
@@ -31,14 +38,10 @@ fun formatBytes(bytes: Long, units: ByteUnits): FormattedBytes {
 
 /** Formats bar chart values: one decimal below 10 units, none otherwise. e.g. "1.2 GB", "12 GB". */
 fun formatBarValue(bytes: Long, units: ByteUnits): String {
-    val safe = bytes.coerceAtLeast(0L)
-    var scaled = safe.toDouble()
-    var index = 0
-    while (index < units.labels.lastIndex && scaled >= units.base) {
-        scaled /= units.base
-        index++
-    }
-    if (index == 0) return "$safe ${units.labels[0]}"
+    val (scaledInitial, initialIndex) = scaleBytes(bytes, units)
+    var scaled = scaledInitial
+    var index = initialIndex
+    if (index == 0) return "${bytes.coerceAtLeast(0L)} ${units.labels[0]}"
     var decimals = if (scaled < 10.0) 1 else 0
     var rounded = BigDecimal.valueOf(scaled).setScale(decimals, RoundingMode.HALF_UP)
     if (decimals == 1 && rounded.toDouble() >= 10.0) {

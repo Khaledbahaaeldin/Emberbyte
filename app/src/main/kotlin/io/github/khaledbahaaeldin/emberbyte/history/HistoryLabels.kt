@@ -12,8 +12,20 @@ import java.util.Locale
 data class HistoryBarLabel(
     val label: String,
     val description: String,
+    val title: String = "",
     val shortLabel: String? = null,
 )
+
+/** Formats a compact date range string, e.g. "24 Sep to 7 Oct" or "28 Sep to 4 Oct". */
+fun formatDateRange(start: LocalDate, end: LocalDate, locale: Locale): String {
+    val startMonth = start.month.getDisplayName(TextStyle.SHORT, locale)
+    val endMonth = end.month.getDisplayName(TextStyle.SHORT, locale)
+    return if (start.month == end.month && start.year == end.year) {
+        "${start.dayOfMonth} to ${end.dayOfMonth} $startMonth"
+    } else {
+        "${start.dayOfMonth} $startMonth to ${end.dayOfMonth} $endMonth"
+    }
+}
 
 object HistoryLabels {
     fun format(
@@ -35,25 +47,20 @@ object HistoryLabels {
                     val initial = date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale)
                     "$initial\n${date.dayOfMonth}"
                 }
-                val description = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)}, " +
-                    "${date.dayOfMonth} ${date.month.getDisplayName(TextStyle.FULL, locale)}, $spoken"
-                HistoryBarLabel(label = label, description = description)
+                val title = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)}, " +
+                    "${date.dayOfMonth} ${date.month.getDisplayName(TextStyle.FULL, locale)}"
+                val description = "$title, $spoken"
+                HistoryBarLabel(label = label, description = description, title = title)
             }
             Granularity.WEEK -> {
                 val monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 val sunday = monday.plusDays(6)
                 val fullMonth = monday.month.getDisplayName(TextStyle.FULL, locale)
-                val label = if (monday.month == sunday.month) {
-                    val shortMonth = sunday.month.getDisplayName(TextStyle.SHORT, locale)
-                    "${monday.dayOfMonth} to ${sunday.dayOfMonth} $shortMonth"
-                } else {
-                    val startMonth = monday.month.getDisplayName(TextStyle.SHORT, locale)
-                    val endMonth = sunday.month.getDisplayName(TextStyle.SHORT, locale)
-                    "${monday.dayOfMonth} $startMonth to ${sunday.dayOfMonth} $endMonth"
-                }
+                val label = formatDateRange(monday, sunday, locale)
                 val shortLabel = "${monday.dayOfMonth} ${monday.month.getDisplayName(TextStyle.SHORT, locale)}"
-                val description = "Week of ${monday.dayOfMonth} $fullMonth, $spoken"
-                HistoryBarLabel(label = label, description = description, shortLabel = shortLabel)
+                val title = "Week of ${monday.dayOfMonth} $fullMonth"
+                val description = "$title, $spoken"
+                HistoryBarLabel(label = label, description = description, title = title, shortLabel = shortLabel)
             }
             Granularity.MONTH -> {
                 val shortMonth = date.month.getDisplayName(TextStyle.SHORT, locale)
@@ -66,8 +73,9 @@ object HistoryLabels {
                 } else {
                     shortMonth
                 }
-                val description = "$fullMonth ${date.year}, $spoken"
-                HistoryBarLabel(label = label, description = description)
+                val title = "$fullMonth ${date.year}"
+                val description = "$title, $spoken"
+                HistoryBarLabel(label = label, description = description, title = title)
             }
         }
     }

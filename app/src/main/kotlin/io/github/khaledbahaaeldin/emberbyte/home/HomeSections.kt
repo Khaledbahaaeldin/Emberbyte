@@ -396,6 +396,7 @@ internal fun HomeHistorySection(
             },
             openAtEnd = true,
             summaryDescription = weekSummary,
+            todayIndex = state.week.lastIndex,
         )
     }
 }

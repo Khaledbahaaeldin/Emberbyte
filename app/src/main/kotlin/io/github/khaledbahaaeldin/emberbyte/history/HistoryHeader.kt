@@ -123,7 +123,14 @@ fun HistoryHeader(
                 Granularity.WEEK -> "No previous week"
                 else -> "No previous period"
             }
-            val hasComparison = state.comparisonText != null
+            val trend = if (state.trendDirection != TrendDirection.NONE) {
+                state.trendDirection
+            } else when {
+                state.comparisonText?.contains("more than", ignoreCase = true) == true -> TrendDirection.UP
+                state.comparisonText?.contains("less than", ignoreCase = true) == true -> TrendDirection.DOWN
+                state.comparisonText != null -> TrendDirection.FLAT
+                else -> TrendDirection.NONE
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -131,22 +138,22 @@ fun HistoryHeader(
                     .height(24.dp)
                     .semantics(mergeDescendants = true) {},
             ) {
-                val icon = when {
-                    !hasComparison -> Icons.AutoMirrored.Rounded.TrendingFlat
-                    compText.contains("more than", ignoreCase = true) -> Icons.AutoMirrored.Rounded.TrendingUp
-                    compText.contains("less than", ignoreCase = true) -> Icons.AutoMirrored.Rounded.TrendingDown
-                    else -> Icons.AutoMirrored.Rounded.TrendingFlat
+                val icon = when (trend) {
+                    TrendDirection.UP -> Icons.AutoMirrored.Rounded.TrendingUp
+                    TrendDirection.DOWN -> Icons.AutoMirrored.Rounded.TrendingDown
+                    TrendDirection.FLAT -> Icons.AutoMirrored.Rounded.TrendingFlat
+                    TrendDirection.NONE -> Icons.AutoMirrored.Rounded.TrendingFlat
                 }
-                val iconDesc = when {
-                    !hasComparison -> "No comparison available"
-                    compText.contains("more than", ignoreCase = true) -> "Increased usage"
-                    compText.contains("less than", ignoreCase = true) -> "Decreased usage"
-                    else -> "Steady usage"
+                val iconDesc = when (trend) {
+                    TrendDirection.UP -> "Increased usage"
+                    TrendDirection.DOWN -> "Decreased usage"
+                    TrendDirection.FLAT -> "Steady usage"
+                    TrendDirection.NONE -> "No comparison available"
                 }
                 Icon(
                     imageVector = icon,
                     contentDescription = iconDesc,
-                    tint = if (hasComparison) palette.primary else palette.muted,
+                    tint = if (trend != TrendDirection.NONE) palette.primary else palette.muted,
                     modifier = Modifier.size(18.dp),
                 )
                 ForceLtr {

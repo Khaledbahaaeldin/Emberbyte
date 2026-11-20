@@ -68,6 +68,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 
+enum class TrendDirection {
+    UP,
+    DOWN,
+    FLAT,
+    NONE,
+}
+
+data class ComparisonResult(
+    val text: String,
+    val direction: TrendDirection,
+)
+
 data class HistoryUiState(
     val granularity: Granularity = Granularity.DAY,
     val bars: List<BarUi> = emptyList(),
@@ -79,6 +91,7 @@ data class HistoryUiState(
     val loaded: Boolean = false,
     val selectedIndex: Int? = null,
     val comparisonText: String? = null,
+    val trendDirection: TrendDirection = TrendDirection.NONE,
     val heroDescription: String? = null,
     val rangeLabel: String? = null,
     val heroLabel: String? = null,
@@ -117,6 +130,8 @@ internal fun historyBars(
             bytes = point.totalBytes,
             description = formatted.description,
             valueText = formatBarValue(point.totalBytes, units),
+            title = formatted.title,
+            shortLabel = formatted.shortLabel,
         )
     }
 }
@@ -126,24 +141,10 @@ internal fun computeRangeLabel(points: List<UsagePoint>, granularity: Granularit
     val firstDate = points.first().start.atZone(zone).toLocalDate()
     val lastDate = points.last().start.atZone(zone).toLocalDate()
     return when (granularity) {
-        Granularity.DAY, Granularity.HOUR -> {
-            val firstMonth = firstDate.month.getDisplayName(TextStyle.SHORT, locale)
-            val lastMonth = lastDate.month.getDisplayName(TextStyle.SHORT, locale)
-            if (firstDate.month == lastDate.month && firstDate.year == lastDate.year) {
-                "${firstDate.dayOfMonth} to ${lastDate.dayOfMonth} $firstMonth"
-            } else {
-                "${firstDate.dayOfMonth} $firstMonth to ${lastDate.dayOfMonth} $lastMonth"
-            }
-        }
+        Granularity.DAY, Granularity.HOUR -> formatDateRange(firstDate, lastDate, locale)
         Granularity.WEEK -> {
             val endOfWeek = lastDate.plusDays(6)
-            val firstMonth = firstDate.month.getDisplayName(TextStyle.SHORT, locale)
-            val endMonth = endOfWeek.month.getDisplayName(TextStyle.SHORT, locale)
-            if (firstDate.month == endOfWeek.month && firstDate.year == endOfWeek.year) {
-                "${firstDate.dayOfMonth} to ${endOfWeek.dayOfMonth} $firstMonth"
-            } else {
-                "${firstDate.dayOfMonth} $firstMonth to ${endOfWeek.dayOfMonth} $endMonth"
-            }
+            formatDateRange(firstDate, endOfWeek, locale)
         }
         Granularity.MONTH -> {
             val firstMonth = firstDate.month.getDisplayName(TextStyle.SHORT, locale)
@@ -172,13 +173,7 @@ internal fun computeHeroLabel(
             }
             Granularity.WEEK -> {
                 val endOfWeek = date.plusDays(6)
-                val startMonth = date.month.getDisplayName(TextStyle.SHORT, locale)
-                val endMonth = endOfWeek.month.getDisplayName(TextStyle.SHORT, locale)
-                if (date.month == endOfWeek.month) {
-                    "${date.dayOfMonth} to ${endOfWeek.dayOfMonth} $startMonth"
-                } else {
-                    "${date.dayOfMonth} $startMonth to ${endOfWeek.dayOfMonth} $endMonth"
-                }
+                formatDateRange(date, endOfWeek, locale)
             }
             Granularity.MONTH -> {
                 "${date.month.getDisplayName(TextStyle.FULL, locale)} ${date.year}"
@@ -228,14 +223,15 @@ internal fun buildHistoryUiState(
         needsUsageAccess = needsUsageAccess,
         loaded = true,
         selectedIndex = selectedIndex,
-        comparisonText = comparison,
+        comparisonText = comparison?.text,
+        trendDirection = comparison?.direction ?: TrendDirection.NONE,
         heroDescription = heroDesc,
         rangeLabel = rangeLbl,
         heroLabel = heroLbl,
     )
 }
 
-internal fun computePeriodComparison(granularity: Granularity, points: List<UsagePoint>): String? {
+internal fun computePeriodComparison(granularity: Granularity, points: List<UsagePoint>): ComparisonResult? {
     if (points.size < 2) return null
     val (current, previous) = when (granularity) {
         Granularity.DAY -> {
@@ -269,11 +265,12 @@ internal fun computePeriodComparison(granularity: Granularity, points: List<Usag
         Granularity.MONTH -> "last month"
     }
 
-    return if (diff > 0) {
-        "$percent% more than $periodLabel"
+    val (text, direction) = if (diff > 0) {
+        "$percent% more than $periodLabel" to TrendDirection.UP
     } else {
-        "$percent% less than $periodLabel"
+        "$percent% less than $periodLabel" to TrendDirection.DOWN
     }
+    return ComparisonResult(text, direction)
 }
 
 /** @param dates tests MUST pass a finite flow. */
@@ -402,6 +399,7 @@ fun HistoryContent(
                     onSelect = { onEvent(HistoryEvent.SelectBar(it)) },
                     scrollKey = state.granularity,
                     summaryDescription = summary,
+                    todayIndex = if (state.granularity == Granularity.DAY) state.bars.lastIndex else null,
                 )
             }
 
@@ -429,7 +427,7 @@ fun HistoryContent(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = bar.description.substringBefore(","),
+                                    text = bar.title.ifEmpty { bar.description.substringBefore(",") },
                                     style = MaterialTheme.typography.titleMedium,
                                     color = palette.text,
                                 )

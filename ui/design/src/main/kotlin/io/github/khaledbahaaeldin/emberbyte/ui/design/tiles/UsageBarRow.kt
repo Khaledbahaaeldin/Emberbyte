@@ -68,13 +68,14 @@ fun UsageBarRow(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
     showValues: Boolean = true,
+    todayIndex: Int? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
     val isCrowded = points.size > 7 || density.fontScale > 1.3f
     var showAllValues by rememberSaveable { mutableStateOf(false) }
     val highestIndex = points.indices.maxByOrNull { points[it].bytes }
-    val todayIndex = points.lastIndex
+    val currentPeriodIndex = points.lastIndex
 
     val max = (points.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
     val summary = summaryDescription ?: run {
@@ -130,9 +131,9 @@ fun UsageBarRow(
             ) {
                 points.forEachIndexed { index, bar ->
                     val isSelected = index == selectedIndex
-                    val isToday = index == todayIndex
+                    val isToday = todayIndex != null && index == todayIndex
                     val shouldShowValue = showValues && bar.valueText.isNotEmpty() && (
-                        !isCrowded || showAllValues || isSelected || index == highestIndex || isToday
+                        !isCrowded || showAllValues || isSelected || index == highestIndex || index == currentPeriodIndex
                     )
 
                     Column(
@@ -193,6 +194,7 @@ fun UsageBarRow(
                                 )
                                 .then(
                                     when {
+                                        isToday && isSelected -> Modifier.border(1.5.dp, palette.accent, barShape)
                                         isToday && !isSelected -> Modifier.border(1.5.dp, palette.primary, barShape)
                                         !isSelected && barColor == null -> Modifier.border(1.dp, palette.surface2, barShape)
                                         else -> Modifier
@@ -216,8 +218,9 @@ fun UsageBarRow(
                             contentAlignment = Alignment.Center,
                         ) {
                             ForceLtr {
+                                val labelText = if (isCrowded && bar.shortLabel != null) bar.shortLabel else bar.label
                                 Text(
-                                    bar.label,
+                                    labelText,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) palette.text else palette.muted,

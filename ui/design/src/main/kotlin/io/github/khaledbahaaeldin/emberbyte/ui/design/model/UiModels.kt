@@ -26,6 +26,8 @@ data class BarUi(
     val bytes: Long,
     val description: String,
     val valueText: String = "",
+    val title: String = "",
+    val shortLabel: String? = null,
 )
 
 data class PermissionPromptUi(val id: String, val title: String, val body: String, val actionLabel: String)
