@@ -1,0 +1,44 @@
+package io.github.khaledbahaaeldin.emberbyte.ui.design.theme
+
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+
+/**
+ * Material 3 Expressive typography for the app.
+ *
+ * The regular styles are exactly the Material defaults, so nothing shifts on screens that do not opt in. The
+ * `*Emphasized` styles are the Expressive way to stress text: display and headline use the bundled Roboto Flex
+ * expressive faces (the same ones as `EmberbyteType`), title, body and label get a heavier weight. 1.0.2 had zero
+ * uses of any emphasized style and 23 hand-written `copy(fontWeight = ...)` overrides that these replace.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+val EmberbyteTypography: Typography by lazy {
+    val base = Typography()
+    val displayFamily: FontFamily? = EmberbyteType.title(1.sp).fontFamily
+    val headingFamily: FontFamily? = EmberbyteType.heading(1.sp).fontFamily
+
+    fun TextStyle.expressive(family: FontFamily?, weight: FontWeight): TextStyle =
+        if (family != null) copy(fontFamily = family, fontWeight = weight) else copy(fontWeight = weight)
+
+    base.copy(
+        displayLargeEmphasized = base.displayLarge.expressive(displayFamily, FontWeight.ExtraBold),
+        displayMediumEmphasized = base.displayMedium.expressive(displayFamily, FontWeight.ExtraBold),
+        displaySmallEmphasized = base.displaySmall.expressive(displayFamily, FontWeight.ExtraBold),
+        headlineLargeEmphasized = base.headlineLarge.expressive(headingFamily, FontWeight.ExtraBold),
+        headlineMediumEmphasized = base.headlineMedium.expressive(headingFamily, FontWeight.ExtraBold),
+        headlineSmallEmphasized = base.headlineSmall.expressive(headingFamily, FontWeight.ExtraBold),
+        titleLargeEmphasized = base.titleLarge.expressive(headingFamily, FontWeight.Bold),
+        titleMediumEmphasized = base.titleMedium.expressive(null, FontWeight.Bold),
+        titleSmallEmphasized = base.titleSmall.expressive(null, FontWeight.Bold),
+        bodyLargeEmphasized = base.bodyLarge.expressive(null, FontWeight.SemiBold),
+        bodyMediumEmphasized = base.bodyMedium.expressive(null, FontWeight.SemiBold),
+        bodySmallEmphasized = base.bodySmall.expressive(null, FontWeight.SemiBold),
+        labelLargeEmphasized = base.labelLarge.expressive(null, FontWeight.Bold),
+        labelMediumEmphasized = base.labelMedium.expressive(null, FontWeight.Bold),
+        labelSmallEmphasized = base.labelSmall.expressive(null, FontWeight.Bold),
+    )
+}
