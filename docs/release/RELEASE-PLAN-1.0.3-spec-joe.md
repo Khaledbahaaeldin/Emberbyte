@@ -24,8 +24,8 @@
 | Khaled | T12a tokens (typography, shapes, theme wiring) | `t12a-theme-tokens` | now |
 | Khaled | T13 navbar (incl. Plus exit) | `t13-navbar` | after S1 |
 | Khaled | T12b migration sweep | `t12b-token-migration` | after S2 (everyone merged) |
-| Khaled | T14 localisation and cleanup | `t14-localisation` | after T12b |
-| Khaled | T15 release | `t15-release` | last |
+| Khaled | T14 localisation and cleanup | `t14-localisation` | after T26 merges (it needs the final strings of T17 to T26) |
+| Khaled | T15 release | `t15-release` | last, after T14 (so after T26) |
 | Omar | T5 data and History | `t5-data-history` | now |
 | Omar | T11 press morph and back cancel | `t11-press-back` | now |
 | Omar | T4 loading states | `t4-loading` | after S1 |
@@ -49,7 +49,7 @@
 
 - **S1 (first, small pull requests in this order):** `T9` (new `EmberbyteVisibility.kt` file, `animatePaletteAsState`, no screen wiring), `T3` (`ConnectedButtonGroup`, public signature unchanged), `T1` (design-module palette, `ContrastPairs`, derived roles, `PlanCard`), `T2` (new `ScreenScaffold.kt` and its test, plus Licences only), `T12a` (tokens and theme wiring, no migration). After S1, Omar and Joe run `git merge origin/release/1.0.3` into their branches and use the new building blocks.
 - **S2:** Omar's and Joe's pull requests are audited and merged by Khaled (merge order: Omar `t5`, `t11`, `t4`, `t10`; Joe `t6`, `t8`, `t7`, `t16`; they touch disjoint files, so any order works, but `t4` before `t16` because both touch `EmberbyteApp.kt`).
-- **S3:** after S2, Khaled does T12b (token migration sweep across all files), T14, T13 leftovers and T15, then the cleanup commit.
+- **S3:** after S2, Khaled does T12b (token migration sweep across all files) first, because T25 needs its tokens. T14 (localisation and cleanup) and T15 (release) wait until the redesign T17 to T26 has merged: the redesign adds and changes user-facing strings, dead code and the what's-new text, so T14 runs once over the final strings, then T15, then the cleanup commit.
 
 ### Re-homed items (so each person's files never overlap with another's)
 
