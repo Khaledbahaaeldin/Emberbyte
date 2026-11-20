@@ -113,4 +113,44 @@ class WavyRingTest {
         }
         assertTrue("Spec must be snap() when reduce motion is enabled", capturedSpec is SnapSpec)
     }
+
+    @Test
+    fun wavy_ring_grows_from_zero() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = 1f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                WavyRing(
+                    fraction = 0.8f,
+                    state = BudgetStateUi.Ok,
+                    size = 72.dp,
+                    label = "80%",
+                    onAnimatedSweepChanged = { animatedSweep = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertTrue("Wavy ring should start from 0 on first show: $animatedSweep", animatedSweep < 0.8f)
+    }
+
+    @Test
+    fun rings_snap_when_reduced() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = 0f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    WavyRing(
+                        fraction = 0.8f,
+                        state = BudgetStateUi.Ok,
+                        size = 72.dp,
+                        label = "80%",
+                        onAnimatedSweepChanged = { animatedSweep = it },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(0.8f, animatedSweep, 0.001f)
+    }
 }

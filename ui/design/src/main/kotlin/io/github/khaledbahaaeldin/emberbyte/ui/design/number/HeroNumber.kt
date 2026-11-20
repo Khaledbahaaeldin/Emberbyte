@@ -1,10 +1,21 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.number
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -14,17 +25,18 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
-
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
-
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.em
@@ -123,6 +135,7 @@ fun HeroNumber(
     size: TextUnit = 96.sp,
     color: Color = LocalEmberbytePalette.current.primary,
     onSizeResolved: ((TextUnit) -> Unit)? = null,
+    onDigitsComposed: ((List<Char>) -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
@@ -152,19 +165,81 @@ fun HeroNumber(
 
             onSizeResolved?.invoke(chosenSize)
 
-            val annotatedValue = formatHeroValue(value)
+            val motion = rememberEmberbyteMotion()
+            val live = !LocalReduceMotion.current
+            val rollSpatial = motion.spatial<IntOffset>()
+            val rollEffects = motion.effects<Float>()
+            val activeMap = remember { mutableMapOf<Int, MutableList<Char>>() }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(HERO_NUMBER_SPACING),
             ) {
-                Text(
-                    text = annotatedValue,
+                Row(
                     modifier = Modifier.clearAndSetSemantics { },
-                    color = color,
-                    style = EmberbyteType.hero(chosenSize),
-                    maxLines = 1,
-                    softWrap = false,
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val text = value
+                    text.forEachIndexed { index, char ->
+                        val slotKey = text.length - index
+                        key(slotKey) {
+                            if (live) {
+                                AnimatedContent(
+                                    targetState = char,
+                                    transitionSpec = {
+                                        (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
+                                            (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
+                                    },
+                                    label = "heroDigit",
+                                ) { digit ->
+                                    DisposableEffect(digit, slotKey) {
+                                        val list = activeMap.getOrPut(slotKey) { mutableListOf() }
+                                        list.add(digit)
+                                        val currentDigits = text.indices.map { text.length - it }
+                                            .flatMap { activeMap[it] ?: emptyList() }
+                                        onDigitsComposed?.invoke(currentDigits)
+                                        onDispose {
+                                            list.remove(digit)
+                                            val remainingDigits = text.indices.map { text.length - it }
+                                                .flatMap { activeMap[it] ?: emptyList() }
+                                            onDigitsComposed?.invoke(remainingDigits)
+                                        }
+                                    }
+                                    val letterSpacing = if (digit == '.') 0.08.em else 0.04.em
+                                    Text(
+                                        text = digit.toString(),
+                                        modifier = Modifier.clearAndSetSemantics { },
+                                        color = color,
+                                        style = EmberbyteType.hero(chosenSize).copy(letterSpacing = letterSpacing),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                                }
+                            } else {
+                                DisposableEffect(char, slotKey) {
+                                    val list = activeMap.getOrPut(slotKey) { mutableListOf() }
+                                    list.clear()
+                                    list.add(char)
+                                    val currentDigits = text.indices.map { text.length - it }
+                                        .flatMap { activeMap[it] ?: emptyList() }
+                                    onDigitsComposed?.invoke(currentDigits)
+                                    onDispose {
+                                        list.remove(char)
+                                    }
+                                }
+                                val letterSpacing = if (char == '.') 0.08.em else 0.04.em
+                                Text(
+                                    text = char.toString(),
+                                    modifier = Modifier.clearAndSetSemantics { },
+                                    color = color,
+                                    style = EmberbyteType.hero(chosenSize).copy(letterSpacing = letterSpacing),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                        }
+                    }
+                }
                 UnitBadge(
                     unit = unit,
                     size = HERO_NUMBER_BADGE_SIZE,

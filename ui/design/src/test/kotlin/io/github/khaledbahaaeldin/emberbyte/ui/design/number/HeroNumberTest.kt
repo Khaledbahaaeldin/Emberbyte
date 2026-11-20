@@ -3,6 +3,10 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.number
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
@@ -232,5 +236,77 @@ class HeroNumberTest {
             "Intensity animation spec must be SnapSpec when reduce motion is enabled",
             capturedSpec is androidx.compose.animation.core.SnapSpec,
         )
+    }
+
+    @Test
+    fun hero_number_morphs_between_values() {
+        rule.mainClock.autoAdvance = false
+        var value by mutableStateOf("1.48")
+        var composedDigits: List<Char> = emptyList()
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HeroNumber(
+                    value = value,
+                    unit = "GB",
+                    contentDescription = "Hero usage",
+                    onDigitsComposed = { composedDigits = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(listOf('1', '.', '4', '8'), composedDigits)
+
+        rule.runOnUiThread {
+            value = "2.48"
+            Snapshot.sendApplyNotifications()
+        }
+        var sawMixed = false
+        repeat(15) {
+            rule.mainClock.advanceTimeBy(16)
+            if (composedDigits.contains('1') && composedDigits.contains('2')) {
+                sawMixed = true
+            }
+        }
+
+        assertTrue(
+            "Mixed digit state should compose both old and new digits during animation: $composedDigits",
+            sawMixed,
+        )
+
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        assertEquals(listOf('2', '.', '4', '8'), composedDigits)
+    }
+
+    @Test
+    fun reduced_motion_hero_snaps() {
+        rule.mainClock.autoAdvance = false
+        var value by mutableStateOf("1.48")
+        var composedDigits: List<Char> = emptyList()
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    HeroNumber(
+                        value = value,
+                        unit = "GB",
+                        contentDescription = "Hero usage",
+                        onDigitsComposed = { composedDigits = it },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(listOf('1', '.', '4', '8'), composedDigits)
+
+        rule.runOnUiThread {
+            value = "2.48"
+            Snapshot.sendApplyNotifications()
+        }
+        rule.mainClock.advanceTimeByFrame()
+
+        // Reduced motion snaps immediately with no mixed state
+        assertEquals(listOf('2', '.', '4', '8'), composedDigits)
     }
 }

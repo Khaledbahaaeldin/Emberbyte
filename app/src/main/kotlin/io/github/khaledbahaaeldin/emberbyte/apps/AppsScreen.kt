@@ -46,6 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,8 +57,10 @@ import io.github.khaledbahaaeldin.emberbyte.common.plainBytes
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -316,12 +321,27 @@ internal fun AppsContent(
 
         // Total bytes readout
         item {
+            val formatted = formatBytes(state.totalBytes, state.units)
+            val fullReadout = "${plainBytes(state.totalBytes, state.units)} (apps only)"
             ForceLtr {
-                Text(
-                    text = "${plainBytes(state.totalBytes, state.units)} (apps only)",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.muted,
-                )
+                Row(
+                    modifier = Modifier
+                        .padding(vertical = 4.dp)
+                        .clearAndSetSemantics { this.text = AnnotatedString(fullReadout) },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MorphingNumber(
+                        value = formatted.value,
+                        unit = formatted.unit,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.muted,
+                    )
+                    Text(
+                        text = " (apps only)",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.muted,
+                    )
+                }
             }
         }
 

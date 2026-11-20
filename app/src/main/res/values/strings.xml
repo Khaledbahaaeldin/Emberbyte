@@ -44,5 +44,7 @@
     <string name="history_no_previous_week">No previous week</string>
     <string name="history_no_previous_month">No previous month</string>
     <string name="home_includes_system_traffic">Includes system traffic</string>
+    <!-- Omar 1.0.3 strings -->
+    <string name="home_hero_label_today">Today</string>
 </resources>
 

@@ -62,22 +62,24 @@ fun PlansBento(
             onClick = { onOpenPlan(frontPlan.id) },
             onPinToggle = { onPinPlan(frontPlan.id, !frontPlan.pinned) },
             onArchive = { onArchivePlan(frontPlan.id) },
+            delayMillis = 0,
         )
 
         // Other plans as 2-column grid or single column at large font scale
         if (otherPlans.isNotEmpty()) {
             if (singleColumn) {
-                otherPlans.forEach { plan ->
+                otherPlans.forEachIndexed { index, plan ->
                     PlanTileWithMenu(
                         model = plan,
                         onClick = { onOpenPlan(plan.id) },
                         onPinToggle = { onPinPlan(plan.id, !plan.pinned) },
                         onArchive = { onArchivePlan(plan.id) },
+                        delayMillis = (index + 1) * 40,
                     )
                 }
             } else {
                 val chunked = otherPlans.chunked(2)
-                chunked.forEach { rowPair ->
+                chunked.forEachIndexed { rowIndex, rowPair ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -88,6 +90,7 @@ fun PlansBento(
                                 onClick = { onOpenPlan(rowPair[0].id) },
                                 onPinToggle = { onPinPlan(rowPair[0].id, !rowPair[0].pinned) },
                                 onArchive = { onArchivePlan(rowPair[0].id) },
+                                delayMillis = (rowIndex * 2 + 1) * 40,
                             )
                         }
                         if (rowPair.size > 1) {
@@ -97,6 +100,7 @@ fun PlansBento(
                                     onClick = { onOpenPlan(rowPair[1].id) },
                                     onPinToggle = { onPinPlan(rowPair[1].id, !rowPair[1].pinned) },
                                     onArchive = { onArchivePlan(rowPair[1].id) },
+                                    delayMillis = (rowIndex * 2 + 2) * 40,
                                 )
                             }
                         } else {
@@ -117,6 +121,7 @@ private fun PlanCardWithMenu(
     onPinToggle: () -> Unit,
     onArchive: () -> Unit,
     modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
 ) {
     val palette = LocalEmberbytePalette.current
     var menuOpen by remember { mutableStateOf(false) }
@@ -140,6 +145,7 @@ private fun PlanCardWithMenu(
             modifier = Modifier.semantics {
                 customActions = menuActions
             },
+            delayMillis = delayMillis,
         )
 
         Box(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
@@ -192,6 +198,7 @@ private fun PlanTileWithMenu(
     onPinToggle: () -> Unit,
     onArchive: () -> Unit,
     modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
 ) {
     val palette = LocalEmberbytePalette.current
     var menuOpen by remember { mutableStateOf(false) }
@@ -215,6 +222,7 @@ private fun PlanTileWithMenu(
             modifier = Modifier.semantics {
                 customActions = menuActions
             },
+            delayMillis = delayMillis,
         )
 
         Box(modifier = Modifier.align(Alignment.TopEnd).padding(2.dp)) {

@@ -1,7 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.progress
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -12,7 +12,8 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import kotlinx.coroutines.delay
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
@@ -101,7 +104,9 @@ fun WavyRing(
     label: String,
     modifier: Modifier = Modifier,
     labelSize: TextUnit = 17.sp,
+    delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
+    onAnimatedSweepChanged: ((Float) -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val (arcColor, trackColor) = ringColors(state, palette)
@@ -111,11 +116,21 @@ fun WavyRing(
     val animSpec: AnimationSpec<Float> = motion.spatial()
     onAnimationSpecResolved?.invoke(animSpec)
 
-    val sweep by animateFloatAsState(
-        targetValue = effectiveSweep(fraction),
-        animationSpec = animSpec,
-        label = "wavy_ring",
-    )
+    val targetSweep = effectiveSweep(fraction)
+    val reduceMotion = LocalReduceMotion.current
+    val anim = remember { Animatable(0f) }
+    LaunchedEffect(targetSweep, reduceMotion, delayMillis) {
+        if (reduceMotion) {
+            anim.snapTo(targetSweep)
+        } else {
+            if (delayMillis > 0) {
+                delay(delayMillis.toLong())
+            }
+            anim.animateTo(targetSweep, animSpec)
+        }
+    }
+    val sweep = anim.value
+    onAnimatedSweepChanged?.invoke(sweep)
 
     Box(
         modifier = modifier.size(size),

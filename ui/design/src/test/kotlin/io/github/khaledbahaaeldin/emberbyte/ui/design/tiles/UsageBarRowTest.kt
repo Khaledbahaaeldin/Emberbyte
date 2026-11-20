@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -290,6 +291,54 @@ class UsageBarRowTest {
         val afterBounds = rule.onNodeWithContentDescription("Monday").fetchSemanticsNode().boundsInRoot
         assertEquals(beforeBounds.top, afterBounds.top, 1f)
         assertEquals(beforeBounds.bottom, afterBounds.bottom, 1f)
+    }
+
+    @Test
+    fun bars_animate_height_when_data_changes() {
+        rule.mainClock.autoAdvance = false
+        var points by mutableStateOf(listOf(BarUi(bytes = 100L, label = "Mon", description = "Monday")))
+        var capturedHeight: androidx.compose.ui.unit.Dp? = null
+
+        rule.setContent {
+            Box(Modifier.size(360.dp, 200.dp)) {
+                UsageBarRow(
+                    points = points,
+                    selectedIndex = null,
+                    onSelect = {},
+                    onBarHeightChanged = { index, h -> if (index == 0) capturedHeight = h },
+                )
+            }
+        }
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        val initialHeight = capturedHeight
+        assertEquals((8 + 56 * 1f).dp, initialHeight)
+
+        rule.mainClock.autoAdvance = false
+        rule.runOnUiThread {
+            points = listOf(
+                BarUi(bytes = 50L, label = "Mon", description = "Monday"),
+                BarUi(bytes = 200L, label = "Tue", description = "Tuesday"),
+            )
+            Snapshot.sendApplyNotifications()
+        }
+        val targetHeight = (8 + 56 * (50f / 200f)).dp
+        var sawInBetween = false
+        repeat(15) {
+            rule.mainClock.advanceTimeBy(16)
+            if (capturedHeight != null && capturedHeight != initialHeight && capturedHeight != targetHeight) {
+                sawInBetween = true
+            }
+        }
+
+        assertTrue(
+            "Height should animate between initial ($initialHeight) and target ($targetHeight), sawInBetween=$sawInBetween, last=$capturedHeight",
+            sawInBetween,
+        )
+
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        assertEquals(targetHeight, capturedHeight)
     }
 }
 

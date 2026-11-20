@@ -13,6 +13,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
@@ -43,9 +44,17 @@ fun SpeedTile(
             Text("No connection", style = MaterialTheme.typography.headlineSmall, color = palette.text)
         } else {
             ForceLtr {
-                Text("↓ ${down.value} ${down.unit}/s", style = MaterialTheme.typography.headlineSmall, color = palette.text)
-                Text(
-                    "↑ ${up.value} ${up.unit}/s",
+                MorphingNumber(
+                    value = down.value,
+                    unit = "${down.unit}/s",
+                    prefix = "↓ ",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = palette.text,
+                )
+                MorphingNumber(
+                    value = up.value,
+                    unit = "${up.unit}/s",
+                    prefix = "↑ ",
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.muted,
                 )

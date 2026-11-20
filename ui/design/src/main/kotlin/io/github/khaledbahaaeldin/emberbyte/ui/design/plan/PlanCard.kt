@@ -33,7 +33,12 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.EstimatedBadge
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun PlanCard(
+    model: PlanCardUi,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
+) {
     val palette = LocalEmberbytePalette.current
     val summary = buildString {
         if (model.isDormant) {
@@ -69,7 +74,7 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
             if (model.isDormant) {
                 DormantBadge()
             } else {
-                BudgetRing(model.fraction, model.ringState, percentText = model.percentText)
+                BudgetRing(model.fraction, model.ringState, percentText = model.percentText, delayMillis = delayMillis)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(

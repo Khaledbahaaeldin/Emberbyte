@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.tiles
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -46,6 +49,7 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
@@ -54,6 +58,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
@@ -70,9 +75,13 @@ fun UsageBarRow(
     barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
     showValues: Boolean = true,
     todayIndex: Int? = null,
+    onBarHeightChanged: ((Int, Dp) -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
+    val motion = rememberEmberbyteMotion()
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
     val isCrowded = points.size > 7 || density.fontScale > 1.3f
     var showAllValues by rememberSaveable(scrollKey) { mutableStateOf(false) }
     val highestIndex = points.indices.maxByOrNull { points[it].bytes }
@@ -197,13 +206,25 @@ fun UsageBarRow(
                                 else -> palette.surface
                             }
                         val barShape = if (isSelected) CircleShape else MaterialTheme.shapes.small
+                        val targetHeight = (8 + 56 * (bar.bytes.toFloat() / max)).dp
+                        val animatedHeight by animateDpAsState(
+                            targetValue = if (shown) targetHeight else 8.dp,
+                            animationSpec = motion.spatial(),
+                            label = "bar_height_$index",
+                        )
+                        val animatedColor by animateColorAsState(
+                            targetValue = resolvedColor,
+                            animationSpec = motion.effects(),
+                            label = "bar_color_$index",
+                        )
+                        onBarHeightChanged?.invoke(index, animatedHeight)
                         Box(
                             Modifier
                                 .widthIn(max = 24.dp)
                                 .fillMaxWidth()
-                                .height((8 + 56 * (bar.bytes.toFloat() / max)).dp)
+                                .height(animatedHeight)
                                 .background(
-                                    color = resolvedColor,
+                                    color = animatedColor,
                                     shape = barShape,
                                 )
                                 .then(

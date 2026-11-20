@@ -29,6 +29,7 @@ fun PlanTile(
     model: PlanCardUi,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
 ) {
     val palette = LocalEmberbytePalette.current
     val summary = buildString {
@@ -96,7 +97,7 @@ fun PlanTile(
                     }
                 }
                 if (!model.isDormant) {
-                    BudgetRing(model.fraction, model.ringState, percentText = model.percentText)
+                    BudgetRing(model.fraction, model.ringState, percentText = model.percentText, delayMillis = delayMillis)
                 }
             }
             if (model.isDormant) {

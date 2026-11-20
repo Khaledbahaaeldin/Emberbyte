@@ -11,14 +11,21 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
@@ -141,6 +148,81 @@ fun MorphingNumber(
             UnitBadge(
                 unit = formatted.unit,
             )
+        }
+    }
+}
+
+@Composable
+fun MorphingNumber(
+    value: String,
+    unit: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+    color: Color = Color.Unspecified,
+    contentDescription: String? = null,
+    prefix: String = "",
+    animate: Boolean = true,
+) {
+    val live = animate && !LocalReduceMotion.current
+    val motion = rememberEmberbyteMotion()
+    val rollSpatial = motion.spatial<IntOffset>()
+    val rollEffects = motion.effects<Float>()
+
+    val fullUnit = if (unit.isEmpty()) "" else if (unit.startsWith(" ") || unit.startsWith("/")) unit else " $unit"
+    val fullText = "$prefix$value$fullUnit"
+
+    ForceLtr {
+        Row(
+            modifier = modifier.clearAndSetSemantics {
+                this.text = AnnotatedString(fullText)
+                if (contentDescription != null) {
+                    this.contentDescription = contentDescription
+                }
+            },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (prefix.isNotEmpty()) {
+                Text(
+                    text = prefix,
+                    style = style,
+                    color = color,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                value.forEachIndexed { index, char ->
+                    key(value.length - index) {
+                        AnimatedContent(
+                            targetState = char,
+                            transitionSpec = {
+                                if (live) {
+                                    (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
+                                        (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
+                                } else {
+                                    EnterTransition.None togetherWith ExitTransition.None
+                                }
+                            },
+                            label = "morphingDigit",
+                        ) { digit ->
+                            Text(
+                                text = digit.toString(),
+                                color = color,
+                                style = style,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
+                    }
+                }
+            }
+            if (unit.isNotEmpty()) {
+                Text(
+                    text = if (unit.startsWith(" ") || unit.startsWith("/")) unit else " $unit",
+                    style = style,
+                    color = color,
+                )
+            }
         }
     }
 }
