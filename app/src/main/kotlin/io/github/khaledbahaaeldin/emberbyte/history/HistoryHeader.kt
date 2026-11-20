@@ -79,11 +79,13 @@ fun HistoryHeader(
         val selectedPoint = state.selectedIndex?.let { state.points.getOrNull(it) }
         val displayBytes = selectedPoint?.totalBytes ?: state.totalBytes
         val formatted = formatBytes(displayBytes, state.units)
-        val spokenTotal = spokenBytes(displayBytes, state.units)
-        val totalDescription = when (state.granularity) {
-            Granularity.WEEK -> "$spokenTotal this week"
-            Granularity.MONTH -> "$spokenTotal this month"
-            else -> "$spokenTotal total"
+        val heroDesc = state.heroDescription ?: run {
+            val spokenTotal = spokenBytes(displayBytes, state.units)
+            when (state.granularity) {
+                Granularity.WEEK -> "$spokenTotal this week"
+                Granularity.MONTH -> "$spokenTotal this month"
+                else -> "$spokenTotal total"
+            }
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -111,7 +113,7 @@ fun HistoryHeader(
             HeroNumber(
                 value = formatted.value,
                 unit = formatted.unit,
-                contentDescription = state.heroDescription ?: totalDescription,
+                contentDescription = heroDesc,
                 modifier = Modifier.fillMaxWidth(),
             )
 

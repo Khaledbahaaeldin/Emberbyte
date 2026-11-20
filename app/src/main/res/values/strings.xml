@@ -39,6 +39,7 @@
     <string name="history_last_12_weeks">Last 12 weeks</string>
     <string name="history_last_12_months">Last 12 months</string>
     <string name="history_active_days">Active days</string>
+    <string name="history_total">Total</string>
     <string name="history_no_previous_period">No previous period</string>
     <string name="history_no_previous_week">No previous week</string>
     <string name="history_no_previous_month">No previous month</string>

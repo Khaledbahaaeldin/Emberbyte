@@ -62,13 +62,16 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.stateIn
 
 enum class TrendDirection {
@@ -241,12 +244,7 @@ internal fun computePeriodComparison(granularity: Granularity, points: List<Usag
             val currSum = points.drop(half).sumOf { it.totalBytes }
             currSum to prevSum
         }
-        Granularity.WEEK -> {
-            val curr = points.last().totalBytes
-            val prev = points[points.size - 2].totalBytes
-            curr to prev
-        }
-        Granularity.MONTH -> {
+        Granularity.WEEK, Granularity.MONTH -> {
             val curr = points.last().totalBytes
             val prev = points[points.size - 2].totalBytes
             curr to prev
@@ -256,7 +254,7 @@ internal fun computePeriodComparison(granularity: Granularity, points: List<Usag
 
     if (previous == 0L) return null
     val diff = current - previous
-    val percent = ((kotlin.math.abs(diff).toDouble() / previous.toDouble()) * 100).toInt()
+    val percent = ((abs(diff).toDouble() / previous.toDouble()) * 100).toInt()
 
     val periodLabel = when (granularity) {
         Granularity.DAY, Granularity.HOUR -> "last week"
@@ -285,26 +283,24 @@ class HistoryViewModel(
     private val granularity = MutableStateFlow(Granularity.DAY)
     private val selectedBar = MutableStateFlow<Int?>(null)
 
+    init {
+        dates.drop(1)
+            .onEach { selectedBar.value = null }
+            .launchIn(viewModelScope)
+    }
+
     val uiState: StateFlow<HistoryUiState> = combine(dates, granularity) { date, g -> date to g }
         .flatMapLatest { (date, g) ->
-            selectedBar.value = null
             val zone = clock.zone
-            var lastKeys: List<Instant>? = null
             val pointsFlow = usage.observeSeries(rangeForHistory(g, date, zone), g)
-                .onEach { pts ->
-                    val keys = pts.map { it.start }
-                    if (lastKeys != null && lastKeys != keys) {
-                        selectedBar.value = null
-                    }
-                    lastKeys = keys
-                }
             combine(
                 pointsFlow,
                 settings.observe(),
                 permissions.observe(),
                 selectedBar,
             ) { points, s, perm, sel ->
-                buildHistoryUiState(g, points, s.unitSystem.toByteUnits(), zone, locale, needsUsageAccess = !perm.usageAccess, selectedIndex = sel)
+                val validSel = if (sel != null && sel in points.indices) sel else null
+                buildHistoryUiState(g, points, s.unitSystem.toByteUnits(), zone, locale, needsUsageAccess = !perm.usageAccess, selectedIndex = validSel)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
@@ -312,8 +308,10 @@ class HistoryViewModel(
     fun onEvent(event: HistoryEvent) {
         when (event) {
             is HistoryEvent.SetGranularity -> {
-                granularity.value = event.granularity
-                selectedBar.value = null
+                if (granularity.value != event.granularity) {
+                    granularity.value = event.granularity
+                    selectedBar.value = null
+                }
             }
             is HistoryEvent.SelectBar -> {
                 selectedBar.value = if (selectedBar.value == event.index) null else event.index
@@ -507,7 +505,7 @@ fun HistoryContent(
             item {
                 val fontScale = LocalDensity.current.fontScale
                 val isDay = state.granularity == Granularity.DAY
-                val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else "Total"
+                val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else stringResource(R.string.history_total)
                 val firstTileValue = if (isDay) {
                     "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
                 } else {
