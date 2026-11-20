@@ -15,10 +15,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -199,6 +204,147 @@ class ConnectedButtonGroupTest {
         rule.onNodeWithText("Month").performClick()
         assertEquals(0, selected)
     }
+
+    // ---- T3: width-aware layout -------------------------------------------------------------------------
+
+    private val periodOptions = listOf("Today", "7 days", "30 days", "Cycle")
+
+    private fun showGroup(
+        options: List<String>,
+        widthDp: Int,
+        fontScale: Float = 1f,
+        selectedIndex: Int = 0,
+        rtl: Boolean = false,
+    ) {
+        rule.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(density = 1f, fontScale = fontScale),
+                LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+            ) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    Box(Modifier.width(widthDp.dp)) {
+                        ConnectedButtonGroup(
+                            options = options,
+                            selectedIndex = selectedIndex,
+                            onSelect = {},
+                            modifier = Modifier.fillMaxWidth().testTag("group"),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun segments() = rule.onAllNodes(
+        SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton),
+    )
+
+    private fun lineCountOf(text: String): Int {
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(text, useUnmergedTree = true).fetchSemanticsNode()
+            .config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(results)
+        return results.firstOrNull()?.lineCount ?: -1
+    }
+
+    @Test
+    fun labels_are_never_broken_mid_word_at_font_scale_2() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 2.0f)
+        for (option in periodOptions) {
+            assertEquals("'$option' must stay on one line", 1, lineCountOf(option))
+        }
+    }
+
+    @Test
+    fun labels_are_never_broken_mid_word_at_font_scale_1_3_on_a_phone() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 1.3f)
+        for (option in periodOptions) {
+            assertEquals("'$option' must stay on one line", 1, lineCountOf(option))
+        }
+    }
+
+    @Test
+    fun selected_pill_is_never_narrower_than_its_label() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 2.0f, selectedIndex = 0)
+        val selected = rule.onNode(
+            SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton) and
+                SemanticsMatcher.expectValue(SemanticsProperties.Selected, true),
+        ).getUnclippedBoundsInRoot()
+        val label = rule.onNodeWithText("Today", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(
+            "selected width ${selected.right - selected.left} must hold the label ${label.right - label.left}",
+            (selected.right - selected.left) >= (label.right - label.left),
+        )
+        // And it must stay a pill, not collapse into a circle: wider than it is tall.
+        assertTrue((selected.right - selected.left) > (selected.bottom - selected.top))
+    }
+
+    @Test
+    fun segments_in_a_row_have_equal_height() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 2.0f)
+        val nodes = segments().fetchSemanticsNodes()
+        assertEquals(4, nodes.size)
+        val byTop = nodes.groupBy { it.boundsInRoot.top.toInt() }
+        for ((top, row) in byTop) {
+            val heights = row.map { (it.boundsInRoot.bottom - it.boundsInRoot.top).toInt() }.toSet()
+            assertEquals("row at $top has uneven heights $heights", 1, heights.size)
+        }
+    }
+
+    @Test
+    fun four_segments_wrap_into_rows_that_fit_when_they_do_not_fit_one_row() {
+        // Robolectric measures text narrower than a device, so use a narrow container; the exact 2 + 2 split is
+        // pinned by the pure packRows tests.
+        showGroup(periodOptions, widthDp = 160, fontScale = 2.0f)
+        val nodes = segments().fetchSemanticsNodes()
+        val tops = nodes.map { it.boundsInRoot.top.toInt() }.toSet()
+        assertTrue("expected more than one row, saw tops $tops", tops.size >= 2)
+        nodes.forEach { assertTrue("segment must fit inside 160dp: ${it.boundsInRoot}", it.boundsInRoot.right <= 160.5f) }
+    }
+
+    @Test
+    fun four_short_segments_stay_on_one_row_at_default_font() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 1.0f)
+        val tops = segments().fetchSemanticsNodes().map { it.boundsInRoot.top.toInt() }.toSet()
+        assertEquals("expected one row, saw tops $tops", 1, tops.size)
+    }
+
+    @Test
+    fun segments_are_weighted_by_label_width() {
+        showGroup(listOf("A", "A much longer label"), widthDp = 320, fontScale = 1.0f)
+        val nodes = segments().fetchSemanticsNodes()
+        val first = nodes[0].boundsInRoot.let { it.right - it.left }
+        val second = nodes[1].boundsInRoot.let { it.right - it.left }
+        assertTrue("second ($second) should be wider than first ($first)", second > first * 1.15f)
+    }
+
+    @Test
+    fun check_icon_is_dropped_above_font_scale_1_3() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 1.5f)
+        rule.onAllNodes(hasTestTag("connected_button_group_check_icon"), useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun check_icon_is_shown_at_default_font() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 1.0f)
+        rule.onAllNodes(hasTestTag("connected_button_group_check_icon"), useUnmergedTree = true)
+            .assertCountEquals(1)
+    }
+
+    @Test
+    fun rtl_wrapped_rows_keep_the_first_option_on_the_right() {
+        showGroup(periodOptions, widthDp = 328, fontScale = 2.0f, rtl = true)
+        val first = rule.onNodeWithText("Today").getUnclippedBoundsInRoot()
+        val second = rule.onNodeWithText("7 days").getUnclippedBoundsInRoot()
+        assertTrue("In RTL 'Today' (${first.left}) must be right of '7 days' (${second.left})", first.left > second.left)
+    }
+
+    @Test
+    fun a_label_wider_than_the_whole_group_is_ellipsized_not_wrapped() {
+        showGroup(listOf("An extremely long single label that cannot fit", "B"), widthDp = 200, fontScale = 1.0f)
+        assertEquals(1, lineCountOf("An extremely long single label that cannot fit"))
+    }
+
 
     @Test
     fun selecting_another_segment_animates_the_shape() {
