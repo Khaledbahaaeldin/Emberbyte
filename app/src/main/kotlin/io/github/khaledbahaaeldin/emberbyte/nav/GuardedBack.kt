@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.MaterialTheme
@@ -20,12 +19,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -39,7 +46,8 @@ import kotlinx.coroutines.launch
  * When [dirty] is true:
  * Intercepts the back gesture with [PredictiveBackHandler], previews the screen shrinking as the
  * user drags, and upon gesture commit displays the "Discard changes?" confirmation dialog.
- * If cancelled, resets shrink to 1.0. If the user confirms in the dialog, invokes [onConfirmLeave].
+ * If cancelled, smoothly springs back to rest via [BackTransitions.cancelSpring].
+ * If the user confirms in the dialog, invokes [onConfirmLeave].
  */
 @Composable
 fun GuardedBack(
@@ -49,17 +57,12 @@ fun GuardedBack(
     content: @Composable (shrink: Float) -> Unit,
 ) {
     val progress = remember { Animatable(0f) }
-    val coroutineScope = rememberCoroutineScope()
-    val reduceMotion = LocalReduceMotion.current
     var showDiscardDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val resetToRest: () -> Unit = {
         coroutineScope.launch {
-            if (reduceMotion) {
-                progress.snapTo(0f)
-            } else {
-                progress.animateTo(0f, BackTransitions.cancelSpring)
-            }
+            progress.animateTo(0f, BackTransitions.cancelSpring)
         }
     }
 
@@ -84,28 +87,30 @@ fun GuardedBack(
         }
     }
 
-    val currentProgress = progress.value
-    val shrink = BackTransitions.shrinkFor(currentProgress)
-    val cornerRadius = BackTransitions.cornerRadiusFor(currentProgress)
-    val shadowElevation = BackTransitions.shadowDpFor(currentProgress)
     val palette = LocalEmberbytePalette.current
     val layoutDirection = LocalLayoutDirection.current
-    val origin = BackTransitions.transformOriginFor(layoutDirection)
+    val origin = remember(layoutDirection) { BackTransitions.transformOriginFor(layoutDirection) }
+    val guardedShape = remember { GuardedBackShape { progress.value } }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
+                val currentProgress = progress.value
+                val shrink = BackTransitions.shrinkFor(currentProgress)
+                val cornerRadius = BackTransitions.cornerRadiusFor(currentProgress)
+                val shadowElevation = BackTransitions.shadowDpFor(currentProgress)
+
                 scaleX = shrink
                 scaleY = shrink
                 transformOrigin = origin
                 this.shadowElevation = shadowElevation.toPx()
-                this.shape = RoundedCornerShape(cornerRadius)
+                this.shape = guardedShape
                 this.clip = cornerRadius > 0.dp
             }
             .background(palette.background),
     ) {
-        content(shrink)
+        content(BackTransitions.shrinkFor(progress.value))
     }
 
     if (showDiscardDialog) {
@@ -118,9 +123,6 @@ fun GuardedBack(
                 label = "Discard",
                 onClick = {
                     showDiscardDialog = false
-                    coroutineScope.launch {
-                        progress.snapTo(0f)
-                    }
                     onConfirmLeave()
                 },
                 modifier = Modifier.focusRequester(discardRequester),
@@ -142,4 +144,22 @@ fun GuardedBack(
             )
         }
     }
+}
+
+private class GuardedBackShape(private val progressProvider: () -> Float) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val radiusPx = with(density) { BackTransitions.cornerRadiusFor(progressProvider()).toPx() }
+        if (radiusPx <= 0f) {
+            return Outline.Rectangle(Rect(Offset.Zero, size))
+        }
+        return Outline.Rounded(
+            RoundRect(
+                rect = Rect(Offset.Zero, size),
+                cornerRadius = CornerRadius(radiusPx, radiusPx),
+            ),
+        )
+    }
+
+    override fun equals(other: Any?): Boolean = other is GuardedBackShape
+    override fun hashCode(): Int = GuardedBackShape::class.hashCode()
 }

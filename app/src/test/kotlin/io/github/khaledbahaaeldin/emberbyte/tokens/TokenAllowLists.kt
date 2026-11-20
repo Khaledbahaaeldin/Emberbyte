@@ -13,7 +13,6 @@ internal object TokenAllowLists {
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/apps/AppsScreen.kt" to 2,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/apps/FeaturedAppCard.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/BackTransitions.kt" to 1,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/GuardedBack.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/placeholder/StartupPlaceholder.kt" to 4,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/plans/flow/PlanFlowScreen.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/AppearanceScreen.kt" to 1,

@@ -1,18 +1,19 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.motion
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Size
@@ -28,8 +29,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteShapeRadii
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
-val PressMorphShapeKey = SemanticsPropertyKey<Shape>("PressMorphShape")
-val PressMorphScaleKey = SemanticsPropertyKey<() -> Float>("PressMorphScale")
+@VisibleForTesting
+internal val PressMorphShapeKey = SemanticsPropertyKey<Shape>("PressMorphShape")
+
+@VisibleForTesting
+internal val PressMorphScaleKey = SemanticsPropertyKey<() -> Float>("PressMorphScale")
 
 /**
  * Material 3 Expressive corner-morphing and scale press feedback.
@@ -42,18 +46,13 @@ val PressMorphScaleKey = SemanticsPropertyKey<() -> Float>("PressMorphScale")
  */
 fun Modifier.pressMorph(
     shape: CornerBasedShape,
-    pressedScale: Float = 0.97f,
+    pressedScale: Float = 0.98f,
     pressedCorner: Dp = EmberbyteShapeRadii.Small,
     interactionSource: InteractionSource? = null,
 ): Modifier = composed {
-    var pointerPressed by remember { mutableStateOf(false) }
-    val sourcePressed = if (interactionSource != null) {
-        val pressed by interactionSource.collectIsPressedAsState()
-        pressed
-    } else {
-        false
-    }
-    val isPressed = pointerPressed || sourcePressed
+    val defaultSource = remember { MutableInteractionSource() }
+    val effectiveSource = interactionSource ?: defaultSource
+    val isPressed by effectiveSource.collectIsPressedAsState()
 
     val animatable = remember { Animatable(0f) }
     val motion = rememberEmberbyteMotion()
@@ -73,14 +72,16 @@ fun Modifier.pressMorph(
     }
 
     val pointerMod = if (interactionSource == null) {
-        Modifier.pointerInput(Unit) {
+        Modifier.pointerInput(defaultSource) {
             awaitEachGesture {
-                awaitFirstDown(requireUnconsumed = false)
-                pointerPressed = true
-                try {
-                    waitForUpOrCancellation()
-                } finally {
-                    pointerPressed = false
+                val down = awaitFirstDown(requireUnconsumed = false)
+                val press = PressInteraction.Press(down.position)
+                defaultSource.tryEmit(press)
+                val upOrCancel = waitForUpOrCancellation()
+                if (upOrCancel != null) {
+                    defaultSource.tryEmit(PressInteraction.Release(press))
+                } else {
+                    defaultSource.tryEmit(PressInteraction.Cancel(press))
                 }
             }
         }
@@ -128,6 +129,18 @@ private class DynamicCornerBasedShape(
         bottomStart: Float,
         layoutDirection: LayoutDirection,
     ): Outline = baseShape.createOutline(size, topStart, topEnd, bottomEnd, bottomStart, layoutDirection)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is DynamicCornerBasedShape) return false
+        return baseShape == other.baseShape && pressedCorner == other.pressedCorner
+    }
+
+    override fun hashCode(): Int {
+        var result = baseShape.hashCode()
+        result = 31 * result + pressedCorner.hashCode()
+        return result
+    }
 }
 
 private class DynamicCornerSize(
@@ -140,5 +153,17 @@ private class DynamicCornerSize(
         val pressedPx = with(density) { pressed.toPx() }
         val p = progress()
         return basePx + (pressedPx - basePx) * p
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is DynamicCornerSize) return false
+        return base == other.base && pressed == other.pressed
+    }
+
+    override fun hashCode(): Int {
+        var result = base.hashCode()
+        result = 31 * result + pressed.hashCode()
+        return result
     }
 }

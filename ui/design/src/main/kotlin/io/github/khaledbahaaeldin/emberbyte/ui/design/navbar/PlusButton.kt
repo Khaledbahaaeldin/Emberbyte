@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
@@ -38,22 +37,20 @@ fun PlusButton(
             .size(56.dp)
             .pressMorph(
                 shape = CircleShape,
-                pressedScale = 1f,
+                pressedScale = 0.96f,
                 pressedCorner = EmberbyteShapeRadii.Small,
                 interactionSource = interactionSource,
             )
             .background(palette.primary)
+            .semantics {
+                this.contentDescription = contentDescription
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = ripple(),
                 role = Role.Button,
                 onClick = onClick,
-                onClickLabel = contentDescription,
-            )
-            .semantics {
-                this.contentDescription = contentDescription
-                this.role = Role.Button
-            },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

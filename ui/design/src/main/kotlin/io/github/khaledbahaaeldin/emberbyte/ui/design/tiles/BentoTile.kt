@@ -128,7 +128,7 @@ fun BentoTile(
         Surface(
             onClick = onClick,
             modifier = tileModifier,
-            shape = RectangleShape,
+            shape = tileShape,
             color = background,
             contentColor = foreground,
             interactionSource = interactionSource,

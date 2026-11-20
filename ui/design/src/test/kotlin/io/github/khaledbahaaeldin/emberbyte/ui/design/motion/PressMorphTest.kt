@@ -56,7 +56,7 @@ class PressMorphTest {
 
         val pressedRadius = tile.currentCornerRadius()
         assertEquals(12f, pressedRadius, 0.5f)
-        assertEquals(0.97f, tile.currentScale(), 0.01f)
+        assertEquals(0.98f, tile.currentScale(), 0.01f)
 
         tile.performTouchInput { up() }
         rule.waitForIdle()
@@ -90,7 +90,7 @@ class PressMorphTest {
 
         val pressedRadius = row.currentCornerRadius()
         assertEquals(12f, pressedRadius, 0.5f)
-        assertEquals(0.97f, row.currentScale(), 0.01f)
+        assertEquals(0.98f, row.currentScale(), 0.01f)
 
         row.performTouchInput { up() }
         rule.waitForIdle()
@@ -118,11 +118,12 @@ class PressMorphTest {
 
         val pressedRadius = button.currentCornerRadius(Size(56f, 56f))
         assertEquals(12f, pressedRadius, 0.5f)
-        assertEquals(1f, button.currentScale(), 0.01f)
+        assertEquals(0.96f, button.currentScale(), 0.01f)
 
         button.performTouchInput { up() }
         rule.waitForIdle()
         assertEquals(28f, button.currentCornerRadius(Size(56f, 56f)), 0.5f)
+        assertEquals(1f, button.currentScale(), 0.01f)
     }
 
     @Test
@@ -136,7 +137,7 @@ class PressMorphTest {
                             .size(100.dp)
                             .pressMorph(
                                 shape = RoundedCornerShape(28.dp),
-                                pressedScale = 0.97f,
+                                pressedScale = 0.98f,
                                 pressedCorner = 12.dp,
                             )
                     )
@@ -149,7 +150,7 @@ class PressMorphTest {
         target.performTouchInput { down(center) }
         rule.waitForIdle()
         assertEquals(12f, target.currentCornerRadius(), 0.5f)
-        assertEquals(0.97f, target.currentScale(), 0.01f)
+        assertEquals(0.98f, target.currentScale(), 0.01f)
     }
 
     private fun SemanticsNodeInteraction.currentCornerRadius(size: Size = Size(100f, 100f)): Float {
@@ -160,44 +161,11 @@ class PressMorphTest {
 
     private fun SemanticsNodeInteraction.currentScale(): Float {
         val node = fetchSemanticsNode()
-        if (node.config.contains(PressMorphScaleKey)) {
-            return node.config[PressMorphScaleKey].invoke()
-        }
-        val layoutNodeField = node.javaClass.declaredFields.firstOrNull { it.name.contains("layoutNode") }
-            ?.apply { isAccessible = true } ?: error("layoutNode field not found")
-        val layoutNode = layoutNodeField.get(node) ?: error("layoutNode not found")
-        val getModifierInfo = layoutNode.javaClass.getMethod("getModifierInfo")
-        val infos = getModifierInfo.invoke(layoutNode) as List<*>
-        for (info in infos) {
-            val mod = info!!.javaClass.getMethod("getModifier").invoke(info)
-            if (mod != null && mod.javaClass.name.contains("GraphicsLayerElement")) {
-                val scaleXField = mod.javaClass.declaredFields.firstOrNull { it.name == "scaleX" }
-                    ?.apply { isAccessible = true }
-                return (scaleXField?.get(mod) as? Float) ?: 1f
-            }
-        }
-        return 1f
+        return node.config[PressMorphScaleKey].invoke()
     }
 
     private fun SemanticsNodeInteraction.fetchLayerShape(): Shape {
         val node = fetchSemanticsNode()
-        if (node.config.contains(PressMorphShapeKey)) {
-            return node.config[PressMorphShapeKey]
-        }
-        val layoutNodeField = node.javaClass.declaredFields.firstOrNull { it.name.contains("layoutNode") }
-            ?.apply { isAccessible = true } ?: error("layoutNode field not found")
-        val layoutNode = layoutNodeField.get(node) ?: error("layoutNode not found")
-        val getModifierInfo = layoutNode.javaClass.getMethod("getModifierInfo")
-        val infos = getModifierInfo.invoke(layoutNode) as List<*>
-        for (info in infos) {
-            val mod = info!!.javaClass.getMethod("getModifier").invoke(info)
-            if (mod != null && mod.javaClass.name.contains("GraphicsLayerElement")) {
-                val shapeField = mod.javaClass.declaredFields.firstOrNull { it.name == "shape" }
-                    ?.apply { isAccessible = true }
-                val shape = shapeField?.get(mod) as? Shape
-                if (shape != null) return shape
-            }
-        }
-        error("GraphicsLayerElement with shape not found on node")
+        return node.config[PressMorphShapeKey]
     }
 }

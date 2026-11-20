@@ -198,6 +198,55 @@ class GuardedBackTest {
     }
 
     @Test
+    fun guarded_back_dialog_dismiss_springs_back_to_full_size() {
+        composeTestRule.mainClock.autoAdvance = false
+        val observedShrink = mutableFloatStateOf(1f)
+        val dirty = mutableStateOf(true)
+
+        composeTestRule.setContent {
+            EmberbyteTheme {
+                GuardedBack(
+                    dirty = dirty.value,
+                    onConfirmLeave = {}
+                ) { shrink ->
+                    observedShrink.floatValue = shrink
+                    Text("Editor Content")
+                }
+            }
+        }
+
+        val dispatcher = composeTestRule.activity.onBackPressedDispatcher
+        val eventProgress = BackEventCompat(100f, 100f, 0.6f, BackEventCompat.EDGE_LEFT)
+        composeTestRule.runOnUiThread {
+            dispatcher.dispatchOnBackStarted(eventProgress)
+            dispatcher.dispatchOnBackProgressed(eventProgress)
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        val draggedShrink = observedShrink.floatValue
+        assertTrue("Shrink while dragging should be < 1f", draggedShrink < 1.0f)
+
+        composeTestRule.runOnUiThread {
+            dispatcher.onBackPressed()
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        // Click dismiss ("Keep editing")
+        composeTestRule.onNodeWithText("Keep editing").performClick()
+
+        // Advance 32ms: cancel spring should be mid-flight
+        composeTestRule.mainClock.advanceTimeBy(32)
+        val midFlightShrink = observedShrink.floatValue
+        assertTrue(
+            "Dismiss spring should pass through intermediate frames: $draggedShrink < $midFlightShrink < 1.0",
+            midFlightShrink > draggedShrink && midFlightShrink < 1.0f
+        )
+
+        // Advance to completion
+        composeTestRule.mainClock.advanceTimeBy(1000)
+        assertEquals(1.0f, observedShrink.floatValue, 0.01f)
+    }
+
+    @Test
     fun confirming_the_dialog_calls_onConfirmLeave_once() {
         var confirmCalls = 0
         val dirty = mutableStateOf(true)
