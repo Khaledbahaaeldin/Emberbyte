@@ -46,8 +46,9 @@ data class AppsUiState(
     val units: ByteUnits = ByteUnits.DECIMAL,
     val needsUsageAccess: Boolean = false,
     val loaded: Boolean = false,
-    val isLoading: Boolean = !loaded,
-)
+) {
+    val isLoading: Boolean get() = !loaded
+}
 
 sealed interface AppsEvent {
     data class SetRange(val range: AppsRange) : AppsEvent

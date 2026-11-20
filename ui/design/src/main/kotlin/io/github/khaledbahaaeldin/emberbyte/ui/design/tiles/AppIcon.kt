@@ -46,7 +46,10 @@ fun AppIcon(
         contentAlignment = Alignment.Center,
     ) {
         Box(Modifier.testTag("AppIcon:${shape.name}"))
-        EmberbyteCrossfade(targetState = icon) { currentIcon ->
+        EmberbyteCrossfade(
+            targetState = icon,
+            modifier = Modifier.fillMaxSize(),
+        ) { currentIcon ->
             if (currentIcon != null) {
                 Image(
                     bitmap = currentIcon,
@@ -55,12 +58,17 @@ fun AppIcon(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                val letter = label.firstOrNull()?.uppercase() ?: ""
-                Text(
-                    text = letter,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.onPrimary,
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val letter = label.firstOrNull()?.uppercase() ?: ""
+                    Text(
+                        text = letter,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.onPrimary,
+                    )
+                }
             }
         }
     }

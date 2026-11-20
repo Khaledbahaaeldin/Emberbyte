@@ -95,10 +95,13 @@ fun EmberbyteApp(graph: AppGraph, hapticsEnabled: Boolean = true) {
     EmberbyteTheme(spec = spec) {
         val completed by graph.onboardingCompleted.collectAsStateWithLifecycle()
         // `null` only before the first read. The scaffold is created ONCE with the right start destination and then stays.
-        EmberbyteCrossfade(targetState = (completed != null)) { ready ->
-            if (ready) {
-                val value = completed ?: false
-                AppScaffold(graph, startOnboarding = !value, hapticsEnabled = hapticsEnabled)
+        EmberbyteCrossfade(
+            targetState = completed,
+            modifier = Modifier.fillMaxSize(),
+        ) { status ->
+            if (status != null) {
+                val initialStartOnboarding = remember { !status }
+                AppScaffold(graph, startOnboarding = initialStartOnboarding, hapticsEnabled = hapticsEnabled)
             } else {
                 StartupPlaceholder()
             }

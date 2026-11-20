@@ -121,12 +121,13 @@ data class AppDetailUiState(
     val bars: List<BarUi> = emptyList(),
     val units: ByteUnits = ByteUnits.DECIMAL,
     val loaded: Boolean = false,
-    val isLoading: Boolean = !loaded,
     val budget: BudgetUi? = null,
     val spikes: List<SpikeRowUi> = emptyList(),
     val planOptions: List<PlanOptionUi> = emptyList(),
     val editor: BudgetEditorUi? = null,
-)
+) {
+    val isLoading: Boolean get() = !loaded
+}
 
 internal fun buildAppDetailUiState(
     packageName: String,
@@ -334,9 +335,7 @@ fun AppDetailContent(
     ) { loading ->
         if (loading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 LoadingState(label = "Loading app details")

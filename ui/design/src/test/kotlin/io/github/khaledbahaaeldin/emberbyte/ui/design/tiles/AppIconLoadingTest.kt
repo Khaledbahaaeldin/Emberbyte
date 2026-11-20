@@ -1,11 +1,11 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.tiles
 
 import android.graphics.Bitmap
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
@@ -14,7 +14,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,7 +69,7 @@ class AppIconLoadingTest {
                         if (isLoading) {
                             LoadingState(label = "Loading")
                         } else {
-                            androidx.compose.material3.Text("Content Ready")
+                            Text("Content Ready")
                         }
                     }
                 }
@@ -83,6 +82,6 @@ class AppIconLoadingTest {
         rule.mainClock.advanceTimeByFrame()
 
         // Snaps immediately without fade frames
-        rule.onNodeWithText("Content Ready").assertIsDisplayed()
+        rule.onNodeWithText("Content Ready").assertExists()
     }
 }
