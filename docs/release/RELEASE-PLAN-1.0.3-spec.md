@@ -44,6 +44,7 @@
 | T18 Home bento tiles | Khaled | not started |
 | T19 Home plan setup card | Khaled | not started |
 | T20 Home usage card (Top apps + History) | Khaled | not started |
+| T21 Apps page redesign | Khaled | not started |
 | T15 Release 1.0.3 | Khaled | not started |
 
 ---
@@ -74,6 +75,7 @@
 | Khaled | T18 Home bento tiles (Live and Network, upload switch) | `t18-home-bento` | after T17 merges |
 | Khaled | T19 Home plan setup card (merged call to action) | `t19-plan-setup-card` | after T18 merges |
 | Khaled | T20 Home usage card (Top apps with History inside) | `t20-usage-card` | after T19, and Omar's T5 and T11 merge |
+| Khaled | T21 Apps page redesign (search and Filters pair, period buttons, summary card) | `t21-apps-page` | after T20, and Omar's T4, T5 and T11 merge |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -94,6 +96,7 @@
 - **Plan-flow progress (G8)** moves from T11 to T6 (Joe, because `PlanFlowScreen.kt` is his).
 - **Appearance selection and onboarding motion (G16, G15)** move from T11 to T8 (Joe).
 - **Home redesign (T17 to T20) is Khaled's.** The hero, bento tiles, plan setup card and usage card (Top apps with History inside) are the maintainer's own tasks. They edit `HomeSections.kt`, `HomeScreen.kt`, `HomeViewModel.kt` and the History screen, which Omar's T4, T5, T10 and T11 also edit, so Khaled starts them **only after those four Omar pull requests have merged**. Omar does not touch T17 to T20.
+- **Apps page (T21) is Khaled's.** It reuses T20's row and share-fill work and edits `AppsViewModel.kt` and `AppsScreen.kt`, which Omar's T4 and T5 also edit, so Khaled starts it only after T20 and those Omar pull requests have merged.
 - **T12 split.** T12a (tokens, merged first) and T12b (migration sweep, last, by Khaled) so the 31 radius sites and 66 size literals are migrated once, after everyone else has merged.
 
 ### Conflict rules
@@ -151,6 +154,7 @@
 | Home bento tiles | `home/HomeSections.kt`, `HomeViewModel.kt`, `ui/design/.../tiles/{LiveBentoTile,NetworkBentoTile,Tiles}.kt`, `theme/palette/TileColours.kt`, `theme/EmberbyteType.kt`, `res/font/space_grotesk.ttf`, `assets/licences.json`, `NOTICE` | T18 |
 | Home plan setup card | `home/HomeSections.kt`, `home/HomeScreen.kt`, `ui/design/.../plan/PlanSetupCard.kt`, `progress/WavyRing.kt` | T19 |
 | Home usage card | `home/HomeSections.kt`, `home/HomeScreen.kt`, `home/HomeViewModel.kt`, `ui/design/.../usage/*`, nav History transition | T20 |
+| Apps page | `apps/AppsScreen.kt`, `AppsViewModel.kt`, `FeaturedAppCard.kt`, `FiltersSheet.kt`, `AppsSummaryCard.kt`, `PeriodButtons.kt` | T21 |
 | Release | `app/build.gradle.kts`, `CHANGELOG.md`, `fastlane/.../changelogs/4.txt`, `RELEASE-NOTES-1.0.3.md` | T15 |
 
 ## Order and branches
@@ -573,7 +577,7 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
    - **Press and expand:** rows use `pressMorph` (corners to 16 dp, scale 0.97). A tap expands the row inline (spring height, about 450 ms) to show "Wi-Fi X", "Mobile Y" and "App details", which opens the existing app detail screen. Only one row is open at a time; the row announces its expanded state.
    - **Re-rank motion:** rows keyed by package name use `animateItem` (placement spring about 560 ms); amounts roll with `MorphingNumber`; a row entering scales from 0.9 and fades in over 420 ms; one leaving fades out. Real app icons are used (the mockup's letters are stand-ins).
 5. **Connected buttons.** Three segments in one row, 3 dp apart, min height 54 dp, outer corners 27 dp and inner corners 9 dp: **"All apps"** (tonal, text only; the old "See all" action, opens Apps), **"Filters"** (tonal, filter icon, label and a count badge) and **"History"** (filled primary, clock icon; opens History). Widths 1 : 1.1 : 1.15. With any filter active the Filters segment turns primary-tinted and shows the count badge; its label becomes "Filters, N active" for accessibility.
-6. **Filters.** The Filters button opens a bottom sheet inside Home (draft, then Apply or Reset, like the Apps `FiltersSheet`): **Network** as a connected group (All, Mobile, Wi-Fi) and **"Show system apps"** as a switch with a check in its thumb, then Reset and Apply buttons and the note "Period, sort and more are in Apps". The filters affect the strip totals and bars, the summary, and the ranking together. Active filters also show as **removable chips under the summary line**, labelled in full ("Network: Mobile", "System apps"), at least 32 dp tall, tonal primary; one tap removes that filter. State lives in `HomeViewModel`, session only, **independent of the Apps screen's filters** (*open question for the maintainer: should the two share state?*). There is no period filter in the card: the strip is the period control.
+6. **Filters.** The Filters button opens a bottom sheet inside Home (draft, then Apply or Reset, like the Apps `FiltersSheet`): **Network** as a connected group (All, Mobile, Wi-Fi) and **"Show system apps"** as a switch with a check in its thumb, then Reset and Apply buttons and the note "Period, sort and more are in Apps". The filters affect the strip totals and bars, the summary, and the ranking together. Active filters also show as **removable chips under the summary line**, labelled in full ("Network: Mobile", "System apps"), at least 32 dp tall, tonal primary; one tap removes that filter. State lives in `HomeViewModel`, session only, **independent of the Apps screen's filters** (*decided by the maintainer on 2026-11-20: independent*). There is no period filter in the card: the strip is the period control.
 7. **History.** The History button opens the History screen with a **container transform** that grows out of the button (clip-reveal from the button's bounds to the full screen, about 620 ms on a spring, the chart bars growing in after 260 ms, 50 ms apart); going back reverses it in about 380 ms. The **selected day is passed in** and, if changed there, **returned**, so the card keeps the day last chosen. Implement with `SharedTransitionLayout`/`sharedBounds` if Navigation Compose 2.10.2 supports it for this route; otherwise use the app's standard push transition and say so under "Rulings". Reduced motion: instant.
 8. **Data.** `HomeUiState` gains `usageDays: List<DayUsage>` (`data class DayUsage(val date: LocalDate, val totalBytes: Long, val mobileBytes: Long, val wifiBytes: Long)`, oldest first, seven entries) and `HomeViewModel` exposes per-app rows for the selected day and filters through `AppUsageRow(packageName, label, mobileBytes, wifiBytes, isSystem)`. Both come from the repository queries the History and Apps screens already use; no new permission and no network.
 9. **Reduced motion.** Everything static: bars at their height, ranking changes instantly, no glide, the History open is a plain switch.
@@ -600,6 +604,53 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
 5. The permission-missing state still shows the existing prompt instead of an empty card.
 
 **Acceptance.** On a device the Home screen has one Top apps card with a week strip, a featured first app, share-fill rows and three connected buttons; tapping a day re-ranks the apps with a glide; Filters narrows everything with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.
+
+---
+
+## T21. Apps page redesign
+
+**Closes:** E1, E2, E3 (audit) and the maintainer request of 2026-11-20. **Owner:** Khaled. **Branch:** `t21-apps-page`, started **after T20 merges** (it reuses T20's app row, share fill and connected-button work) and after Omar's T4 (loading states), T5 (the "apps only" total, C4) and T11 (`pressMorph`) have merged. **Files:** `app/.../apps/AppsScreen.kt`, `AppsViewModel.kt`, `AppsUiState`, `FeaturedAppCard.kt`, `FiltersSheet.kt`, new `apps/AppsSummaryCard.kt`, `apps/PeriodButtons.kt`, `apps/AppsFilterChips.kt`. **Tests next to each.**
+**Mockup (the source of every number below):** https://claude.ai/artifact/CiTJo6SKnjjq5aotKLTu6t . Approved by the maintainer on 2026-11-20.
+
+**Decisions (locked).**
+1. **Header.** "Apps" at 34 sp bold in the T18 grotesque, letter spacing -0.02 em, and a pill on the right with the app count ("47 apps", "1 app"; container `palette.primaryContainer`-style tint as T20's day pill).
+2. **Search and Filters are one connected pair**, 6 dp apart, both **56 dp** tall: the search field `mixedCorners` 28 dp outer start, 10 dp inner (RTL mirrors), tonal container (text colour at 9 percent), search icon, "Search apps", a 44 dp clear button when text is present; on focus a 2.5 dp primary inner outline and all corners 28 dp. The Filters button is 64 x 56 dp, primary fill, tune icon, corners 10 dp inner and 28 dp outer, and shows a **count badge** (18 dp, number of non-default filters) at its top end. Replaces the 64 dp outlined field plus 48 dp tonal button (E3).
+3. **Period buttons on the page.** Four connected buttons directly under the search row: **Today, 7 days, 30 days, Cycle** (min height 48 dp, 3 dp apart, outer corners 24 dp, inner 9 dp). The selected one is primary-filled and 1.25 times wider; the change animates colour over 300 ms and the corners on a spatial spring. They set `AppsRange` immediately. **The period is removed from the Filters sheet** and from the chips.
+4. **Filters sheet** keeps its draft, Apply and Reset model (E2): **Network** as a connected group (All, Mobile, Wi-Fi), **Sort by** as a connected group (Most, Least, Name), a "Show system apps" row with a switch (type setting identical to the group labels, check in the thumb), then Reset (a tonal, 52 dp button, clearly visible) and Apply (primary, 1.6 times wider). Use the Expressive sheet top shape (`shapes.extraLarge` top corners), a grab handle and tighter spacing (no 130 px gaps). Apply closes the sheet; Reset only resets the draft. Filters stay **independent of Home's** (T20): *decided by the maintainer*.
+5. **Active filter chips (E1).** 32 dp tonal removable chips under the period buttons, labelled in full: "Network: Mobile", "Sort: Least data", "System apps". One tap removes that filter (`AppsEvent.RemoveFilter`). A trailing "Reset" text chip appears when two or more are active. The row wraps instead of clipping or scrolling off the end. Each chip announces "Remove Network: Mobile filter".
+6. **Summary card** (replaces the plain "X in total" line and the "No app data" text above the list): `mixedCorners(28dp, 10dp)` with the small corner at the bottom start, container `palette.surface2`. Label "Apps used today (apps only)", then the total at **48 sp bold** with the unit at 20 sp (`tabular-nums`, `MorphingNumber` from T10), then a **Wi-Fi / Mobile split bar** (16 dp tall, 3 dp gap, 14 dp minimum segment, primary for Wi-Fi and green for Mobile, `flex` change on a spatial spring), then "Wi-Fi X" and "Mobile Y" on one line. The label names the period ("today", "in 7 days", "in 30 days", "this cycle"). The "apps only" wording closes C4 together with Omar's T5 (Home's hero total includes system traffic). The card is hidden in the empty state.
+7. **Most used card** (replaces `FeaturedAppCard`'s layout): `mixedCorners` with the small corner at the top end, container the primary-tinted container from `TileColours.kt`, **64 dp icon** (`AppShape`), caption "MOST USED" (11 sp, bold, letter spaced), app name 22 sp bold, amount 30 sp bold on the right and "N% of total" under it. Tapping opens the app. It is the top row of the *unfiltered by search* ranking for the current period and network (a search that excludes it hides the card).
+8. **List.** Rows reuse T20's `AppUsageRow` look (min height 68 dp, corners 22 dp, 44 dp icon, name 17 sp bold, amount 20 sp bold, share fill behind the row at `max(14%, usage / firstRowUsage)` in the tinted container, `pressMorph` and `animateItem` re-rank with `motion.spatial()`). The sub-line is "Wi-Fi X · Mobile Y" for the All network and "N% of total" when one network is selected. A header row above the list shows "All apps" and the current sort ("Most data", "Least data", "Name"). **List style: A, share fill only (decided by the maintainer on 2026-11-20).** No rank numbers and no section headers.
+9. **Empty states.** Search with no match shows **one** message, "No apps match "chr"", with a Clear search button, and hides the summary card, the most used card and the list header (E3); no "0 B in total". No data yet keeps the existing explanation. Filters that match nothing show "Nothing to show for these filters" with a Reset filters button.
+10. **Loading and permission.** Uses Omar's T4 loading state (no false empty state) and the existing usage-access prompt, which sits under the period buttons.
+11. **Reduced motion.** Static: no entrance, no glide on re-rank, the split bar and fills at their final size, period buttons switch instantly.
+12. **Entrance.** Header, search row, period buttons, summary card, most used card and list header fade and rise in a stagger of 70 ms starting 80 ms after the screen is shown (translate 16 dp, scale 0.97, spatial spring); rows use `animateItem`. Replays every time the tab is opened is *not* wanted: once per app start.
+
+**List style (decided).** The maintainer chose **A**, share fill only, on 2026-11-20. The mockup's B (rank numbers) and C (Top 3 and the rest) do not ship.
+
+**Interfaces.**
+- `AppsEvent` gains `SetRange(range: AppsRange)`; `ApplyFilters` loses its `range` parameter; `AppFilterKind.RANGE` is removed (the chips no longer include the period). `AppsUiState` gains `val activeFilterCount: Int`, `val wifiBytes: Long`, `val mobileBytes: Long` (the totals for the card), and `val period: AppsRange` (already `range`).
+- Pure helpers (unit tests): `internal fun activeFilterCount(network: AppsNetwork, sort: AppSort, showSystemApps: Boolean): Int`, `internal fun periodLabel(range: AppsRange): String` ("today", "in 7 days", "in 30 days", "this cycle"), `internal fun splitWeights(wifi: Long, mobile: Long): Pair<Float, Float>` (each at least 14 dp worth when non-zero), `internal fun mostUsed(rows: List<AppRowUi>): AppRowUi?`, `internal fun shareFill(usage: Long, first: Long): Float` (shared with T20).
+- `@Composable fun AppsSummaryCard(total: Long, wifi: Long, mobile: Long, periodLabel: String, units: ByteUnits, modifier: Modifier = Modifier)`; `@Composable fun PeriodButtons(selected: AppsRange, onSelect: (AppsRange) -> Unit, modifier: Modifier = Modifier)`; `@Composable fun AppsFilterChips(filters: List<ActiveFilter>, onRemove: (AppFilterKind) -> Unit, onReset: () -> Unit, modifier: Modifier = Modifier)`.
+
+**Steps (each its own commit, test first, watch it fail).**
+1. **Pure logic.** RED `active_filter_count_ignores_defaults`, `period_label_names_each_range`, `split_weights_keep_a_minimum_for_a_non_zero_side`, `most_used_is_the_top_row_by_the_selected_network`, `share_fill_has_a_14_percent_minimum`. GREEN.
+2. **ViewModel.** RED (`AppsViewModelTest`) `set_range_changes_the_rows_and_totals_immediately`, `apply_filters_does_not_change_the_range`, `remove_filter_resets_only_that_filter`, `totals_split_into_wifi_and_mobile`, `filters_are_independent_of_homes`. GREEN.
+3. **Header, search and period buttons.** RED `search_and_filters_are_both_56dp`, `filters_button_shows_a_count_badge_when_active`, `period_buttons_set_the_range_and_mark_the_selected_one`, `period_buttons_announce_their_state`, `clear_button_appears_with_text`. GREEN.
+4. **Chips and sheet.** RED `chips_are_labelled_in_full_and_removable`, `reset_chip_appears_with_two_or_more_filters`, `chips_wrap_instead_of_clipping`, `sheet_has_network_sort_and_system_apps_but_no_period`, `sheet_apply_closes_and_reset_only_resets_the_draft`, `reset_button_meets_contrast`. GREEN.
+5. **Summary and most used cards.** RED `summary_shows_the_total_split_and_apps_only_label`, `summary_label_names_the_period`, `split_bar_has_a_minimum_segment`, `most_used_card_shows_icon_name_amount_and_share`, `most_used_card_opens_the_app`, `cards_are_hidden_in_the_empty_state`. GREEN.
+6. **List and empty states.** RED `rows_show_split_sub_line_for_all_networks_and_percent_for_one`, `rows_glide_when_the_period_changes` (test clock), `search_with_no_match_shows_one_message_and_a_clear_button`, `no_zero_total_in_the_empty_search_state`, `reduced_motion_applies_changes_instantly`. GREEN.
+7. **Wiring.** Replace the old header, search row, chips, `FeaturedAppCard` layout and total line; update existing Apps tests that asserted the old strings (say why in the pull request). The Apps detail screen is untouched.
+8. **Performance gate (device).** Changing the period re-ranks about 100 rows with a glide; record it on a mid-range phone and report the janky-frame percentage; if above 5 percent, limit `animateItem` to the first 20 rows.
+
+**Review Focus for this task.**
+1. Font scale 2.0 and display size 560 and RTL: the search and Filters pair stays on one line, the period buttons keep their labels or shrink to fit, the badge does not clip, the chips wrap.
+2. A user with no usage access, a first install with no data, and a period with no usage (7 days with only today's data): no crash, no misleading "0 B" card.
+3. A search that matches only a system app while system apps are hidden, and a network filter that matches nothing.
+4. Changing the period while the list is mid-glide, and returning to the tab, keep the selected period and filters.
+5. The total on the card uses the same units setting as the rows.
+
+**Acceptance.** On a device the Apps page shows one header with the app count, a matched search and Filters pair (badge when filters are active), period buttons that change the numbers at once, full-label removable chips, a summary card with the Wi-Fi and Mobile split and the words "apps only", a Most used card, and share-fill rows that glide when the ranking changes; Filters has Network, Sort and System apps only; a search with no match shows one message; with animations off everything is static.
 
 ---
 
@@ -632,6 +683,7 @@ Same format as 1.0.2 (one poll per verdict, one reply per failure with the copie
 16. Home: the Live and Today by network tiles sit side by side in Space Grotesk with interlocking corners; pressing the Live tile rolls between download and upload (arrow flip, trace morph, tint change) and back; the network number counts up once and the mobile segment is visible; with animations off everything is static and the switch is instant.
 17. Home with no plan: one setup card under the hero (ghost ring drawing itself, "Set up your data plan", one big "Set up plan" button) replaces the old link and card; the button opens the new-plan flow; creating a plan removes the card; with a plan nothing of it remains; with animations off everything is static.
 18. Home: one Top apps card with a week strip (tap a day: the apps re-rank with a glide), a featured first app with share-fill rows, and three connected buttons; Filters (Network, System apps) narrows strip, summary and ranking together with a badge and removable chips; History grows out of its button, shows the chosen day and returns it; the old Top apps and History cards are gone; with animations off everything is static.
+19. Apps: header with the app count, search and Filters at the same height (badge when filters are active), Today / 7 days / 30 days / Cycle buttons that change the numbers at once, full-label removable chips, a summary card (total, Wi-Fi and Mobile split, "apps only"), a Most used card and share-fill rows that glide on re-rank; Filters has Network, Sort and System apps only; searching for nothing shows one message and no zero total; with animations off everything is static.
 
 ## Out of scope (record, do not build)
 
