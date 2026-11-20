@@ -32,8 +32,8 @@
       "onAccent": "#0D3A1F",
       "warn": "#F4C35B",
       "onWarn": "#3B2A00",
-      "danger": "#FFB4AB",
-      "onDanger": "#4D0B0B",
+      "danger": "#BA1A1A",
+      "onDanger": "#FFFFFF",
       "track": "#CFC3E6"
     }
   },
@@ -70,8 +70,8 @@
       "onAccent": "#00382F",
       "warn": "#FFD98A",
       "onWarn": "#3B2A00",
-      "danger": "#FFB4AB",
-      "onDanger": "#4D0B0B",
+      "danger": "#BA1A1A",
+      "onDanger": "#FFFFFF",
       "track": "#E3CDBF"
     }
   },
