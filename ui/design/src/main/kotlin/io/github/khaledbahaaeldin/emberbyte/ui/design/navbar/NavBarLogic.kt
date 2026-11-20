@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.navbar
 
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
+import androidx.compose.ui.graphics.Color
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.material3.MotionScheme
@@ -138,6 +140,9 @@ internal class ScrollVisibilityTracker(private val thresholdPx: Float) {
     }
 }
 
+/** Leftover downward scroll, in pixels, above which the list is treated as being at its end. */
+private const val END_OF_LIST_SLOP_PX = 1f
+
 @Stable
 class NavBarVisibility internal constructor(thresholdPx: Float) {
     private val tracker = ScrollVisibilityTracker(thresholdPx)
@@ -149,6 +154,13 @@ class NavBarVisibility internal constructor(thresholdPx: Float) {
     val connection: NestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
             visible = tracker.onScroll(downPx = -available.y)
+            return Offset.Zero
+        }
+
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            // Scrolling further down while the list can no longer move means the list is at its end: nothing is
+            // left to read, so bring the bar back instead of leaving only the gesture handle.
+            if (available.y < -END_OF_LIST_SLOP_PX) show()
             return Offset.Zero
         }
     }
@@ -164,3 +176,9 @@ fun rememberNavBarVisibility(threshold: Dp = 40.dp): NavBarVisibility {
     val thresholdPx = with(LocalDensity.current) { threshold.toPx() }
     return remember(thresholdPx) { NavBarVisibility(thresholdPx) }
 }
+
+/**
+ * Edge of the floating pill. The pill is surface2 and so are most cards, so without an edge its lip blends into the card
+ * behind it (1.0.2 audit). A hairline of the muted text colour at 40% separates it in every theme.
+ */
+internal fun navBarBorderColor(palette: EmberbytePalette): Color = palette.muted.copy(alpha = 0.4f)
