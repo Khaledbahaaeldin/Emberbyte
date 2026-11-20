@@ -25,7 +25,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -161,6 +160,9 @@ class PressMorphTest {
 
     private fun SemanticsNodeInteraction.currentScale(): Float {
         val node = fetchSemanticsNode()
+        if (node.config.contains(PressMorphScaleKey)) {
+            return node.config[PressMorphScaleKey].invoke()
+        }
         val layoutNodeField = node.javaClass.declaredFields.firstOrNull { it.name.contains("layoutNode") }
             ?.apply { isAccessible = true } ?: error("layoutNode field not found")
         val layoutNode = layoutNodeField.get(node) ?: error("layoutNode not found")
@@ -179,6 +181,9 @@ class PressMorphTest {
 
     private fun SemanticsNodeInteraction.fetchLayerShape(): Shape {
         val node = fetchSemanticsNode()
+        if (node.config.contains(PressMorphShapeKey)) {
+            return node.config[PressMorphShapeKey]
+        }
         val layoutNodeField = node.javaClass.declaredFields.firstOrNull { it.name.contains("layoutNode") }
             ?.apply { isAccessible = true } ?: error("layoutNode field not found")
         val layoutNode = layoutNodeField.get(node) ?: error("layoutNode not found")

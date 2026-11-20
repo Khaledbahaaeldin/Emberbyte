@@ -53,6 +53,22 @@ fun GuardedBack(
     val reduceMotion = LocalReduceMotion.current
     var showDiscardDialog by remember { mutableStateOf(false) }
 
+    val resetToRest: () -> Unit = {
+        coroutineScope.launch {
+            if (reduceMotion) {
+                progress.snapTo(0f)
+            } else {
+                progress.animateTo(0f, BackTransitions.cancelSpring)
+            }
+        }
+    }
+
+    val dismissDialog: () -> Unit = {
+        showDiscardDialog = false
+        resetToRest()
+        onDismiss()
+    }
+
     PredictiveBackHandler(enabled = dirty) { progressFlow ->
         NavDiagnostics.record("BACK_START", "guarded")
         try {
@@ -64,13 +80,7 @@ fun GuardedBack(
             showDiscardDialog = true
         } catch (_: CancellationException) {
             NavDiagnostics.record("BACK_CANCEL", "guarded")
-            coroutineScope.launch {
-                if (reduceMotion) {
-                    progress.snapTo(0f)
-                } else {
-                    progress.animateTo(0f, BackTransitions.cancelSpring)
-                }
-            }
+            resetToRest()
         }
     }
 
@@ -101,17 +111,7 @@ fun GuardedBack(
     if (showDiscardDialog) {
         val discardRequester = remember { FocusRequester() }
         EmberbyteDialog(
-            onDismiss = {
-                showDiscardDialog = false
-                coroutineScope.launch {
-                    if (reduceMotion) {
-                        progress.snapTo(0f)
-                    } else {
-                        progress.animateTo(0f, BackTransitions.cancelSpring)
-                    }
-                }
-                onDismiss()
-            },
+            onDismiss = dismissDialog,
             title = "Discard changes?",
             icon = Icons.Rounded.Delete,
             confirm = DialogAction(
@@ -127,17 +127,7 @@ fun GuardedBack(
             ),
             dismiss = DialogAction(
                 label = "Keep editing",
-                onClick = {
-                    showDiscardDialog = false
-                    coroutineScope.launch {
-                        if (reduceMotion) {
-                            progress.snapTo(0f)
-                        } else {
-                            progress.animateTo(0f, BackTransitions.cancelSpring)
-                        }
-                    }
-                    onDismiss()
-                },
+                onClick = dismissDialog,
             ),
             destructive = true,
         ) {

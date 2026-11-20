@@ -16,12 +16,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteShapeRadii
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+
+val PressMorphShapeKey = SemanticsPropertyKey<Shape>("PressMorphShape")
+val PressMorphScaleKey = SemanticsPropertyKey<() -> Float>("PressMorphScale")
 
 /**
  * Material 3 Expressive corner-morphing and scale press feedback.
@@ -29,15 +37,22 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
  * Morphs the provided [shape] corners to [pressedCorner] and scales the element to [pressedScale]
  * when pressed, using the motion scheme's fast spatial spring.
  * Snaps immediately when [LocalReduceMotion] is active.
+ *
+ * All animations execute in the graphics layer/draw phase to prevent per-frame recomposition.
  */
 fun Modifier.pressMorph(
     shape: CornerBasedShape,
     pressedScale: Float = 0.97f,
-    pressedCorner: Dp = 12.dp,
+    pressedCorner: Dp = EmberbyteShapeRadii.Small,
     interactionSource: InteractionSource? = null,
 ): Modifier = composed {
     var pointerPressed by remember { mutableStateOf(false) }
-    val sourcePressed by (interactionSource?.collectIsPressedAsState() ?: remember { mutableStateOf(false) })
+    val sourcePressed = if (interactionSource != null) {
+        val pressed by interactionSource.collectIsPressedAsState()
+        pressed
+    } else {
+        false
+    }
     val isPressed = pointerPressed || sourcePressed
 
     val animatable = remember { Animatable(0f) }
@@ -53,20 +68,12 @@ fun Modifier.pressMorph(
         }
     }
 
-    val progress = animatable.value
-    val scale = 1f - (1f - pressedScale) * progress
-
-    val currentShape = remember(shape, pressedCorner, progress) {
-        shape.copy(
-            topStart = MorphedCornerSize(shape.topStart, pressedCorner, progress),
-            topEnd = MorphedCornerSize(shape.topEnd, pressedCorner, progress),
-            bottomEnd = MorphedCornerSize(shape.bottomEnd, pressedCorner, progress),
-            bottomStart = MorphedCornerSize(shape.bottomStart, pressedCorner, progress),
-        )
+    val dynamicShape = remember(shape, pressedCorner) {
+        DynamicCornerBasedShape(shape, pressedCorner) { animatable.value }
     }
 
-    this
-        .pointerInput(Unit) {
+    val pointerMod = if (interactionSource == null) {
+        Modifier.pointerInput(Unit) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false)
                 pointerPressed = true
@@ -77,22 +84,61 @@ fun Modifier.pressMorph(
                 }
             }
         }
-        .graphicsLayer(
-            scaleX = scale,
-            scaleY = scale,
-            shape = currentShape,
-            clip = true,
-        )
+    } else {
+        Modifier
+    }
+
+    this
+        .then(pointerMod)
+        .semantics {
+            set(PressMorphShapeKey, dynamicShape)
+            set(PressMorphScaleKey) { 1f - (1f - pressedScale) * animatable.value }
+        }
+        .graphicsLayer {
+            val progress = animatable.value
+            scaleX = 1f - (1f - pressedScale) * progress
+            scaleY = 1f - (1f - pressedScale) * progress
+            this.shape = dynamicShape
+            this.clip = true
+        }
 }
 
-data class MorphedCornerSize(
-    val base: CornerSize,
-    val pressed: Dp,
-    val progress: Float,
+private class DynamicCornerBasedShape(
+    private val baseShape: CornerBasedShape,
+    private val pressedCorner: Dp,
+    private val progress: () -> Float,
+) : CornerBasedShape(
+    topStart = DynamicCornerSize(baseShape.topStart, pressedCorner, progress),
+    topEnd = DynamicCornerSize(baseShape.topEnd, pressedCorner, progress),
+    bottomEnd = DynamicCornerSize(baseShape.bottomEnd, pressedCorner, progress),
+    bottomStart = DynamicCornerSize(baseShape.bottomStart, pressedCorner, progress),
+) {
+    override fun copy(
+        topStart: CornerSize,
+        topEnd: CornerSize,
+        bottomEnd: CornerSize,
+        bottomStart: CornerSize,
+    ): CornerBasedShape = baseShape.copy(topStart, topEnd, bottomEnd, bottomStart)
+
+    override fun createOutline(
+        size: Size,
+        topStart: Float,
+        topEnd: Float,
+        bottomEnd: Float,
+        bottomStart: Float,
+        layoutDirection: LayoutDirection,
+    ): Outline = baseShape.createOutline(size, topStart, topEnd, bottomEnd, bottomStart, layoutDirection)
+}
+
+private class DynamicCornerSize(
+    private val base: CornerSize,
+    private val pressed: Dp,
+    private val progress: () -> Float,
 ) : CornerSize {
     override fun toPx(shapeSize: Size, density: Density): Float {
         val basePx = base.toPx(shapeSize, density)
         val pressedPx = with(density) { pressed.toPx() }
-        return basePx + (pressedPx - basePx) * progress
+        val p = progress()
+        return basePx + (pressedPx - basePx) * p
     }
 }
