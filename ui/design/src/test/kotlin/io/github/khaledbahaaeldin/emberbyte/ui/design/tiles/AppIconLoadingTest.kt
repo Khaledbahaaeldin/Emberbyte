@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
@@ -82,6 +83,6 @@ class AppIconLoadingTest {
         rule.mainClock.advanceTimeByFrame()
 
         // Snaps immediately without fade frames
-        rule.onNodeWithText("Content Ready").assertExists()
+        rule.onNodeWithText("Content Ready").assertIsDisplayed()
     }
 }
