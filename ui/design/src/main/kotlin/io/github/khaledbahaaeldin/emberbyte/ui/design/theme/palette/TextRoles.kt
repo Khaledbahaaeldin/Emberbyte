@@ -13,7 +13,8 @@ import kotlin.math.min
 internal fun ensureContrast(foreground: Color, background: Color, minRatio: Double = 4.5): Color {
     if (contrastRatio(foreground, background) >= minRatio) return foreground
     val hsl = foreground.toHsl()
-    val lighten = background.luminance() < 0.4f
+    // White beats black as the target only below a background luminance of about 0.18; above it, darkening keeps the hue.
+    val lighten = background.luminance() < 0.18f
     var lightness = hsl[2]
     repeat(100) {
         lightness = if (lighten) min(1f, lightness + 0.01f) else max(0f, lightness - 0.01f)
@@ -33,6 +34,9 @@ private fun EmberbytePalette.readableOnAllSurfaces(role: Color): Color =
  * the accent hue, nudged to at least 4.5:1 on every surface.
  */
 val EmberbytePalette.accentText: Color get() = readableOnAllSurfaces(accent)
+
+/** [warn] used as text (for example "already over your cap" or a legend), at least 4.5:1 on every surface. */
+val EmberbytePalette.warnText: Color get() = readableOnAllSurfaces(warn)
 
 /** [primary] used as link or action text (for example "See all"), at least 4.5:1 on every surface. */
 val EmberbytePalette.linkText: Color get() = readableOnAllSurfaces(primary)
