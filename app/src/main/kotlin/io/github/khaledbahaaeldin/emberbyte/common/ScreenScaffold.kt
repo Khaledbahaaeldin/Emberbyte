@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -53,6 +54,10 @@ private val DefaultFloatingToolbarReserve = 120.dp
  *   `statusBarsPadding()`.
  *
  * [onBack] adds the back arrow (48 dp target); leave it null on top-level screens. [actions] are trailing icons.
+ * [subtitle] adds a second line under the title. [titleContent] replaces the plain text title for screens that need a
+ * custom one (the title is announced as a heading when it is the default text). With a [bottomBar] the floating-pill
+ * reserve defaults to zero, because that bar already sits above the pill; pass [floatingToolbarReserve] to override.
+ * The scaffold does not handle the keyboard: a screen with text fields applies `imePadding()` itself.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -61,10 +66,15 @@ fun EmberbyteScreenScaffold(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
-    bottomBar: @Composable () -> Unit = {},
-    floatingToolbarReserve: Dp = DefaultFloatingToolbarReserve,
+    subtitle: String? = null,
+    titleContent: (@Composable () -> Unit)? = null,
+    bottomBar: (@Composable () -> Unit)? = null,
+    floatingToolbarReserve: Dp? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    // A screen with its own bottom bar (for example Save and Discard) already sits above the floating pill, so the
+    // reserve defaults to zero there; otherwise it keeps room for the pill.
+    val reserve = floatingToolbarReserve ?: if (bottomBar != null) 0.dp else DefaultFloatingToolbarReserve
     val palette = LocalEmberbytePalette.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
@@ -73,7 +83,18 @@ fun EmberbyteScreenScaffold(
         contentColor = palette.text,
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
+                title = {
+                    if (titleContent != null) {
+                        titleContent()
+                    } else {
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                    }
+                },
+                subtitle = subtitle?.let { text -> { Text(text, style = MaterialTheme.typography.bodyMedium) } },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(
@@ -99,14 +120,14 @@ fun EmberbyteScreenScaffold(
                 ),
             )
         },
-        bottomBar = bottomBar,
+        bottomBar = bottomBar ?: {},
     ) { inner ->
         val top = inner.calculateTopPadding()
         Box(Modifier.fillMaxSize()) {
             content(
                 PaddingValues(
                     top = top,
-                    bottom = inner.calculateBottomPadding() + floatingToolbarReserve,
+                    bottom = inner.calculateBottomPadding() + reserve,
                 ),
             )
             Box(
