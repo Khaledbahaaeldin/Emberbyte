@@ -10,6 +10,8 @@ class NoRawFontSizesTest {
         assertEquals(0, TokenScan.countSizes("style = MaterialTheme.typography.bodyMedium"))
         assertEquals(2, TokenScan.countSizes("EmberbyteType.heading(15.sp) and fontSize = 11.5.sp"))
         assertEquals(0, TokenScan.countSizes("val width = 12.dp + 3.spacing"))
+        assertEquals(1, TokenScan.countSizes("fontSize = 14.5f.sp"))
+        assertEquals(1, TokenScan.countSizes("val size = TextUnit(14f, TextUnitType.Sp)"))
     }
 
     @Test
