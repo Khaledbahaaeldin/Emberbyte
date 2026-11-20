@@ -141,6 +141,10 @@ internal fun packRows(needed: List<Int>, gap: Int, available: Int): List<List<In
  * - Segment labels are wrapped in [ForceLtr], stay on one line and are never broken mid-word.
  * - Segments are sized to their labels. When the labels do not fit on one row the group wraps into balanced rows with
  *   connected shapes recalculated per row.
+ *
+ * Layout note: the group measures its available width with `BoxWithConstraints`, which cannot answer intrinsic size
+ * queries. Do not place it directly under a parent that uses `IntrinsicSize` (for example
+ * `Row(Modifier.height(IntrinsicSize.Min))`); give it a fixed or bounded width instead.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
