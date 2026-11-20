@@ -5,7 +5,7 @@ import java.io.File
 /** Counts raw design values in production sources. Shared by [NoRawRadiiTest] and [NoRawFontSizesTest]. */
 internal object TokenScan {
     private val radius = Regex("""RoundedCornerShape\(""")
-    private val size = Regex("""(?<![\w.])\d+(?:\.\d+)?\.sp\b""")
+    private val size = Regex("""(?<![\w.])\d+(?:\.\d+)?f?\.sp\b|\bTextUnit\(""")
 
     /** Files that define the tokens themselves and may use raw values. */
     private val tokenFiles = setOf("EmberbyteShapeScale.kt", "EmberbyteShapes.kt", "EmberbyteTypography.kt")

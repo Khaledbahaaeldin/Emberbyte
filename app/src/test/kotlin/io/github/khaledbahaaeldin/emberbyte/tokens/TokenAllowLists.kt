@@ -6,6 +6,7 @@ package io.github.khaledbahaaeldin.emberbyte.tokens
  * T12b (the migration sweep) moves every site onto the shape scale and the typography roles and shrinks these maps
  * until they are empty. The scan tests fail when a file has MORE sites than listed (a new raw radius or size was
  * added) and when a listed file no longer exists. Never add an entry to make a test pass: use the tokens instead.
+ * Sizes count `12.sp`, `14.5f.sp` and `TextUnit(` constructions.
  */
 internal object TokenAllowLists {
     val rawRadii: Map<String, Int> = mapOf(
@@ -35,7 +36,7 @@ internal object TokenAllowLists {
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/widget/TodayWidget.kt" to 2,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/widget/WidgetBlocks.kt" to 14,
         "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/dialog/EmberbyteDialog.kt" to 3,
-        "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/navbar/CompactNavBar.kt" to 1,
+        "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/navbar/CompactNavBar.kt" to 2,
         "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/number/HeroNumber.kt" to 3,
         "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/number/MorphingNumber.kt" to 2,
         "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/progress/WavyRing.kt" to 1,
