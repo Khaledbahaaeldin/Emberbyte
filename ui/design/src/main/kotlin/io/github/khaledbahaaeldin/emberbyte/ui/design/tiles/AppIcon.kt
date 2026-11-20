@@ -16,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.toShape
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
@@ -45,20 +46,22 @@ fun AppIcon(
         contentAlignment = Alignment.Center,
     ) {
         Box(Modifier.testTag("AppIcon:${shape.name}"))
-        if (icon != null) {
-            Image(
-                bitmap = icon,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            val letter = label.firstOrNull()?.uppercase() ?: ""
-            Text(
-                text = letter,
-                style = MaterialTheme.typography.titleMedium,
-                color = palette.onPrimary,
-            )
+        EmberbyteCrossfade(targetState = icon) { currentIcon ->
+            if (currentIcon != null) {
+                Image(
+                    bitmap = currentIcon,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                val letter = label.firstOrNull()?.uppercase() ?: ""
+                Text(
+                    text = letter,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = palette.onPrimary,
+                )
+            }
         }
     }
 }

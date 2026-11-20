@@ -48,6 +48,8 @@ import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppBudget
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetPeriod
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetStatus
@@ -119,6 +121,7 @@ data class AppDetailUiState(
     val bars: List<BarUi> = emptyList(),
     val units: ByteUnits = ByteUnits.DECIMAL,
     val loaded: Boolean = false,
+    val isLoading: Boolean = !loaded,
     val budget: BudgetUi? = null,
     val spikes: List<SpikeRowUi> = emptyList(),
     val planOptions: List<PlanOptionUi> = emptyList(),
@@ -325,14 +328,28 @@ fun AppDetailContent(
     onOpenSettings: (() -> Unit)? = null,
     icon: ImageBitmap? = null,
 ) {
-    val palette = LocalEmberbytePalette.current
-    var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
-
-    LazyColumn(
+    EmberbyteCrossfade(
+        targetState = state.isLoading,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    ) { loading ->
+        if (loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
+                contentAlignment = Alignment.Center,
+            ) {
+                LoadingState(label = "Loading app details")
+            }
+        } else {
+            val palette = LocalEmberbytePalette.current
+            var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
         // Header with Back button, AppIcon, Title & Package
         item {
             Row(
@@ -643,6 +660,8 @@ fun AppDetailContent(
             onEvent = onEvent,
         )
     }
+}
+}
 }
 
 @Composable

@@ -142,7 +142,7 @@ class HomeViewModel(
             is24Hour = is24Hour(),
             spike = spikeUi,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(isLoading = true))
 
     fun onEvent(event: HomeEvent) {
         when (event) {

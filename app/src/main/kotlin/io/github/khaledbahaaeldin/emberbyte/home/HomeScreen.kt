@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,13 +17,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.GapBanner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -84,14 +89,29 @@ internal fun HomeContent(
     onNavigateToApps: () -> Unit = {},
     icons: (String) -> ImageBitmap? = { null },
 ) {
-    val motion = rememberEmberbyteMotion()
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    EmberbyteCrossfade(
+        targetState = state.isLoading,
+        modifier = modifier.fillMaxSize(),
+    ) { loading ->
+        if (loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .testTag("home_loading_indicator"),
+                contentAlignment = Alignment.Center,
+            ) {
+                LoadingState(label = "Loading today's usage")
+            }
+        } else {
+            val motion = rememberEmberbyteMotion()
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
         // When usage access permission is missing, show prompt first
         if (state.topAppsLocked) {
             val usagePrompt = state.prompts.firstOrNull { it.id == "usage_access" }
@@ -230,4 +250,6 @@ internal fun HomeContent(
             )
         }
     }
+}
+}
 }
