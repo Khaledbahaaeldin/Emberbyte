@@ -43,6 +43,9 @@
     <string name="history_no_previous_period">No previous period</string>
     <string name="history_no_previous_week">No previous week</string>
     <string name="history_no_previous_month">No previous month</string>
+    <string name="history_about_the_same">About the same as %1$s</string>
+    <string name="history_last_week">last week</string>
+    <string name="history_last_month">last month</string>
     <string name="home_includes_system_traffic">Includes system traffic</string>
 </resources>
 

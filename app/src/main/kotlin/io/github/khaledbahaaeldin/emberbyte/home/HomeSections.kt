@@ -30,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -144,7 +146,7 @@ internal fun HomeHeroSection(
         modifier = modifier
             .fillMaxWidth()
             .testTag("hero_section"),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         HeroNumber(
             value = formatted.value,
@@ -155,7 +157,7 @@ internal fun HomeHeroSection(
 
         if (state.heroBytes > 0L) {
             Text(
-                text = "Includes system traffic",
+                text = stringResource(R.string.home_includes_system_traffic),
                 style = MaterialTheme.typography.labelSmall,
                 color = palette.muted,
             )
@@ -366,6 +368,7 @@ internal fun HomeHistorySection(
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalEmberbytePalette.current
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),

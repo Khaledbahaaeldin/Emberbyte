@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -73,9 +74,10 @@ fun UsageBarRow(
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
     val isCrowded = points.size > 7 || density.fontScale > 1.3f
-    var showAllValues by rememberSaveable { mutableStateOf(false) }
+    var showAllValues by rememberSaveable(scrollKey) { mutableStateOf(false) }
     val highestIndex = points.indices.maxByOrNull { points[it].bytes }
     val currentPeriodIndex = points.lastIndex
+    val hasSelection = selectedIndex != null
 
     val max = (points.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
     val summary = summaryDescription ?: run {
@@ -136,6 +138,15 @@ fun UsageBarRow(
                         !isCrowded || showAllValues || isSelected || index == highestIndex || index == currentPeriodIndex
                     )
 
+                    if (bar.isBoundary && index > 0) {
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(48.dp)
+                                .background(palette.surface2)
+                        )
+                    }
+
                     Column(
                         modifier = if (scrollable) {
                             Modifier
@@ -180,8 +191,11 @@ fun UsageBarRow(
 
                         // Bar fill & styling
                         val resolvedColor = barColor?.invoke(index, isSelected)
-                            ?: if (isSelected) palette.primary
-                            else palette.surface
+                            ?: when {
+                                isSelected -> palette.primary
+                                hasSelection -> palette.surface.copy(alpha = 0.38f)
+                                else -> palette.surface
+                            }
                         val barShape = if (isSelected) CircleShape else MaterialTheme.shapes.small
                         Box(
                             Modifier
@@ -242,6 +256,21 @@ fun UsageBarRow(
                         }
                     }
                 }
+            }
+
+            // Trailing edge fade scrim indicating more scrollable content
+            if (scrollable && scrollState.value < scrollState.maxValue) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(24.dp)
+                        .height(100.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color.Transparent, palette.background)
+                            )
+                        )
+                )
             }
         }
     }

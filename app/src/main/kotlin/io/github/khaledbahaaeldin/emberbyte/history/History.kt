@@ -44,10 +44,16 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
@@ -91,7 +97,13 @@ data class HistoryUiState(
     val loaded: Boolean = false,
     val selectedIndex: Int? = null,
     val comparisonText: String? = null,
-    val trendDirection: TrendDirection = TrendDirection.NONE,
+    val trendDirection: TrendDirection = when {
+        comparisonText == null -> TrendDirection.NONE
+        comparisonText.contains("more than", ignoreCase = true) -> TrendDirection.UP
+        comparisonText.contains("less than", ignoreCase = true) -> TrendDirection.DOWN
+        comparisonText.contains("the same", ignoreCase = true) -> TrendDirection.FLAT
+        else -> TrendDirection.NONE
+    },
     val heroDescription: String? = null,
     val rangeLabel: String? = null,
     val heroLabel: String? = null,
@@ -132,6 +144,7 @@ internal fun historyBars(
             valueText = formatBarValue(point.totalBytes, units),
             title = formatted.title,
             shortLabel = formatted.shortLabel,
+            isBoundary = formatted.isBoundary,
         )
     }
 }
@@ -257,7 +270,6 @@ internal fun computePeriodComparison(granularity: Granularity, points: List<Usag
     if (previous == 0L) return null
     val diff = current - previous
     val percent = ((kotlin.math.abs(diff).toDouble() / previous.toDouble()) * 100).toInt()
-    if (percent == 0) return null
 
     val periodLabel = when (granularity) {
         Granularity.DAY, Granularity.HOUR -> "last week"
@@ -265,10 +277,10 @@ internal fun computePeriodComparison(granularity: Granularity, points: List<Usag
         Granularity.MONTH -> "last month"
     }
 
-    val (text, direction) = if (diff > 0) {
-        "$percent% more than $periodLabel" to TrendDirection.UP
-    } else {
-        "$percent% less than $periodLabel" to TrendDirection.DOWN
+    val (text, direction) = when {
+        percent == 0 -> "About the same as $periodLabel" to TrendDirection.FLAT
+        diff > 0 -> "$percent% more than $periodLabel" to TrendDirection.UP
+        else -> "$percent% less than $periodLabel" to TrendDirection.DOWN
     }
     return ComparisonResult(text, direction)
 }
@@ -419,7 +431,7 @@ fun HistoryContent(
                     if (isSelected && bar != null && point != null) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -427,25 +439,26 @@ fun HistoryContent(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = bar.title.ifEmpty { bar.description.substringBefore(",") },
-                                    style = MaterialTheme.typography.titleMedium,
+                                    text = bar.title ?: bar.label,
+                                    style = MaterialTheme.typography.titleSmall,
                                     color = palette.text,
                                 )
-                                androidx.compose.material3.TextButton(
+                                TextButton(
                                     onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
-                                    modifier = Modifier.sizeIn(minHeight = 40.dp),
+                                    modifier = Modifier.height(32.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                 ) {
-                                    Text("Show total")
+                                    Text("Show total", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
 
-                            io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar(
+                            NetworkBar(
                                 mobileBytes = point.mobileBytes,
                                 wifiBytes = point.wifiBytes,
                                 mobileColor = palette.primary,
                                 wifiColor = palette.accent,
                                 units = state.units,
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().height(10.dp),
                             )
 
                             // Legend row with Mobile and Wi-Fi dots
@@ -466,7 +479,7 @@ fun HistoryContent(
                                                 shape = CircleShape,
                                             )
                                     )
-                                    val mobileFormatted = io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes(point.mobileBytes, state.units)
+                                    val mobileFormatted = formatBytes(point.mobileBytes, state.units)
                                     Text(
                                         text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
                                         style = MaterialTheme.typography.labelSmall,
@@ -485,7 +498,7 @@ fun HistoryContent(
                                                 shape = CircleShape,
                                             )
                                     )
-                                    val wifiFormatted = io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes(point.wifiBytes, state.units)
+                                    val wifiFormatted = formatBytes(point.wifiBytes, state.units)
                                     Text(
                                         text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
                                         style = MaterialTheme.typography.labelSmall,
@@ -506,9 +519,9 @@ fun HistoryContent(
 
             // Bento tiles: Total/Active days and Average
             item {
-                val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+                val fontScale = LocalDensity.current.fontScale
                 val isDay = state.granularity == Granularity.DAY
-                val firstTileTitle = if (isDay) "Active days" else "Total"
+                val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else "Total"
                 val firstTileValue = if (isDay) {
                     "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
                 } else {

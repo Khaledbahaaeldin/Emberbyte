@@ -12,18 +12,25 @@ import java.util.Locale
 data class HistoryBarLabel(
     val label: String,
     val description: String,
-    val title: String = "",
+    val title: String? = null,
     val shortLabel: String? = null,
+    val isBoundary: Boolean = false,
 )
 
-/** Formats a compact date range string, e.g. "24 Sep to 7 Oct" or "28 Sep to 4 Oct". */
+/** Formats a compact date range string, e.g. "24 Sep to 7 Oct", "28 Dec to 4 Jan 2027", or "28 Sep to 4 Oct". */
 fun formatDateRange(start: LocalDate, end: LocalDate, locale: Locale): String {
     val startMonth = start.month.getDisplayName(TextStyle.SHORT, locale)
     val endMonth = end.month.getDisplayName(TextStyle.SHORT, locale)
-    return if (start.month == end.month && start.year == end.year) {
-        "${start.dayOfMonth} to ${end.dayOfMonth} $startMonth"
-    } else {
-        "${start.dayOfMonth} $startMonth to ${end.dayOfMonth} $endMonth"
+    return when {
+        start.month == end.month && start.year == end.year -> {
+            "${start.dayOfMonth} to ${end.dayOfMonth} $startMonth"
+        }
+        start.year == end.year -> {
+            "${start.dayOfMonth} $startMonth to ${end.dayOfMonth} $endMonth"
+        }
+        else -> {
+            "${start.dayOfMonth} $startMonth ${start.year} to ${end.dayOfMonth} $endMonth ${end.year}"
+        }
     }
 }
 
@@ -50,7 +57,12 @@ object HistoryLabels {
                 val title = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)}, " +
                     "${date.dayOfMonth} ${date.month.getDisplayName(TextStyle.FULL, locale)}"
                 val description = "$title, $spoken"
-                HistoryBarLabel(label = label, description = description, title = title)
+                HistoryBarLabel(
+                    label = label,
+                    description = description,
+                    title = title,
+                    isBoundary = isMonthRollover,
+                )
             }
             Granularity.WEEK -> {
                 val monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))

@@ -20,9 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
@@ -100,12 +102,13 @@ fun HistoryHeader(
             }
 
             // Hero caption (e.g. "Last 14 days" or selected bar date)
+            val defaultHero = when (state.granularity) {
+                Granularity.WEEK -> stringResource(R.string.history_last_12_weeks)
+                Granularity.MONTH -> stringResource(R.string.history_last_12_months)
+                else -> stringResource(R.string.history_last_14_days)
+            }
             Text(
-                text = state.heroLabel ?: when (state.granularity) {
-                    Granularity.WEEK -> "Last 12 weeks"
-                    Granularity.MONTH -> "Last 12 months"
-                    else -> "Last 14 days"
-                },
+                text = state.heroLabel ?: defaultHero,
                 style = MaterialTheme.typography.titleSmall,
                 color = palette.muted,
             )
@@ -119,18 +122,11 @@ fun HistoryHeader(
 
             // Comparison against previous period: fixed height to prevent layout shift
             val compText = state.comparisonText ?: when (state.granularity) {
-                Granularity.MONTH -> "No previous month"
-                Granularity.WEEK -> "No previous week"
-                else -> "No previous period"
+                Granularity.MONTH -> stringResource(R.string.history_no_previous_month)
+                Granularity.WEEK -> stringResource(R.string.history_no_previous_week)
+                else -> stringResource(R.string.history_no_previous_period)
             }
-            val trend = if (state.trendDirection != TrendDirection.NONE) {
-                state.trendDirection
-            } else when {
-                state.comparisonText?.contains("more than", ignoreCase = true) == true -> TrendDirection.UP
-                state.comparisonText?.contains("less than", ignoreCase = true) == true -> TrendDirection.DOWN
-                state.comparisonText != null -> TrendDirection.FLAT
-                else -> TrendDirection.NONE
-            }
+            val trend = state.trendDirection
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),

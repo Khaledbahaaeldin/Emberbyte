@@ -136,4 +136,22 @@ class HistoryTest {
         assertEquals(400L, state.totalBytes)
         assertEquals(200L, state.averageBytes)
     }
+
+    @Test fun equal_usage_between_periods_shows_flat_trend() {
+        val base = Instant.parse("2026-09-24T00:00:00Z")
+        // 14 days, first 7 days sum = 700MB, last 7 days sum = 700MB
+        val points = (0 until 14).map { day ->
+            UsagePoint(base.plus(day.toLong(), java.time.temporal.ChronoUnit.DAYS), 100_000_000L, 0L)
+        }
+        val state = buildHistoryUiState(Granularity.DAY, points, ByteUnits.DECIMAL, zone, Locale.ENGLISH)
+        assertEquals(TrendDirection.FLAT, state.trendDirection)
+        assertEquals("About the same as last week", state.comparisonText)
+    }
+
+    @Test fun date_range_across_year_boundary_includes_both_years() {
+        val start = LocalDate.of(2026, 12, 28)
+        val end = LocalDate.of(2027, 1, 4)
+        val formatted = formatDateRange(start, end, Locale.ENGLISH)
+        assertEquals("28 Dec 2026 to 4 Jan 2027", formatted)
+    }
 }
