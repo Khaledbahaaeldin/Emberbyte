@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,8 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.accentText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.EstimatedBadge
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -95,7 +98,7 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
                     }
                     model.forecastText?.let {
                         val isExceeded = model.ringState == BudgetStateUi.Exceeded
-                        val textColor = if (isExceeded) palette.danger else palette.accent
+                        val textColor = planStatusTextColor(palette, isExceeded)
                         ForceLtr {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -135,3 +138,10 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
         }
     }
 }
+
+/**
+ * Colour of the forecast line on a plan card: the danger colour when exceeded, otherwise the accent hue nudged to be
+ * readable (the accent itself is a pale container colour in light themes, 1.02:1 on the card).
+ */
+internal fun planStatusTextColor(palette: EmberbytePalette, isExceeded: Boolean): Color =
+    if (isExceeded) palette.danger else palette.accentText
