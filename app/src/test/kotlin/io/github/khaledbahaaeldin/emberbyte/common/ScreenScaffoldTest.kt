@@ -9,10 +9,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -72,6 +76,79 @@ class ScreenScaffoldTest {
         show()
         rule.onNodeWithText("Settings").assertIsDisplayed()
     }
+
+    @Test
+    fun title_is_announced_as_a_heading() {
+        show()
+        // The flexible bar composes the title for its collapsed and expanded layouts, so more than one node may match.
+        val headings = rule.onAllNodes(
+            SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading) and
+                androidx.compose.ui.test.hasText("Settings"),
+            useUnmergedTree = true,
+        ).fetchSemanticsNodes()
+        assertTrue("the title must be announced as a heading", headings.isNotEmpty())
+    }
+
+    @Test
+    fun bottom_reserve_is_zero_when_a_bottomBar_is_provided() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                EmberbyteScreenScaffold(
+                    title = "Edit plan",
+                    bottomBar = { Text("Save", Modifier.height(80.dp)) },
+                ) { p ->
+                    padding = p
+                    Text("body")
+                }
+            }
+        }
+        rule.waitForIdle()
+        val bottom = padding.calculateBottomPadding()
+        assertTrue("with a bottomBar the content must not also reserve 120dp, was $bottom", bottom < 100.dp)
+    }
+
+    @Test
+    fun bottomBar_reserve_can_still_be_forced() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                EmberbyteScreenScaffold(
+                    title = "Edit plan",
+                    bottomBar = { Text("Save", Modifier.height(80.dp)) },
+                    floatingToolbarReserve = 40.dp,
+                ) { p ->
+                    padding = p
+                    Text("body")
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertTrue(padding.calculateBottomPadding() >= 120.dp) // 80 dp bar + 40 dp reserve
+    }
+
+    @Test
+    fun subtitle_is_shown() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                EmberbyteScreenScaffold(title = "History", subtitle = "Last 14 days") { Text("body") }
+            }
+        }
+        rule.onNodeWithText("Last 14 days").assertIsDisplayed()
+    }
+
+    @Test
+    fun custom_title_content_replaces_the_plain_text_title() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                EmberbyteScreenScaffold(
+                    title = "Today",
+                    titleContent = { Text("Custom hero title") },
+                ) { Text("body") }
+            }
+        }
+        rule.onNodeWithText("Custom hero title").assertIsDisplayed()
+        rule.onAllNodesWithText("Today").assertCountEquals(0)
+    }
+
 
     @Test
     fun title_stays_visible_when_collapsed() {
