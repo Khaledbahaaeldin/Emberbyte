@@ -6,8 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.ui.unit.IntSize
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -279,13 +281,14 @@ private fun LicenceEntryRow(
         append(", ${item.licence} licence")
     }
 
+    val motion = rememberEmberbyteMotion()
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = palette.surface,
         modifier = modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded }
-            .animateContentSize()
+            .animateContentSize(animationSpec = motion.spatial<IntSize>())
             .semantics(mergeDescendants = true) {},
     ) {
         Column(
@@ -332,7 +335,7 @@ private fun LicenceEntryRow(
             }
 
             // Expanded view showing URL and full text
-            AnimatedVisibility(visible = expanded) {
+            EmberbyteAnimatedVisibility(visible = expanded) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
