@@ -11,7 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.derivedStateOf
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.revealOnce
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.HistoryToggleOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -109,12 +114,25 @@ private fun DetailBody(
         daysOfData = daysWithData,
     )
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val density = LocalDensity.current
+    val seen = remember { mutableSetOf<String>() }
+    // How far the header has collapsed: 0 at rest, 1 once the big header is mostly scrolled away (starts after 40 dp, full at 90 dp).
+    val collapse = remember {
+        {
+            if (listState.firstVisibleItemIndex > 0) 1f
+            else ((with(density) { listState.firstVisibleItemScrollOffset.toDp().value } - 40f) / 50f).coerceIn(0f, 1f)
+        }
+    }
+    val showMini by remember { androidx.compose.runtime.derivedStateOf { collapse() > 0.02f } }
+    Box(Modifier.fillMaxSize()) {
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item(key = "header") { DetailHeader(state, icon, onBack, emberbyteAnimateItem(motion)) }
+        item(key = "header") { DetailHeader(state, icon, onBack, emberbyteAnimateItem(motion), collapseProgress = collapse) }
 
         item(key = "range") {
             DetailRangeButtons(state.range, { onEvent(AppDetailEvent.SetRange(it)) }, emberbyteAnimateItem(motion))
@@ -173,7 +191,7 @@ private fun DetailBody(
                     modifier = emberbyteAnimateItem(motion).testTag("detail_chart_empty"),
                 )
             } else {
-                DetailChart(state, zone, emberbyteAnimateItem(motion))
+                DetailChart(state, zone, emberbyteAnimateItem(motion).revealOnce("chart", seen, 0))
             }
         }
 
@@ -219,7 +237,7 @@ private fun DetailBody(
                 },
                 { m -> StatTile("At this pace", "${pace.value} ${pace.unit}", "in 30 days, if this ${if (days == 7) "week" else "period"} is typical", Corner.BottomEnd, m, tag = "detail_tile_pace") },
             )
-            Column(emberbyteAnimateItem(motion), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(emberbyteAnimateItem(motion).revealOnce("tiles", seen, 1), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (wide) {
                     tiles.forEach { it(Modifier.fillMaxWidth()) }
                 } else {
@@ -232,11 +250,11 @@ private fun DetailBody(
             }
         }
 
-        item(key = "hours") { HourPattern(state.hourTotals, state.units, emberbyteAnimateItem(motion)) }
+        item(key = "hours") { HourPattern(state.hourTotals, state.units, emberbyteAnimateItem(motion).revealOnce("hours", seen, 0)) }
 
-        item(key = "network") { NetworkImpactCard(state, emberbyteAnimateItem(motion)) }
+        item(key = "network") { NetworkImpactCard(state, emberbyteAnimateItem(motion).revealOnce("network", seen, 0)) }
 
-        item(key = "budget") { BudgetSection(state, average, onEvent, emberbyteAnimateItem(motion)) }
+        item(key = "budget") { BudgetSection(state, average, onEvent, emberbyteAnimateItem(motion).revealOnce("budget", seen, 0)) }
 
         if (state.spikes.isNotEmpty()) {
             item(key = "spikes") {
@@ -279,6 +297,57 @@ private fun DetailBody(
                 }
             }
         }
+    }
+    if (showMini) {
+        MiniBar(state, icon, onBack, collapse)
+    }
+    }
+}
+
+/** The collapsed header: back button, a 30 dp icon and the app name, fading in as the big header scrolls away. */
+@Composable
+private fun MiniBar(
+    state: AppDetailUiState,
+    icon: ImageBitmap?,
+    onBack: () -> Unit,
+    progress: () -> Float,
+) {
+    val palette = LocalEmberbytePalette.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = progress() }
+            .background(palette.background)
+            .statusBarsPadding()
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 12.dp)
+            .testTag("detail_mini_bar"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        androidx.compose.material3.IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(palette.primary.copy(alpha = 0.16f))
+                .semantics { contentDescription = "Back" },
+        ) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = palette.text)
+        }
+        io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon(
+            label = state.label.ifEmpty { state.packageName },
+            icon = icon,
+            shape = io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor(state.packageName),
+            size = 30.dp,
+        )
+        Text(
+            state.label.ifEmpty { state.packageName },
+            style = EmberbyteType.grotesk(DetailType.Label, 700),
+            color = palette.text,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        )
     }
 }
 

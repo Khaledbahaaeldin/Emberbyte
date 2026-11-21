@@ -17,6 +17,8 @@ import org.robolectric.annotation.Config
 class AppDetailLoadingTest {
     @get:Rule val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     @Test
     fun app_detail_shows_loading_not_the_package_name_before_the_first_emission() {
         rule.setContent {

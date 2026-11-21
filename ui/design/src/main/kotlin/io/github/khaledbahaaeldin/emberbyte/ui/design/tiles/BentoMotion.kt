@@ -67,7 +67,7 @@ internal fun rememberAmbientSeconds(enabled: Boolean): State<Float> {
 }
 
 /** Test-only readout of a tile's entrance progress (0 before it starts, 1 when settled). */
-internal val BentoEntranceProgressKey = SemanticsPropertyKey<Float>("BentoEntranceProgress")
+val BentoEntranceProgressKey = SemanticsPropertyKey<Float>("BentoEntranceProgress")
 
 /**
  * Springs a tile in: scale [fromScale] to 1, translate [fromDy] to 0 and fade, starting [startMs] after the screen's
@@ -110,3 +110,28 @@ internal fun Modifier.bentoEntrance(order: Int, play: Boolean): Modifier =
 @Composable
 fun Modifier.staggerEntrance(order: Int, play: Boolean): Modifier =
     entrance(startMs = 80 + 70 * order, play = play, fromScale = 0.97f, fromDy = 16.dp)
+
+/** Switch for the reveal-on-first-visibility entrance; tests turn it off so content is at its final state at once. */
+object RevealGate {
+    @Volatile
+    var enabled: Boolean = true
+}
+
+/**
+ * A section reveals once per visit: it rises 22 dp, scales 0.97 to 1 and fades in on the spatial spring, [order] x 90 ms
+ * after its siblings that appear together. [seen] remembers which keys already revealed, so scrolling back does not
+ * replay it. Reduced motion shows it at once.
+ */
+@Composable
+fun Modifier.revealOnce(key: String, seen: MutableSet<String>, order: Int = 0): Modifier {
+    val play = remember { RevealGate.enabled && key !in seen }
+    // The section counts as revealed once its entrance has had time to finish, so a lazy list that composes it twice at
+    // start-up still plays it, while scrolling back to it afterwards does not.
+    if (play) {
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(90L * order + 1_200L)
+            seen.add(key)
+        }
+    }
+    return entrance(startMs = 90 * order, play = play, fromScale = 0.97f, fromDy = 22.dp)
+}

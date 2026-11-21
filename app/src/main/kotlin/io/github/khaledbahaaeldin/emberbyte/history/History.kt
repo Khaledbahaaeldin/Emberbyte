@@ -81,7 +81,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
+import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
+import io.github.khaledbahaaeldin.emberbyte.engine.model.Forecast
+import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
 import kotlinx.coroutines.flow.flatMapLatest
+import androidx.compose.runtime.remember
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.revealOnce
 import kotlinx.coroutines.flow.onStart
 import androidx.compose.ui.platform.testTag
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
@@ -131,6 +136,8 @@ data class HistoryUiState(
     val selectedApps: List<AppShare> = emptyList(),
     /** Total per local hour of the day over the last 12 weeks, for all apps. */
     val hourTotals: LongArray = LongArray(24),
+    /** The plan cycle so far against its allowance; null without an active plan. */
+    val planPace: PlanPace? = null,
 )
 
 /** What the selected card shows: the latest bucket, a chart bar, or a calendar day. */
@@ -177,6 +184,7 @@ internal fun historyBars(
             title = formatted.title,
             shortLabel = formatted.shortLabel,
             isBoundary = formatted.isBoundary,
+            mobileBytes = point.mobileBytes,
         )
     }
 }
@@ -242,6 +250,7 @@ internal fun buildHistoryUiState(
     topApps: List<AppShare> = emptyList(),
     selectedApps: List<AppShare> = emptyList(),
     hourTotals: LongArray = LongArray(24),
+    planPace: PlanPace? = null,
 ): HistoryUiState {
     val total = points.sumOf { it.totalBytes }
     val activeBuckets = points.count { it.totalBytes > 0 }
@@ -330,7 +339,18 @@ class HistoryViewModel(
     private val clock: Clock = SystemZoneClock(),
     private val locale: Locale = Locale.getDefault(),
     dates: Flow<LocalDate> = DayClock(clock).dates(),
+    plans: PlanRepository? = null,
 ) : ViewModel() {
+    /** The active plan and its forecast (the same numbers Home shows); nothing when there is no plan. */
+    private val planAndForecast: Flow<Pair<PlanState?, Forecast?>> =
+        (plans?.observeActivePlanStates() ?: flowOf(emptyList()))
+            .flatMapLatest { states ->
+                val state = states.firstOrNull()
+                if (state == null || plans == null) flowOf<Pair<PlanState?, Forecast?>>(null to null)
+                else plans.observeForecast(state.plan.id).map { state to it }
+            }
+            .onStart { emit(null to null) }
+
     private val granularity = MutableStateFlow(Granularity.DAY)
     private val selectedBar = MutableStateFlow<Int?>(null)
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
@@ -348,6 +368,8 @@ class HistoryViewModel(
         val rows: List<DayUsage>,
         val hours: LongArray,
         val topApps: List<AppShare>,
+        val planState: PlanState? = null,
+        val forecast: Forecast? = null,
     )
 
     val uiState: StateFlow<HistoryUiState> = combine(dates, granularity) { date, g -> date to g }
@@ -381,6 +403,8 @@ class HistoryViewModel(
                     hours = hourTotalsOf(hourPoints, zone),
                     topApps = topAppsWithChange(apps, previous),
                 )
+            }.let { base ->
+                combine(base, planAndForecast) { e, pf -> e.copy(planState = pf.first, forecast = pf.second) }
             }
             val selection = combine(selectedBar, selectedDate) { bar, day -> bar to day }
             // The apps of the selected bucket or day (the latest bucket by default).
@@ -419,6 +443,7 @@ class HistoryViewModel(
                     needsUsageAccess = !perm.usageAccess, selectedIndex = validSel,
                     today = date, rows = e.rows, selection = selection,
                     topApps = e.topApps, selectedApps = apps, hourTotals = e.hours,
+                    planPace = cyclePace(e.planState, e.forecast, e.rows, date, zone),
                 )
             }
         }
@@ -484,6 +509,7 @@ fun HistoryContent(
 ) {
     val palette = LocalEmberbytePalette.current
     val motion = rememberEmberbyteMotion()
+    val seen = remember { mutableSetOf<String>() }
     val unit = when (state.granularity) {
         Granularity.WEEK -> "week"
         Granularity.MONTH -> "month"
@@ -552,11 +578,12 @@ fun HistoryContent(
                         scrollKey = state.granularity,
                         summaryDescription = summary,
                         todayIndex = if (state.granularity == Granularity.DAY) state.bars.lastIndex else null,
+                        averageBytes = if (state.bars.isEmpty()) null else state.bars.sumOf { it.bytes } / state.bars.size,
                         modifier = emberbyteAnimateItem(motion),
                     )
                 }
 
-                item(key = "selected_card") { SelectedCard(state, emberbyteAnimateItem(motion)) }
+                item(key = "selected_card") { SelectedCard(state, emberbyteAnimateItem(motion).revealOnce("selected", seen, 0)) }
 
                 item(key = "sentence") {
                     val total = state.rows.sumOf { it.totalBytes }
@@ -571,7 +598,7 @@ fun HistoryContent(
                     }
                 }
 
-                item(key = "tiles") { HistoryTiles(state, emberbyteAnimateItem(motion)) }
+                item(key = "tiles") { HistoryTiles(state, emberbyteAnimateItem(motion).revealOnce("tiles", seen, 1)) }
 
                 if (state.rows.isNotEmpty()) {
                     item(key = "calendar") {
@@ -581,28 +608,32 @@ fun HistoryContent(
                             selected = (state.selection as? HistorySelection.Day)?.date,
                             units = state.units,
                             onSelect = { onEvent(HistoryEvent.SelectDay(it)) },
-                            modifier = emberbyteAnimateItem(motion),
+                            modifier = emberbyteAnimateItem(motion).revealOnce("calendar", seen, 0),
                         )
                     }
-                    item(key = "weekday") { WeekdayPattern(state.rows, state.units, emberbyteAnimateItem(motion)) }
+                    item(key = "weekday") { WeekdayPattern(state.rows, state.units, emberbyteAnimateItem(motion).revealOnce("weekday", seen, 0)) }
                 }
 
                 if (!state.needsUsageAccess && state.hourTotals.any { it > 0L }) {
                     item(key = "hours") {
-                        HourPattern(state.hourTotals, state.units, emberbyteAnimateItem(motion), title = "When you use data, by hour", perDay = 84)
+                        HourPattern(state.hourTotals, state.units, emberbyteAnimateItem(motion).revealOnce("hours", seen, 0), title = "When you use data, by hour", perDay = 84)
                     }
                 }
 
+                state.planPace?.let { pace ->
+                    item(key = "cycle_pace") { CyclePaceChart(pace, emberbyteAnimateItem(motion).revealOnce("pace", seen, 0)) }
+                }
+
                 item(key = "mobile_share") {
-                    MobileShareChart(mobileShareSeries(state.points), emberbyteAnimateItem(motion))
+                    MobileShareChart(mobileShareSeries(state.points), emberbyteAnimateItem(motion).revealOnce("mobile", seen, 0))
                 }
 
                 if (state.rows.isNotEmpty()) {
-                    item(key = "records") { HistoryRecords(state.rows, state.hourTotals, state.units, emberbyteAnimateItem(motion)) }
+                    item(key = "records") { HistoryRecords(state.rows, state.hourTotals, state.units, emberbyteAnimateItem(motion).revealOnce("records", seen, 0)) }
                 }
 
                 if (!state.needsUsageAccess && state.topApps.isNotEmpty()) {
-                    item(key = "top_apps") { HistoryTopApps(state.topApps, state.units, onOpenApp, emberbyteAnimateItem(motion)) }
+                    item(key = "top_apps") { HistoryTopApps(state.topApps, state.units, onOpenApp, emberbyteAnimateItem(motion).revealOnce("topapps", seen, 0)) }
                 }
             }
 

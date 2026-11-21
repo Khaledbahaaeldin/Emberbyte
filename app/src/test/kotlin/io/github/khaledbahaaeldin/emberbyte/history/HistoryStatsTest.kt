@@ -135,4 +135,61 @@ class HistoryStatsTest {
         assertEquals(0f, top[1].change!!, 1e-4f)
         assertNull(topAppsWithChange(now, emptyList(), 3)[2].change)
     }
+
+    @Test
+    fun bars_carry_their_mobile_part_so_the_chart_can_stack_them() {
+        val bars = historyBars(listOf(point(friday, 1_000, mobile = 250)), Granularity.DAY, io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits.DECIMAL, utc, java.util.Locale.ENGLISH)
+        assertEquals(250L, bars.single().mobileBytes)
+        assertEquals(1_000L, bars.single().bytes)
+    }
+
+    private fun planState(cap: Long, used: Long, start: LocalDate, end: LocalDate): io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState {
+        val plan = io.github.khaledbahaaeldin.emberbyte.engine.model.Plan(
+            id = 1, name = "Main", subscriptionId = null, capBytes = cap,
+            cycle = io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle.MonthlyOnDay(1, java.time.LocalTime.MIDNIGHT, utc),
+            rollover = io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover.None,
+        )
+        return io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState(
+            plan = plan,
+            window = io.github.khaledbahaaeldin.emberbyte.engine.model.CycleWindow(start.atStartOfDay(utc).toInstant(), end.atStartOfDay(utc).toInstant()),
+            effectiveCapBytes = cap, usedBytes = used, remainingBytes = cap - used, rolledOverBytes = 0, addOnBytes = 0,
+            freeBytes = 0, daysLeft = 0, fractionUsed = used.toFloat() / cap, isApproximate = false,
+        )
+    }
+
+    private fun forecast(projected: Long) = io.github.khaledbahaaeldin.emberbyte.engine.model.Forecast(
+        planId = 1, runOutEarliest = null, runOutExpected = null, runOutLatest = null,
+        projectedCycleEndBytes = projected, confidence = io.github.khaledbahaaeldin.emberbyte.engine.model.Confidence.MEDIUM, historyDays = 20,
+    )
+
+    @Test
+    fun cycle_pace_projects_the_end_of_the_cycle() {
+        val start = LocalDate.of(2026, 11, 1)
+        val rows = (0..19).map { day(start.plusDays(it.toLong()), 400L, mobile = 225L) } // 20 days, 4.5 GB in MB units
+        val pace = cyclePace(planState(8_000L, 4_500L, start, start.plusDays(30)), forecast(9_100L), rows, start.plusDays(19), utc)!!
+        assertEquals(20, pace.dayOfCycle)
+        assertEquals(30, pace.cycleDays)
+        assertEquals(20, pace.cumulative.size)
+        assertEquals(4_500L, pace.cumulative.last())
+        assertEquals(9_100L, pace.projectedEndBytes)
+        assertTrue(pace.willPass)
+        assertTrue("passes before the cycle ends (day ${pace.passDay})", pace.passDay!! in 20..29)
+        assertTrue(pace.text, pace.text.contains("will pass the plan around day"))
+    }
+
+    @Test
+    fun cycle_pace_says_under_when_the_projection_fits() {
+        val start = LocalDate.of(2026, 11, 1)
+        val rows = (0..9).map { day(start.plusDays(it.toLong()), 100L, mobile = 50L) }
+        val pace = cyclePace(planState(8_000L, 500L, start, start.plusDays(30)), forecast(1_500L), rows, start.plusDays(9), utc)!!
+        assertEquals(false, pace.willPass)
+        assertNull(pace.passDay)
+        assertTrue(pace.text, pace.text.contains("under the plan"))
+    }
+
+    @Test
+    fun cycle_pace_is_null_without_a_plan() {
+        assertNull(cyclePace(null, null, emptyList(), friday, utc))
+        assertNull(cyclePace(planState(0L, 0L, friday, friday.plusDays(30)), null, emptyList(), friday, utc))
+    }
 }

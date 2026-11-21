@@ -36,6 +36,8 @@ class AppDetailScreenTest {
     @get:Rule
     val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val sampleState = sampleDetail()
 
     private fun show(state: AppDetailUiState = sampleState, onEvent: (AppDetailEvent) -> Unit = {}, onSettings: (() -> Unit)? = null) {

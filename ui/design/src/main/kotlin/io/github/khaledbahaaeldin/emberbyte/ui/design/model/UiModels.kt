@@ -29,6 +29,8 @@ data class BarUi(
     val title: String? = null,
     val shortLabel: String? = null,
     val isBoundary: Boolean = false,
+    /** The mobile part of [bytes]; when above zero the bar is stacked (Wi-Fi below, mobile above). */
+    val mobileBytes: Long = 0L,
 )
 
 data class PermissionPromptUi(val id: String, val title: String, val body: String, val actionLabel: String)

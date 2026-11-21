@@ -23,11 +23,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -44,6 +46,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.HistoryType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.DayUsage
@@ -165,10 +168,24 @@ internal fun ActivityCalendar(
                                 val total = day?.totalBytes ?: 0L
                                 val isSelected = selected == date
                                 val label = "${date.dayOfWeek.getDisplayName(TextStyle.FULL, locale)} ${date.dayOfMonth} ${date.month.getDisplayName(TextStyle.FULL, locale)}, ${spokenBytes(total, units)}"
+                                val reduceCells = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion.current
+                                val pop = remember { androidx.compose.animation.core.Animatable(if (reduceCells || !RevealGate.enabled) 1f else 0f) }
+                                androidx.compose.runtime.LaunchedEffect(Unit) {
+                                    if (pop.value < 1f) {
+                                        kotlinx.coroutines.delay(20L * (week + weekday))
+                                        pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 400f))
+                                    }
+                                }
                                 Box(
                                     Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
+                                        .graphicsLayer {
+                                            val scale = 0.3f + 0.7f * pop.value
+                                            scaleX = scale
+                                            scaleY = scale
+                                            alpha = pop.value.coerceIn(0f, 1f)
+                                        }
                                         .clip(MaterialTheme.shapes.extraSmall)
                                         .background(palette.primary.copy(alpha = calendarIntensity(total, max)))
                                         .then(if (date == today) Modifier.border(2.dp, palette.text, MaterialTheme.shapes.extraSmall) else Modifier)
@@ -218,8 +235,16 @@ internal fun WeekdayPattern(rows: List<DayUsage>, units: ByteUnits, modifier: Mo
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text("${amount.value}", style = MaterialTheme.typography.labelSmall, color = palette.muted, maxLines = 1)
+                        val reduceBars = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion.current
+                        val grow = remember { androidx.compose.animation.core.Animatable(if (reduceBars || !RevealGate.enabled) 1f else 0f) }
+                        androidx.compose.runtime.LaunchedEffect(Unit) {
+                            if (grow.value < 1f) {
+                                kotlinx.coroutines.delay(70L * index)
+                                grow.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 300f))
+                            }
+                        }
                         Box(
-                            Modifier.fillMaxWidth().fillMaxHeight(0.7f * value / max + 0.04f).clip(MaterialTheme.shapes.small)
+                            Modifier.fillMaxWidth().fillMaxHeight((0.7f * value / max + 0.04f) * grow.value.coerceAtLeast(0.01f)).clip(MaterialTheme.shapes.small)
                                 .background(palette.primary.copy(alpha = if (weekend) 1f else 0.35f)),
                         )
                         Text(day.getDisplayName(TextStyle.NARROW, locale), style = MaterialTheme.typography.labelSmall, color = palette.muted)
@@ -250,6 +275,11 @@ internal fun MobileShareChart(shares: List<Float>, modifier: Modifier = Modifier
         last > first -> "Mobile is ${(last * 100).roundToInt()}% of your usage now, up from ${(first * 100).roundToInt()}% at the start."
         else -> "Mobile is ${(last * 100).roundToInt()}% of your usage now, down from ${(first * 100).roundToInt()}% at the start."
     }
+    val reduceMotion = io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion.current
+    val progress = remember { androidx.compose.animation.core.Animatable(if (reduceMotion || !RevealGate.enabled) 1f else 0f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (progress.value < 1f) progress.animateTo(1f, androidx.compose.animation.core.tween(1400))
+    }
     DetailCard(modifier = modifier.testTag("history_mobile_card"), corner = Corner.BottomEnd) {
         Text("Mobile share over time", style = EmberbyteType.grotesk(HistoryType.CardTitle, 700), color = palette.text)
         ForceLtr {
@@ -266,9 +296,13 @@ internal fun MobileShareChart(shares: List<Float>, modifier: Modifier = Modifier
                     }
                 }
                 val area = Path().apply { addPath(line); lineTo(x(shares.size - 1), size.height); lineTo(0f, size.height); close() }
-                drawPath(area, Brush.verticalGradient(listOf(palette.primary.copy(alpha = 0.22f), palette.primary.copy(alpha = 0f))))
-                drawPath(line, palette.primary, style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round))
-                drawCircle(palette.primary, 5.dp.toPx(), Offset(x(shares.size - 1), y(shares.last())))
+                // The line draws itself first; the area fades in after 0.9 s of the 1.4 s.
+                val areaAlpha = ((progress.value - 0.64f) / 0.36f).coerceIn(0f, 1f)
+                drawPath(area, Brush.verticalGradient(listOf(palette.primary.copy(alpha = 0.22f * areaAlpha), palette.primary.copy(alpha = 0f))))
+                clipRect(right = size.width * progress.value) {
+                    drawPath(line, palette.primary, style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round))
+                }
+                if (progress.value >= 0.99f) drawCircle(palette.primary, 5.dp.toPx(), Offset(x(shares.size - 1), y(shares.last())))
             }
         }
         Text(summary, style = EmberbyteType.grotesk(HistoryType.Label, 600), color = palette.text, modifier = Modifier.testTag("history_mobile_summary"))
@@ -428,5 +462,49 @@ internal fun SelectedCard(state: HistoryUiState, modifier: Modifier = Modifier) 
                 ForceLtr { Text("${amount.value} ${amount.unit}", style = EmberbyteType.grotesk(HistoryType.Label, 700), color = palette.text) }
             }
         }
+    }
+}
+
+/** Cycle vs plan: cumulative mobile use, the even-pace line to the allowance and a dashed projection. */
+@Composable
+internal fun CyclePaceChart(pace: PlanPace, modifier: Modifier = Modifier) {
+    val palette = LocalEmberbytePalette.current
+    val reduce = androidx.compose.ui.platform.LocalConfiguration.current.let { io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion.current }
+    val draw = remember { androidx.compose.animation.core.Animatable(if (reduce || !RevealGate.enabled) 1f else 0f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (draw.value < 1f) draw.animateTo(1f, androidx.compose.animation.core.tween(1400))
+    }
+    val projectionColour = if (pace.willPass) palette.warn else palette.accent
+    DetailCard(modifier = modifier.testTag("history_pace_card"), corner = Corner.TopStart) {
+        Text("This cycle vs your plan", style = EmberbyteType.grotesk(HistoryType.CardTitle, 700), color = palette.text)
+        ForceLtr {
+            Canvas(Modifier.fillMaxWidth().height(110.dp).testTag("history_pace_chart")) {
+                val maxY = maxOf(pace.allowanceBytes, pace.projectedEndBytes, pace.usedBytes).toFloat().coerceAtLeast(1f)
+                fun x(day: Int) = size.width * day / pace.cycleDays
+                fun y(bytes: Long) = size.height - (size.height - 8.dp.toPx()) * (bytes / maxY) - 4.dp.toPx()
+                // Even pace to the allowance (dotted).
+                drawLine(
+                    palette.muted, Offset(0f, y(0)), Offset(size.width, y(pace.allowanceBytes)),
+                    strokeWidth = 1.5.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(2f, 8f)),
+                )
+                // Used so far.
+                val line = Path().apply {
+                    moveTo(x(0), y(0))
+                    pace.cumulative.forEachIndexed { i, v -> lineTo(x(i + 1), y(v)) }
+                }
+                clipRect(right = size.width * draw.value) {
+                    drawPath(line, palette.primary, style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round))
+                }
+                // Projection to the end of the cycle (dashed).
+                if (draw.value >= 0.99f) {
+                    drawLine(
+                        projectionColour, Offset(x(pace.dayOfCycle), y(pace.usedBytes)), Offset(x(pace.cycleDays), y(pace.projectedEndBytes)),
+                        strokeWidth = 2.5.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f)),
+                    )
+                }
+                drawCircle(palette.primary, 5.dp.toPx(), Offset(x(pace.dayOfCycle), y(pace.usedBytes)))
+            }
+        }
+        Text(pace.text, style = EmberbyteType.grotesk(HistoryType.Label, 600), color = palette.text, modifier = Modifier.testTag("history_pace_text"))
     }
 }

@@ -50,6 +50,8 @@ class AppDetailAccessibilityTest {
     @get:Rule
     val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val sampleAppDetailState = AppDetailUiState(
         packageName = "com.video",
         label = "Video",

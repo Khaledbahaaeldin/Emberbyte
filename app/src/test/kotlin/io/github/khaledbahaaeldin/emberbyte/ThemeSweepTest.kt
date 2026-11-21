@@ -49,6 +49,8 @@ import org.robolectric.annotation.Config
 class ThemeSweepTest {
     @get:Rule val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val allPresets = listOf(
         "dusk", "ember", "monochrome", "catppuccin", "gruvbox", "nord",
         "rosepine", "solarized", "dracula", "tokyonight", "everforest", "kanagawa"

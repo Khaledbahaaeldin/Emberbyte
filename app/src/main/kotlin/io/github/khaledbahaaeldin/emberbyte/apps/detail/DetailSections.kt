@@ -26,6 +26,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,6 +80,7 @@ internal fun DetailHeader(
     icon: androidx.compose.ui.graphics.ImageBitmap?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    collapseProgress: () -> Float = { 0f },
 ) {
     val palette = LocalEmberbytePalette.current
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -92,12 +96,32 @@ internal fun DetailHeader(
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = palette.text)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            val reduce = LocalReduceMotion.current
+            val motion = rememberEmberbyteMotion()
+            val entrance = remember { Animatable(if (reduce) 1f else 0f) }
+            val titleIn = remember { Animatable(if (reduce) 1f else 0f) }
+            LaunchedEffect(reduce) {
+                if (!reduce) {
+                    launch { entrance.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.5f, stiffness = 180f)) }
+                    kotlinx.coroutines.delay(200)
+                    titleIn.animateTo(1f, motion.effects())
+                }
+            }
             io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon(
                 label = state.label.ifEmpty { state.packageName },
                 icon = icon,
                 shape = io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor(state.packageName),
                 size = 76.dp,
-                modifier = Modifier.testTag("detail_icon"),
+                modifier = Modifier
+                    .graphicsLayer {
+                        // The icon springs in with a 40 degree turn, then shrinks to 65 percent as the header collapses.
+                        val collapse = 1f - 0.35f * collapseProgress()
+                        val p = entrance.value
+                        scaleX = p * collapse
+                        scaleY = p * collapse
+                        rotationZ = 40f * (1f - p)
+                    }
+                    .testTag("detail_icon"),
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -106,7 +130,14 @@ internal fun DetailHeader(
                     color = palette.text,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() }.testTag("detail_title"),
+                    modifier = Modifier
+                        .graphicsLayer {
+                            val p = titleIn.value
+                            alpha = p
+                            translationX = 14.dp.toPx() * (1f - p)
+                        }
+                        .semantics { heading() }
+                        .testTag("detail_title"),
                 )
                 if (state.label.isNotEmpty() && state.label != state.packageName) {
                     Text(
@@ -413,10 +444,24 @@ fun HourPattern(
             ) {
                 Row(Modifier.fillMaxWidth().height(46.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     hours.forEachIndexed { hour, value ->
+                        val reduceCells = LocalReduceMotion.current
+                        val pop = remember { Animatable(if (reduceCells || !RevealGate.enabled) 1f else 0f) }
+                        LaunchedEffect(Unit) {
+                            if (pop.value < 1f) {
+                                kotlinx.coroutines.delay(30L * hour)
+                                pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 400f))
+                            }
+                        }
                         Box(
                             Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
+                                .graphicsLayer {
+                                    val scale = 0.3f + 0.7f * pop.value
+                                    scaleX = scale
+                                    scaleY = scale
+                                    alpha = pop.value.coerceIn(0f, 1f)
+                                }
                                 .clip(MaterialTheme.shapes.extraSmall)
                                 .background(palette.primary.copy(alpha = hourIntensity(value, max)))
                                 .then(if (selected == hour) Modifier.background(palette.text.copy(alpha = 0.25f)) else Modifier)
