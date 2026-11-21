@@ -111,6 +111,29 @@ class HomeLayoutTest {
     }
 
     @Test
+    fun home_brand_mark_is_44dp() {
+        show(HomeUiState())
+        rule.onNodeWithTag("home_brand_mark").assertIsDisplayed()
+        val bounds = rule.onNodeWithTag("home_brand_mark").getBoundsInRoot()
+        assertEquals(44f, (bounds.right - bounds.left).value, 0.5f)
+        assertEquals(44f, (bounds.bottom - bounds.top).value, 0.5f)
+    }
+
+    @Test
+    fun home_title_stays_a_heading_beside_the_mark() {
+        show(HomeUiState())
+        rule.onNode(hasText("Today") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun home_badge_spin_follows_the_live_rate() {
+        assertEquals(8f, homeBadgeSpinDegPerSec(HomeUiState(throughputBps = 0L)), 0.001f)
+        assertEquals(63.2f, homeBadgeSpinDegPerSec(HomeUiState(throughputBps = 1_200_000L)), 0.01f)
+        assertEquals(238f, homeBadgeSpinDegPerSec(HomeUiState(throughputBps = 9_000_000L)), 0.01f)
+    }
+
+    @Test
     fun hero_number_is_one_node_reading_used_and_left() {
         val state = HomeUiState(
             heroBytes = 1_380_000_000L,

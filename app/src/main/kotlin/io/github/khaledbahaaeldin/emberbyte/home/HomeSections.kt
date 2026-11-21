@@ -42,7 +42,9 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroEntrance
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.badgeSpinDegPerSec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.progress.WavyBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
@@ -81,6 +83,10 @@ internal fun HomeHeader(
     }
 }
 
+/** The unit badge turns with the live rate shown on the Live tile; an unknown or zero rate idles slowly. */
+internal fun homeBadgeSpinDegPerSec(state: HomeUiState): Float =
+    badgeSpinDegPerSec(state.throughputBps / 1_000_000f)
+
 @Composable
 internal fun HomeHeroSection(
     state: HomeUiState,
@@ -101,6 +107,8 @@ internal fun HomeHeroSection(
             unit = formatted.unit,
             contentDescription = state.heroDescription,
             color = palette.primary,
+            entrance = HeroEntrance.WeightBloom,
+            badgeSpinDegPerSec = homeBadgeSpinDegPerSec(state),
         )
 
         EmberbyteAnimatedVisibility(visible = state.heroBytes > 0L) {
