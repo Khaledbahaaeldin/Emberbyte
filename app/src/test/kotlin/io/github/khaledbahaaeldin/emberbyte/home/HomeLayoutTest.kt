@@ -4,17 +4,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -24,17 +31,22 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
+import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastKind
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -68,6 +80,34 @@ class HomeLayoutTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun home_screen_renders_inside_screen_scaffold_with_scrim() {
+        var state by mutableStateOf(HomeUiState())
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = state,
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                    onNavigateToApps = {},
+                )
+            }
+        }
+        rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
+        rule.onNode(hasText("Today") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
+
+        state = state.copy(isToday = false, heroLabel = "Wednesday")
+        rule.waitForIdle()
+        rule.onNode(hasText("Wednesday") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
+        rule.onNodeWithText("Today").assertDoesNotExist()
     }
 
     @Test
@@ -306,5 +346,268 @@ class HomeLayoutTest {
         rule.onNodeWithTag("home_loading_indicator").assertIsDisplayed()
         rule.onNodeWithText("0").assertDoesNotExist()
         rule.onNodeWithText("0 B").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun home_links_use_link_text_and_meet_aa_contrast_across_all_palettes() {
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedLinkColor = Color.Unspecified
+        var expectedSurface2 = Color.Unspecified
+        var expectedBackground = Color.Unspecified
+        var expectedOnAccent = Color.Unspecified
+        var expectedAccent = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedLinkColor = palette.linkText
+                    expectedSurface2 = palette.surface2
+                    expectedBackground = palette.background
+                    expectedOnAccent = palette.onAccent
+                    expectedAccent = palette.accent
+                }
+                HomeContent(
+                    state = HomeUiState(
+                        hasPlan = false,
+                        planLine = null,
+                        subtitle = null,
+                        spike = SpikeTileUi(
+                            id = 1L,
+                            packageName = "com.video",
+                            title = "Video spiked",
+                            detail = "3x normal today",
+                        ),
+                    ),
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                )
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+                val linkPairs = listOf(
+                    "See all" to expectedSurface2,
+                    "Set up a plan" to expectedBackground,
+                    "Set up your data plan" to expectedSurface2,
+                )
+                for ((label, bg) in linkPairs) {
+                    val results = mutableListOf<TextLayoutResult>()
+                    rule.onNodeWithText(label, useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                    val actualColor = results.first().layoutInput.style.color
+                    assertEquals(
+                        "$label must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                        expectedLinkColor,
+                        actualColor,
+                    )
+                    val fg = actualColor.compositeOver(bg)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = bg.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$label on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
+                for (accentLabel in listOf("3x normal today", "Dismiss")) {
+                    val results = mutableListOf<TextLayoutResult>()
+                    rule.onNodeWithText(accentLabel, useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                    val actualColor = results.first().layoutInput.style.color
+                    assertEquals(
+                        "$accentLabel must bind to palette.onAccent on ${preset.id} dark=$dark amoled=$amoled",
+                        expectedOnAccent,
+                        actualColor,
+                    )
+                    val fg = actualColor.compositeOver(expectedAccent)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = expectedAccent.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$accentLabel on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on accent, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp")
+    fun home_bento_row_forecast_exit_never_crushes_speed_tile() {
+        val sampleForecast = ForecastUi(
+            headline = "3 days left",
+            detail = "On pace to finish under",
+            confidence = "High",
+            kind = ForecastKind.Safe,
+        )
+        var state by mutableStateOf(HomeUiState(forecast = sampleForecast))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = state,
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        val initialSpeedBounds = rule.onNodeWithTag("home_speed_tile").getBoundsInRoot()
+        val initialSpeedWidth = (initialSpeedBounds.right - initialSpeedBounds.left).value
+        assertTrue("Initial speed tile container width must be >= 150dp, was $initialSpeedWidth", initialSpeedWidth >= 150f)
+
+        state = state.copy(forecast = null)
+        repeat(15) {
+            rule.mainClock.advanceTimeBy(16)
+            val bounds = rule.onNodeWithTag("home_speed_tile").getBoundsInRoot()
+            val width = (bounds.right - bounds.left).value
+            assertTrue(
+                "Speed tile must never be crushed during ForecastTile exit, saw width=$width",
+                width >= initialSpeedWidth - 1f,
+            )
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp")
+    fun home_bento_row_and_hero_snap_under_reduced_motion() {
+        val sampleForecast = ForecastUi(
+            headline = "3 days left",
+            detail = "On pace to finish under",
+            confidence = "High",
+            kind = ForecastKind.Safe,
+        )
+        var state by mutableStateOf(HomeUiState(forecast = null, isEstimated = false))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    HomeContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenSettings = {},
+                        onOpenHistory = {},
+                        onPromptAction = {},
+                        onOpenApp = {},
+                        onSetUpPlan = {},
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("3 days left").assertDoesNotExist()
+        rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
+
+        state = state.copy(forecast = sampleForecast, isEstimated = true)
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithText("3 days left").assertIsDisplayed()
+        rule.onNodeWithText("Data usage is estimated").assertIsDisplayed()
+
+        state = state.copy(forecast = null, isEstimated = false)
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithText("3 days left").assertDoesNotExist()
+        rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
+    }
+
+    @Test
+    fun home_loading_crossfade_snaps_under_reduced_motion() {
+        var state by mutableStateOf(HomeUiState(isLoading = true))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    HomeContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenSettings = {},
+                        onOpenHistory = {},
+                        onPromptAction = {},
+                        onOpenApp = {},
+                        onSetUpPlan = {},
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithTag("home_loading_indicator").assertIsDisplayed()
+
+        // Snaps out of loading within 2 frames (32ms)
+        state = state.copy(isLoading = false, heroBytes = 1_000_000_000L, heroDescription = "1 GB used today")
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithTag("home_loading_indicator").assertDoesNotExist()
+        rule.onNodeWithText("Today by network").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun font_scale_2_full_sections_no_clip() {
+        val sampleForecast = ForecastUi(
+            headline = "3 days left",
+            detail = "On pace to finish under",
+            confidence = "High",
+            kind = ForecastKind.Safe,
+        )
+        val state = HomeUiState(
+            heroBytes = 200_000_000_000L,
+            heroDescription = "200 gigabytes used today",
+            mobileBytes = 100_000_000_000L,
+            wifiBytes = 100_000_000_000L,
+            forecast = sampleForecast,
+            hasPlan = false,
+            planLine = null,
+            subtitle = null,
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    HomeContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenSettings = {},
+                        onOpenHistory = {},
+                        onPromptAction = {},
+                        onOpenApp = {},
+                        onSetUpPlan = {},
+                    )
+                }
+            }
+        }
+        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "Wi-Fi 100 GB", "See all", "Set up a plan")) {
+            val node = rule.onNodeWithText(label, useUnmergedTree = true)
+            node.assertIsDisplayed()
+            val bounds = node.getBoundsInRoot()
+            assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
+            assertTrue("$label must have positive size", (bounds.right - bounds.left).value > 0f && (bounds.bottom - bounds.top).value > 0f)
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertEquals("$label must stay on a single line", 1, layouts.first().lineCount)
+        }
     }
 }

@@ -5,9 +5,12 @@ import androidx.compose.animation.core.SnapSpec
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -112,5 +115,72 @@ class WavyRingTest {
             }
         }
         assertTrue("Spec must be snap() when reduce motion is enabled", capturedSpec is SnapSpec)
+    }
+
+    @Test
+    fun wavy_ring_grows_from_zero() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = 1f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                WavyRing(
+                    fraction = 0.8f,
+                    state = BudgetStateUi.Ok,
+                    size = 72.dp,
+                    label = "80%",
+                    modifier = androidx.compose.ui.Modifier.testTag("ring"),
+                    onAnimatedSweepChanged = { animatedSweep = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertTrue("Wavy ring should start from 0 on first show: $animatedSweep", animatedSweep < 0.8f)
+    }
+
+    @Test
+    fun wavy_ring_respects_delay_millis() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = 1f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                WavyRing(
+                    fraction = 0.8f,
+                    state = BudgetStateUi.Ok,
+                    size = 72.dp,
+                    label = "80%",
+                    delayMillis = 40,
+                    modifier = androidx.compose.ui.Modifier.testTag("ring"),
+                    onAnimatedSweepChanged = { animatedSweep = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(0f, animatedSweep, 0.0001f)
+        rule.mainClock.advanceTimeBy(30)
+        assertEquals(0f, animatedSweep, 0.0001f)
+        rule.mainClock.advanceTimeBy(30)
+        assertTrue("Animated sweep should advance after delay: $animatedSweep", animatedSweep > 0f)
+    }
+
+    @Test
+    fun rings_snap_when_reduced() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = 0f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    WavyRing(
+                        fraction = 0.8f,
+                        state = BudgetStateUi.Ok,
+                        size = 72.dp,
+                        label = "80%",
+                        modifier = androidx.compose.ui.Modifier.testTag("ring"),
+                        onAnimatedSweepChanged = { animatedSweep = it },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(0.8f, animatedSweep, 0.001f)
     }
 }

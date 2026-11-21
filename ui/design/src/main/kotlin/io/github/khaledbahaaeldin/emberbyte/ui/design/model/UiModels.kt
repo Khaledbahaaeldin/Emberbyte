@@ -21,7 +21,15 @@ data class AppRowUi(
 }
 
 /** [description] is the spoken form, e.g. "Wednesday, 2.10 gigabytes". */
-data class BarUi(val label: String, val bytes: Long, val description: String)
+data class BarUi(
+    val label: String,
+    val bytes: Long,
+    val description: String,
+    val valueText: String = "",
+    val title: String? = null,
+    val shortLabel: String? = null,
+    val isBoundary: Boolean = false,
+)
 
 data class PermissionPromptUi(val id: String, val title: String, val body: String, val actionLabel: String)
 

@@ -35,5 +35,15 @@
     <string name="settings_updates_title">Updates</string>
     <string name="settings_updates_managed_by">%1$s keeps Emberbyte up to date</string>
     <string name="settings_updates_check_github">You have %1$s. Tap to see the latest release on GitHub. Emberbyte never goes online by itself, so it cannot tell you when one appears.</string>
+    <string name="history_last_14_days">Last 14 days</string>
+    <string name="history_last_12_weeks">Last 12 weeks</string>
+    <string name="history_last_12_months">Last 12 months</string>
+    <string name="history_active_days">Active days</string>
+    <string name="history_total">Total</string>
+    <string name="history_no_previous_period">No previous period</string>
+    <string name="history_no_previous_week">No previous week</string>
+    <string name="history_no_previous_month">No previous month</string>
+    <string name="home_includes_system_traffic">Includes system traffic</string>
+    <string name="home_hero_label_today">Today</string>
 </resources>
 

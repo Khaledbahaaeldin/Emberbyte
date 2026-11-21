@@ -1,49 +1,56 @@
 package io.github.khaledbahaaeldin.emberbyte.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.progress.WavyBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.ForecastTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NoticeLine
@@ -55,59 +62,21 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 @Composable
 internal fun HomeHeader(
     state: HomeUiState,
-    onOpenSettings: () -> Unit,
     onSelectPlan: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalEmberbytePalette.current
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                BrandMark(size = 32.dp)
-                Text(
-                    text = state.heroLabel,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = palette.text,
-                )
-            }
-            IconButton(
-                onClick = onOpenSettings,
-                shapes = IconButtonDefaults.shapes(),
-                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = "Settings",
-                )
-            }
-        }
-
-        if (state.planChips.size >= 2) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                state.planChips.forEach { chip ->
-                    EmberbyteFilterChip(
-                        selected = chip.selected,
-                        onClick = { onSelectPlan(chip.id) },
-                        label = { Text(chip.name) },
-                    )
-                }
-            }
+        state.planChips.forEach { chip ->
+            EmberbyteFilterChip(
+                selected = chip.selected,
+                onClick = { onSelectPlan(chip.id) },
+                label = { Text(chip.name) },
+            )
         }
     }
 }
@@ -119,32 +88,13 @@ internal fun HomeHeroSection(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-
-    if (state.topAppsLocked) {
-        // Hero figures hidden when permission is missing
-        return
-    }
-
-    if (state.isLoading) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .testTag("home_loading_indicator"),
-            contentAlignment = Alignment.Center,
-        ) {
-            LoadingState(label = "Loading today's usage")
-        }
-        return
-    }
-
     val formatted = formatBytes(state.heroBytes, state.units)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .testTag("hero_section"),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         HeroNumber(
             value = formatted.value,
@@ -153,37 +103,62 @@ internal fun HomeHeroSection(
             color = palette.primary,
         )
 
+        EmberbyteAnimatedVisibility(visible = state.heroBytes > 0L) {
+            Text(
+                text = stringResource(R.string.home_includes_system_traffic),
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.muted,
+            )
+        }
+
         val lineText = state.planLine ?: state.subtitle
-        if (lineText != null) {
-            ForceLtr {
-                Text(
-                    text = lineText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = palette.text,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            if (state.hasPlan) {
-                WavyBar(
-                    fraction = state.planFraction,
-                    color = palette.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        } else if (!state.hasPlan) {
-            TextButton(
-                onClick = onSetUpPlan,
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-            ) {
-                Text(
-                    text = "Set up a plan",
-                    color = palette.primary,
-                    style = MaterialTheme.typography.labelLarge,
-                )
+        val lastLineText = rememberRetainedWhen(lineText) { it != null }
+        EmberbyteCrossfade(
+            targetState = when {
+                lineText != null -> HeroStatusKind.Line
+                !state.hasPlan -> HeroStatusKind.SetupPrompt
+                else -> HeroStatusKind.None
+            },
+        ) { statusState ->
+            when (statusState) {
+                HeroStatusKind.Line -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        (lineText ?: lastLineText)?.let { text ->
+                            ForceLtr {
+                                Text(
+                                    text = text,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = palette.text,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                        EmberbyteAnimatedVisibility(visible = state.hasPlan) {
+                            WavyBar(
+                                fraction = state.planFraction,
+                                color = palette.primary,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+                HeroStatusKind.SetupPrompt -> {
+                    TextButton(
+                        onClick = onSetUpPlan,
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                    ) {
+                        Text(
+                            text = "Set up a plan",
+                            color = palette.linkText,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+                HeroStatusKind.None -> Unit
             }
         }
 
-        if (state.isEstimated) {
+        EmberbyteAnimatedVisibility(visible = state.isEstimated) {
             NoticeLine(
                 text = "Data usage is estimated",
                 modifier = Modifier.padding(top = 4.dp),
@@ -198,7 +173,9 @@ internal fun HomeBentoRow(
     modifier: Modifier = Modifier,
 ) {
     val fontScale = LocalDensity.current.fontScale
-    val hasForecast = state.forecast != null
+    val motion = rememberEmberbyteMotion()
+    val reduceMotion = LocalReduceMotion.current
+    val lastForecast = rememberRetainedWhen(state.forecast) { it != null }
 
     if (fontScale >= 1.5f) {
         Column(
@@ -212,31 +189,53 @@ internal fun HomeBentoRow(
                 units = state.units,
                 modifier = Modifier.fillMaxWidth(),
             )
-            state.forecast?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+            EmberbyteAnimatedVisibility(visible = state.forecast != null) {
+                (state.forecast ?: lastForecast)?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+            }
         }
     } else {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            state.forecast?.let { forecast ->
-                ForecastTile(
-                    model = forecast,
-                    modifier = Modifier.weight(1f),
-                    corner = Corner.TopStart,
-                    container = TileContainer.Accent,
+        BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+            val halfWidth = (maxWidth - 12.dp) / 2
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+            ) {
+                AnimatedVisibility(
+                    visible = state.forecast != null,
+                    enter = if (reduceMotion) {
+                        EnterTransition.None
+                    } else {
+                        expandHorizontally(animationSpec = motion.spatial()) + fadeIn(animationSpec = motion.effects())
+                    },
+                    exit = if (reduceMotion) {
+                        ExitTransition.None
+                    } else {
+                        shrinkHorizontally(animationSpec = motion.spatial()) + fadeOut(animationSpec = motion.effects())
+                    },
+                ) {
+                    (state.forecast ?: lastForecast)?.let { forecast ->
+                        ForecastTile(
+                            model = forecast,
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .width(halfWidth),
+                            corner = Corner.TopStart,
+                            container = TileContainer.Accent,
+                        )
+                    }
+                }
+                SpeedTile(
+                    rxBps = state.liveRxBps,
+                    txBps = state.liveTxBps,
+                    network = state.network,
+                    units = state.units,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("home_speed_tile"),
+                    corner = Corner.BottomStart,
                 )
             }
-            SpeedTile(
-                rxBps = state.liveRxBps,
-                txBps = state.liveTxBps,
-                network = state.network,
-                units = state.units,
-                modifier = Modifier.weight(1f),
-                corner = Corner.BottomStart,
-            )
         }
     }
 }
@@ -247,7 +246,6 @@ internal fun HomeNetworkTile(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-    val total = formatBytes(state.mobileBytes + state.wifiBytes, state.units)
     val mobile = formatBytes(state.mobileBytes, state.units)
     val wifi = formatBytes(state.wifiBytes, state.units)
 
@@ -266,9 +264,10 @@ internal fun HomeNetworkTile(
                 units = state.units,
             )
             ForceLtr {
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
                         text = "Mobile ${mobile.value} ${mobile.unit}",
@@ -307,43 +306,52 @@ internal fun HomeTopAppsSection(
             ) {
                 Text(
                     text = "See all",
-                    color = palette.primary,
+                    color = palette.linkText,
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
         },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            when {
-                state.topAppsLocked -> {
+        val topAppsState = when {
+            state.topAppsLocked -> TopAppsStateKind.Locked
+            state.topApps.isEmpty() -> TopAppsStateKind.Empty
+            else -> TopAppsStateKind.Content
+        }
+        val lastTopApps = rememberRetainedWhen(state.topApps) { it.isNotEmpty() }
+        EmberbyteCrossfade(targetState = topAppsState, modifier = Modifier.fillMaxWidth()) { displayMode ->
+            when (displayMode) {
+                TopAppsStateKind.Locked -> {
                     Text(
                         text = "Allow usage access to see which apps use your data.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.muted,
                     )
                 }
-                state.topApps.isEmpty() -> {
+                TopAppsStateKind.Empty -> {
                     Text(
                         text = "No per-app data yet. It appears within about 5 minutes once usage access is allowed.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.muted,
                     )
                 }
-                else -> {
-                    val maxBytes = state.topApps.maxOfOrNull { it.totalBytes } ?: 1L
-                    state.topApps.take(5).forEach { app ->
-                        val fraction = if (maxBytes > 0L) app.totalBytes.toFloat() / maxBytes else 0f
-                        AppRow(
-                            icon = icons(app.packageName),
-                            shape = shapeFor(app.packageName),
-                            label = app.label,
-                            bytes = app.totalBytes,
-                            fraction = fraction,
-                            mobileBytes = app.mobileBytes,
-                            wifiBytes = app.wifiBytes,
-                            onClick = { onOpenApp(app.packageName) },
-                            units = state.units,
-                        )
+                TopAppsStateKind.Content -> {
+                    val rows = state.topApps.ifEmpty { lastTopApps }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val maxBytes = rows.maxOfOrNull { it.totalBytes } ?: 1L
+                        rows.take(5).forEach { app ->
+                            val fraction = if (maxBytes > 0L) app.totalBytes.toFloat() / maxBytes else 0f
+                            AppRow(
+                                icon = icons(app.packageName),
+                                shape = shapeFor(app.packageName),
+                                label = app.label,
+                                bytes = app.totalBytes,
+                                fraction = fraction,
+                                mobileBytes = app.mobileBytes,
+                                wifiBytes = app.wifiBytes,
+                                onClick = { onOpenApp(app.packageName) },
+                                units = state.units,
+                            )
+                        }
                     }
                 }
             }
@@ -382,9 +390,50 @@ internal fun HomeHistorySection(
         UsageBarRow(
             points = state.week,
             selectedIndex = state.selectedDay,
-            onSelect = onSelectDay,
+            onSelect = { index ->
+                onSelectDay(index)
+                onOpenHistory()
+            },
             openAtEnd = true,
             summaryDescription = weekSummary,
+            todayIndex = state.week.lastIndex,
         )
     }
 }
+
+private enum class HeroStatusKind {
+    Line,
+    SetupPrompt,
+    None,
+}
+
+private enum class TopAppsStateKind {
+    Locked,
+    Empty,
+    Content,
+}
+
+@Composable
+internal fun <T> rememberRetainedWhen(
+    value: T,
+    keep: (T) -> Boolean,
+): T {
+    val ref = remember {
+        object {
+            var retained: T = value
+        }
+    }
+    if (keep(value)) {
+        ref.retained = value
+    }
+    return ref.retained
+}
+
+internal fun LazyItemScope.emberbyteAnimateItem(
+    motion: EmberbyteMotion,
+    modifier: Modifier = Modifier,
+): Modifier = modifier.animateItem(
+    fadeInSpec = motion.effects(),
+    placementSpec = motion.spatial(),
+    fadeOutSpec = motion.effects(),
+)

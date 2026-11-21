@@ -1,8 +1,11 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.number
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
@@ -80,5 +83,57 @@ class MorphingNumberTest {
             "Intensity animation spec must be SnapSpec when reduce motion is enabled",
             capturedSpec is androidx.compose.animation.core.SnapSpec,
         )
+    }
+
+    @Test
+    fun general_morphing_number_exposes_semantics_and_content_description() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                MorphingNumber(
+                    value = "1.4",
+                    unit = "MB/s",
+                    prefix = "↓ ",
+                    contentDescription = "Download 1.4 megabytes per second",
+                )
+            }
+        }
+        rule.onNodeWithContentDescription("Download 1.4 megabytes per second").assertIsDisplayed()
+    }
+
+    @Test
+    fun general_morphing_number_snaps_when_reduced_motion() {
+        rule.mainClock.autoAdvance = false
+        var value by androidx.compose.runtime.mutableStateOf("1.4")
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
+                ) {
+                    MorphingNumber(
+                        value = value,
+                        unit = "GB",
+                        contentDescription = "Usage $value GB",
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onAllNodesWithTag("morphing_digit_1", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("morphing_digit_2", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("morphing_digit_4", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("morphing_digit_8", useUnmergedTree = true).assertCountEquals(0)
+
+        rule.runOnUiThread {
+            value = "2.8"
+            androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        }
+        rule.mainClock.advanceTimeByFrame()
+
+        // Reduced motion snaps immediately on frame 1 without animation/mixed states
+        rule.onAllNodesWithTag("morphing_digit_1", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("morphing_digit_2", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("morphing_digit_4", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("morphing_digit_8", useUnmergedTree = true).assertCountEquals(1)
     }
 }

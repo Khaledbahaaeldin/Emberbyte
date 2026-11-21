@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -60,6 +61,34 @@ class AppDetailScreenTest {
     fun total_is_one_node_with_unit() {
         show(sampleState)
         rule.onNodeWithContentDescription("1.00 gigabytes used in the last 7 days").assertIsDisplayed()
+    }
+
+    @Test
+    fun seven_bars_fit_inside_the_card_and_each_has_a_label() {
+        val sevenBars = listOf(
+            BarUi(label = "Wed", bytes = 100_000_000L, description = "Wednesday, 100 megabytes"),
+            BarUi(label = "Thu", bytes = 200_000_000L, description = "Thursday, 200 megabytes"),
+            BarUi(label = "Fri", bytes = 300_000_000L, description = "Friday, 300 megabytes"),
+            BarUi(label = "Sat", bytes = 400_000_000L, description = "Saturday, 400 megabytes"),
+            BarUi(label = "Sun", bytes = 500_000_000L, description = "Sunday, 500 megabytes"),
+            BarUi(label = "Mon", bytes = 600_000_000L, description = "Monday, 600 megabytes"),
+            BarUi(label = "Tue", bytes = 700_000_000L, description = "Tuesday, 700 megabytes"),
+        )
+        show(sampleState.copy(bars = sevenBars))
+
+        // Every slot has its label displayed
+        sevenBars.forEach { bar ->
+            rule.onNodeWithText(bar.label, useUnmergedTree = true).assertIsDisplayed()
+        }
+
+        // First bar's left edge must be at least the card's inner left (>= 0 inside card)
+        val firstBar = rule.onNodeWithText("Wed", useUnmergedTree = true)
+        val firstBarBounds = firstBar.fetchSemanticsNode().boundsInRoot
+        val cardBounds = rule.onNodeWithTag("DAILY_USAGE_CARD").fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue(
+            "First bar left (${firstBarBounds.left}) must be >= card inner left (${cardBounds.left})",
+            firstBarBounds.left >= cardBounds.left
+        )
     }
 
     @Test

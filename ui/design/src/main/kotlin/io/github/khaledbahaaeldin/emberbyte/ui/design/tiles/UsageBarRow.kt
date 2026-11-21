@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.tiles
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,30 +23,52 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
 
 @Composable
 fun UsageBarRow(
@@ -57,7 +81,19 @@ fun UsageBarRow(
     summaryDescription: String? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
+    showValues: Boolean = true,
+    todayIndex: Int? = null,
 ) {
+    val palette = LocalEmberbytePalette.current
+    val density = LocalDensity.current
+    val motion = rememberEmberbyteMotion()
+    val reduceMotion = LocalReduceMotion.current
+    val isCrowded = points.size > 7 || density.fontScale > 1.3f
+    var showAllValues by rememberSaveable(scrollKey) { mutableStateOf(false) }
+    val highestIndex = points.indices.maxByOrNull { points[it].bytes }
+    val currentPeriodIndex = points.lastIndex
+    val hasSelection = selectedIndex != null
+
     val max = (points.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
     val summary = summaryDescription ?: run {
         if (points.isNotEmpty()) {
@@ -71,84 +107,112 @@ fun UsageBarRow(
         } else "Daily usage"
     }
 
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { this.contentDescription = summary },
-    ) {
-
-        val count = points.size
-        val totalNeeded = (count * 48).dp + ((count - 1).coerceAtLeast(0) * 8).dp
-        val scrollable = totalNeeded > maxWidth
-        val scrollState = rememberScrollState()
-
-        if (scrollable && openAtEnd) {
-            LaunchedEffect(points.size, scrollKey) {
-                scrollState.scrollTo(scrollState.maxValue)
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (isCrowded && showValues) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                EmberbyteFilterChip(
+                    selected = showAllValues,
+                    onClick = { showAllValues = !showAllValues },
+                    label = { Text(if (showAllValues) "Hide values" else "Show values") },
+                )
             }
         }
 
-        Row(
-            modifier = if (scrollable) {
-                Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(contentPadding)
-            } else {
-                Modifier.fillMaxWidth().padding(contentPadding)
-            },
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Bottom,
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { this.contentDescription = summary },
         ) {
-            points.forEachIndexed { index, bar ->
-                val isSelected = index == selectedIndex
-                Column(
-                    modifier = if (scrollable) {
-                        Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .clickable(role = Role.Tab) { onSelect(index) }
-                            .semantics {
-                                contentDescription = bar.description
-                                selected = isSelected
-                            }
-                    } else {
-                        Modifier
-                            .weight(1f)
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .clickable(role = Role.Tab) { onSelect(index) }
-                            .semantics {
-                                contentDescription = bar.description
-                                selected = isSelected
-                            }
-                    },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom,
-                ) {
-                    val resolvedColor = barColor?.invoke(index, isSelected)
-                        ?: if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.primaryContainer
-                    Box(
-                        Modifier
-                            .widthIn(max = 24.dp)
-                            .fillMaxWidth()
-                            .height((8 + 56 * (bar.bytes.toFloat() / max)).dp)
-                            .background(
-                                color = resolvedColor,
-                                shape = MaterialTheme.shapes.small,
-                            )
-                            .then(
-                                if (!isSelected && barColor == null) {
-                                    Modifier.border(1.dp, MaterialTheme.colorScheme.outline, shape = MaterialTheme.shapes.small)
-                                } else {
-                                    Modifier
-                                }
-                            ),
+            var shown by remember(reduceMotion) { mutableStateOf<Boolean>(reduceMotion) }
+            LaunchedEffect(reduceMotion) { shown = true }
+            val count = points.size
+            val totalNeeded = (count * 48).dp + ((count - 1).coerceAtLeast(0) * 8).dp
+            val scrollable = totalNeeded > maxWidth
+            val scrollState = rememberScrollState()
+
+            if (scrollable && openAtEnd) {
+                LaunchedEffect(points.size, scrollKey) {
+                    scrollState.scrollTo(scrollState.maxValue)
+                }
+            }
+
+            Row(
+                modifier = if (scrollable) {
+                    Modifier.fillMaxWidth().horizontalScroll(scrollState).padding(contentPadding)
+                } else {
+                    Modifier.fillMaxWidth().padding(contentPadding)
+                },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                points.forEachIndexed { index, bar ->
+                    val isSelected = index == selectedIndex
+                    val isToday = todayIndex != null && index == todayIndex
+                    val shouldShowValue = showValues && bar.valueText.isNotEmpty() && (
+                        !isCrowded || showAllValues || isSelected || index == highestIndex || index == currentPeriodIndex
                     )
-                    ForceLtr {
-                        Text(
-                            bar.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+                    if (bar.isBoundary && index > 0) {
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(48.dp)
+                                .background(palette.surface2)
                         )
                     }
+
+                    UsageBarColumn(
+                        modifier = if (scrollable) {
+                            Modifier
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .clickable(role = Role.Tab) { onSelect(index) }
+                                .semantics {
+                                    contentDescription = bar.description
+                                    selected = isSelected
+                                }
+                        } else {
+                            Modifier
+                                .weight(1f)
+                                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                .clickable(role = Role.Tab) { onSelect(index) }
+                                .semantics {
+                                    contentDescription = bar.description
+                                    selected = isSelected
+                                }
+                        },
+                        bar = bar,
+                        index = index,
+                        isSelected = isSelected,
+                        shouldShowValue = shouldShowValue,
+                        isToday = isToday,
+                        hasSelection = hasSelection,
+                        isCrowded = isCrowded,
+                        shown = shown,
+                        reduceMotion = reduceMotion,
+                        max = max,
+                        barColor = barColor,
+                        palette = palette,
+                        motion = motion,
+                    )
                 }
+            }
+
+            // Trailing edge fade scrim indicating more scrollable content
+            if (scrollable && scrollState.value < scrollState.maxValue) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(24.dp)
+                        .height(100.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color.Transparent, palette.background)
+                            )
+                        )
+                )
             }
         }
     }
@@ -243,5 +307,153 @@ fun UsageBarRow(
         }
     }
 }
+
+@Composable
+private fun UsageBarColumn(
+    modifier: Modifier,
+    bar: BarUi,
+    index: Int,
+    isSelected: Boolean,
+    shouldShowValue: Boolean,
+    isToday: Boolean,
+    hasSelection: Boolean,
+    isCrowded: Boolean,
+    shown: Boolean,
+    reduceMotion: Boolean,
+    max: Long,
+    barColor: ((index: Int, isSelected: Boolean) -> Color)?,
+    palette: EmberbytePalette,
+    motion: io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteMotion,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        // Value label above bar
+        Box(
+            modifier = Modifier
+                .height(18.dp)
+                .clearAndSetSemantics {},
+            contentAlignment = Alignment.Center,
+        ) {
+            if (shouldShowValue) {
+                ForceLtr {
+                    Text(
+                        text = bar.valueText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) palette.text else palette.muted,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        // Bar fill & styling
+        val resolvedColor = barColor?.invoke(index, isSelected)
+            ?: when {
+                isSelected -> palette.primary
+                hasSelection -> palette.surface.copy(alpha = 0.38f)
+                else -> palette.surface
+            }
+        val targetHeight = (8 + 56 * (bar.bytes.toFloat() / max)).dp
+        val animatedHeight = animateDpAsState(
+            targetValue = if (shown || reduceMotion) targetHeight else 8.dp,
+            animationSpec = motion.spatial(),
+            label = "bar_height_$index",
+        )
+        val animatedColor = animateColorAsState(
+            targetValue = resolvedColor,
+            animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else motion.effects(),
+            label = "bar_color_$index",
+        )
+
+        val borderColor = when {
+            isToday && isSelected -> palette.accent
+            isToday && !isSelected -> palette.primary
+            !isSelected && barColor == null -> palette.surface2
+            else -> null
+        }
+        val borderWidth = if (isToday) 1.5.dp else 1.dp
+        val density = LocalDensity.current
+        val borderStroke = remember(borderWidth, density) {
+            Stroke(width = with(density) { borderWidth.toPx() })
+        }
+
+        Box(
+            Modifier
+                .testTag("usage_bar_$index")
+                .widthIn(max = 24.dp)
+                .fillMaxWidth()
+                .layout { measurable, constraints ->
+                    val h = animatedHeight.value.roundToPx()
+                    val placeable = measurable.measure(
+                        constraints.copy(minHeight = h, maxHeight = h)
+                    )
+                    layout(placeable.width, placeable.height) {
+                        placeable.place(0, 0)
+                    }
+                }
+                .drawWithCache {
+                    val defaultRadius = 8.dp.toPx()
+                    onDrawBehind {
+                        val cornerRadius = CornerRadius(if (isSelected) size.minDimension / 2f else defaultRadius)
+                        drawRoundRect(
+                            color = animatedColor.value,
+                            cornerRadius = cornerRadius,
+                        )
+                        if (borderColor != null) {
+                            drawRoundRect(
+                                color = borderColor,
+                                cornerRadius = cornerRadius,
+                                style = borderStroke,
+                            )
+                        }
+                    }
+                },
+        )
+
+        // Label with tonal pill for selection
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .then(
+                    if (isSelected) {
+                        Modifier
+                            .background(palette.surface2, shape = CircleShape)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    } else {
+                        Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+                    }
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            ForceLtr {
+                val labelText = if (isCrowded && bar.shortLabel != null) bar.shortLabel else bar.label
+                Text(
+                    labelText,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected) palette.text else palette.muted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+
+        // Marker dot under selected label (fixed height so layout never shifts)
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(4.dp)
+                    .background(palette.primary, CircleShape),
+            )
+        } else {
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+}
+
 
 

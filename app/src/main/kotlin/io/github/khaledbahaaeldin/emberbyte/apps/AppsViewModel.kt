@@ -46,7 +46,9 @@ data class AppsUiState(
     val units: ByteUnits = ByteUnits.DECIMAL,
     val needsUsageAccess: Boolean = false,
     val loaded: Boolean = false,
-)
+) {
+    val isLoading: Boolean get() = !loaded
+}
 
 sealed interface AppsEvent {
     data class SetRange(val range: AppsRange) : AppsEvent
@@ -101,8 +103,17 @@ internal fun buildAppsUiState(
     } else {
         filtered.filter { it.label.contains(text, ignoreCase = true) || it.packageName.contains(text, ignoreCase = true) }
     }
-    val rows = shown.map { AppRowUi(it.packageName, it.label, it.mobileBytes, it.wifiBytes) }
-    val featuredRow = if (text.isEmpty() && rows.isNotEmpty()) rows.first() else null
+    val largest = shown.maxByOrNull { it.totalBytes }
+    val featuredRow = if (text.isEmpty() && largest != null) {
+        AppRowUi(largest.packageName, largest.label, largest.mobileBytes, largest.wifiBytes)
+    } else null
+    val isUsageSort = sort == AppSort.BYTES_DESC || sort == AppSort.BYTES_ASC
+    val listApps = if (text.isEmpty() && isUsageSort && featuredRow != null) {
+        shown.filter { it.packageName != featuredRow.packageName }
+    } else {
+        shown
+    }
+    val rows = listApps.map { AppRowUi(it.packageName, it.label, it.mobileBytes, it.wifiBytes) }
     return AppsUiState(
         range = range,
         network = network,
@@ -143,7 +154,9 @@ class AppsViewModel(
         }
 
     val featured: StateFlow<AppUsage?> = combine(apps, query) { list, text ->
-        if (text.trim().isEmpty() && list.isNotEmpty()) list.first() else null
+        if (text.trim().isEmpty() && list.isNotEmpty()) {
+            list.maxByOrNull { it.totalBytes }
+        } else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val uiState: StateFlow<AppsUiState> =

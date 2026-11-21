@@ -1,18 +1,23 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -22,7 +27,11 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -43,16 +52,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.common.plainBytes
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
+import io.github.khaledbahaaeldin.emberbyte.home.emberbyteAnimateItem
+import io.github.khaledbahaaeldin.emberbyte.home.rememberRetainedWhen
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -131,226 +149,283 @@ internal fun AppsContent(
         )
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            Text(
-                "Apps",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = palette.text,
-            )
-        }
+    EmberbyteScreenScaffold(
+        title = "Apps",
+        modifier = modifier,
+    ) { padding ->
+        EmberbyteCrossfade(
+            targetState = state.isLoading,
+            modifier = Modifier.fillMaxSize(),
+        ) { loading ->
+            if (loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            top = padding.calculateTopPadding(),
+                            bottom = padding.calculateBottomPadding(),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading apps")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // Removable filter chips row (for each non-default filter)
+                    val activeFilters = buildList {
+                        if (state.range != AppsRange.TODAY) {
+                            val label = when (state.range) {
+                                AppsRange.TODAY -> "Today"
+                                AppsRange.LAST_7_DAYS -> "7 days"
+                                AppsRange.LAST_30_DAYS -> "30 days"
+                                AppsRange.THIS_MONTH, AppsRange.CYCLE -> "Cycle"
+                            }
+                            add(ActiveFilter(AppFilterKind.RANGE, label))
+                        }
+                        if (state.network != AppsNetwork.ALL) {
+                            val label = when (state.network) {
+                                AppsNetwork.ALL -> "All"
+                                AppsNetwork.MOBILE -> "Mobile"
+                                AppsNetwork.WIFI -> "Wi-Fi"
+                            }
+                            add(ActiveFilter(AppFilterKind.NETWORK, label))
+                        }
+                        if (state.sort != AppSort.BYTES_DESC) {
+                            val label = when (state.sort) {
+                                AppSort.NAME -> "Name"
+                                AppSort.BYTES_ASC -> "Least data"
+                                AppSort.BYTES_DESC, AppSort.SCREEN_TIME_DESC -> "Most data"
+                            }
+                            add(ActiveFilter(AppFilterKind.SORT, label))
+                        }
+                        if (state.showSystemApps) {
+                            add(ActiveFilter(AppFilterKind.SYSTEM_APPS, "System apps"))
+                        }
+                    }
 
-        // Search bar with Filters button
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = { onEvent(AppsEvent.SetQuery(it)) },
-                    label = { Text("Search apps") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = null,
-                            tint = palette.muted,
-                        )
-                    },
-                    trailingIcon = if (state.query.isNotEmpty()) {
-                        {
-                            IconButton(
-                                onClick = { onEvent(AppsEvent.SetQuery("")) },
-                                shapes = IconButtonDefaults.shapes(),
-                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
-                                modifier = Modifier.size(48.dp),
+                    // Search bar with Filters button & active filters
+                    item(key = "search_and_filters") {
+                        Column(
+                            modifier = emberbyteAnimateItem(motion),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Clear search",
+                                OutlinedTextField(
+                                    value = state.query,
+                                    onValueChange = { onEvent(AppsEvent.SetQuery(it)) },
+                                    label = { Text("Search apps") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Search,
+                                            contentDescription = null,
+                                            tint = palette.muted,
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        val reduceMotion = LocalReduceMotion.current
+                                        AnimatedVisibility(
+                                            visible = state.query.isNotEmpty(),
+                                            enter = if (reduceMotion) {
+                                                EnterTransition.None
+                                            } else {
+                                                fadeIn(motion.effects()) + scaleIn(motion.effects())
+                                            },
+                                            exit = if (reduceMotion) {
+                                                ExitTransition.None
+                                            } else {
+                                                fadeOut(motion.effects()) + scaleOut(motion.effects())
+                                            },
+                                        ) {
+                                            IconButton(
+                                                onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                                shapes = IconButtonDefaults.shapes(),
+                                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                                                modifier = Modifier.size(48.dp),
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Close,
+                                                    contentDescription = "Clear search",
+                                                )
+                                            }
+                                        }
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = palette.primary,
+                                        unfocusedBorderColor = palette.muted,
+                                        focusedTextColor = palette.text,
+                                        unfocusedTextColor = palette.text,
+                                    ),
+                                    modifier = Modifier.weight(1f),
+                                )
+
+                                Button(
+                                    onClick = { showFiltersSheet = true },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = palette.surface2,
+                                        contentColor = palette.text,
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                                    modifier = Modifier.sizeIn(minHeight = 48.dp),
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Tune,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                        Text("Filters")
+                                    }
+                                }
+                            }
+
+                            val lastFilters = rememberRetainedWhen(activeFilters) { it.isNotEmpty() }
+                            EmberbyteAnimatedVisibility(visible = activeFilters.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    (activeFilters.ifEmpty { lastFilters }).forEach { filter ->
+                                        EmberbyteFilterChip(
+                                            selected = true,
+                                            showCheckIcon = false,
+                                            onClick = { onEvent(AppsEvent.RemoveFilter(filter.kind)) },
+                                            label = { Text(filter.label) },
+                                            trailingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Close,
+                                                    contentDescription = "Remove ${filter.label} filter",
+                                                    modifier = Modifier.size(16.dp),
+                                                )
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Featured card
+                    if (state.featured != null) {
+                        item(key = "featured") {
+                            FeaturedAppCard(
+                                app = state.featured,
+                                totalBytes = state.totalBytes,
+                                units = state.units,
+                                icon = icons(state.featured.packageName),
+                                onClick = { onOpenApp(state.featured.packageName) },
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
+
+                    // Usage access prompt
+                    if (state.needsUsageAccess) {
+                        item(key = "usage_prompt") {
+                            PermissionPrompt(
+                                USAGE_ACCESS_PROMPT,
+                                onAction = { onPromptAction(USAGE_ACCESS_PROMPT.id) },
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
+
+                    // Total bytes readout
+                    item(key = "total_bytes") {
+                        val formatted = formatBytes(state.totalBytes, state.units)
+                        val fullReadout = "${plainBytes(state.totalBytes, state.units)} (apps only)"
+                        ForceLtr {
+                            Row(
+                                modifier = emberbyteAnimateItem(
+                                    motion,
+                                    Modifier.padding(vertical = 4.dp),
+                                ).clearAndSetSemantics { this.text = AnnotatedString(fullReadout) },
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                MorphingNumber(
+                                    value = formatted.value,
+                                    unit = formatted.unit,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = palette.muted,
+                                )
+                                Text(
+                                    text = " (apps only)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = palette.muted,
                                 )
                             }
                         }
-                    } else null,
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = palette.primary,
-                        unfocusedBorderColor = palette.muted,
-                        focusedTextColor = palette.text,
-                        unfocusedTextColor = palette.text,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-
-                Button(
-                    onClick = { showFiltersSheet = true },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.surface2,
-                        contentColor = palette.text,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                    modifier = Modifier.sizeIn(minHeight = 48.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Tune,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text("Filters")
                     }
-                }
-            }
-        }
 
-        // Removable filter chips row (for each non-default filter)
-        val activeFilters = buildList {
-            if (state.range != AppsRange.TODAY) {
-                val label = when (state.range) {
-                    AppsRange.TODAY -> "Today"
-                    AppsRange.LAST_7_DAYS -> "7 days"
-                    AppsRange.LAST_30_DAYS -> "30 days"
-                    AppsRange.THIS_MONTH, AppsRange.CYCLE -> "Cycle"
-                }
-                add(ActiveFilter(AppFilterKind.RANGE, label))
-            }
-            if (state.network != AppsNetwork.ALL) {
-                val label = when (state.network) {
-                    AppsNetwork.ALL -> "All"
-                    AppsNetwork.MOBILE -> "Mobile"
-                    AppsNetwork.WIFI -> "Wi-Fi"
-                }
-                add(ActiveFilter(AppFilterKind.NETWORK, label))
-            }
-            if (state.sort != AppSort.BYTES_DESC) {
-                val label = when (state.sort) {
-                    AppSort.NAME -> "Name"
-                    AppSort.BYTES_ASC -> "Least data"
-                    AppSort.BYTES_DESC, AppSort.SCREEN_TIME_DESC -> "Most data"
-                }
-                add(ActiveFilter(AppFilterKind.SORT, label))
-            }
-            if (state.showSystemApps) {
-                add(ActiveFilter(AppFilterKind.SYSTEM_APPS, "System apps"))
-            }
-        }
-
-        if (activeFilters.isNotEmpty()) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    activeFilters.forEach { filter ->
-                        EmberbyteFilterChip(
-                            selected = true,
-                            showCheckIcon = false,
-                            onClick = { onEvent(AppsEvent.RemoveFilter(filter.kind)) },
-                            label = { Text(filter.label) },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Remove ${filter.label} filter",
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        // Featured card
-        if (state.featured != null) {
-            item {
-                FeaturedAppCard(
-                    app = state.featured,
-                    totalBytes = state.totalBytes,
-                    units = state.units,
-                    icon = icons(state.featured.packageName),
-                    onClick = { onOpenApp(state.featured.packageName) },
-                )
-            }
-        }
-
-        // Usage access prompt
-        if (state.needsUsageAccess) {
-            item {
-                PermissionPrompt(
-                    USAGE_ACCESS_PROMPT,
-                    onAction = { onPromptAction(USAGE_ACCESS_PROMPT.id) },
-                )
-            }
-        }
-
-        // Total bytes readout
-        item {
-            ForceLtr {
-                Text(
-                    text = "${plainBytes(state.totalBytes, state.units)} in total",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.muted,
-                )
-            }
-        }
-
-        // Apps list or empty state
-        if (state.loaded && state.apps.isEmpty()) {
-            item {
-                if (state.query.isNotBlank()) {
-                    io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState(
-                        icon = androidx.compose.material.icons.Icons.Rounded.Search,
-                        title = "No apps match",
-                        body = "No apps match \"${state.query.trim()}\".",
-                        action = {
-                            TextButton(
-                                onClick = { onEvent(AppsEvent.SetQuery("")) },
-                                modifier = Modifier.sizeIn(minHeight = 48.dp),
-                            ) {
-                                Text("Clear search")
+                    // Apps list or empty state
+                    if (state.loaded && state.apps.isEmpty()) {
+                        item(key = "empty_state") {
+                            val lastQuery = rememberRetainedWhen(state.query) { it.isNotBlank() }
+                            EmberbyteCrossfade(
+                                targetState = state.query.isNotBlank(),
+                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
+                            ) { isSearching ->
+                                if (isSearching) {
+                                    val displayQuery = state.query.ifBlank { lastQuery }.trim()
+                                    EmptyState(
+                                        icon = Icons.Rounded.Search,
+                                        title = "No apps match",
+                                        body = "No apps match \"$displayQuery\".",
+                                        action = {
+                                            TextButton(
+                                                onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                                modifier = Modifier.sizeIn(minHeight = 48.dp),
+                                            ) {
+                                                Text("Clear search", color = palette.linkText)
+                                            }
+                                        },
+                                    )
+                                } else {
+                                    EmptyState(
+                                        icon = Icons.Rounded.Apps,
+                                        title = "No app data yet",
+                                        body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
+                                    )
+                                }
                             }
-                        },
-                    )
-                } else {
-                    EmptyState(
-                        icon = Icons.Rounded.Apps,
-                        title = "No app data yet",
-                        body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
-                    )
+                        }
+                    } else {
+                        items(state.apps, key = { it.packageName }) { app ->
+                            AppRow(
+                                icon = icons(app.packageName),
+                                shape = shapeFor(app.packageName),
+                                label = app.label,
+                                bytes = app.totalBytes,
+                                fraction = if (state.totalBytes > 0) app.totalBytes.toFloat() / state.totalBytes.toFloat() else 0f,
+                                mobileBytes = app.mobileBytes,
+                                wifiBytes = app.wifiBytes,
+                                onClick = { onOpenApp(app.packageName) },
+                                units = state.units,
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
                 }
-            }
-        } else {
-            items(state.apps, key = { it.packageName }) { app ->
-                AppRow(
-                    icon = icons(app.packageName),
-                    shape = io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor(app.packageName),
-                    label = app.label,
-                    bytes = app.totalBytes,
-                    fraction = if (state.totalBytes > 0) app.totalBytes.toFloat() / state.totalBytes.toFloat() else 0f,
-                    mobileBytes = app.mobileBytes,
-                    wifiBytes = app.wifiBytes,
-                    onClick = { onOpenApp(app.packageName) },
-                    units = state.units,
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = motion.effects(),
-                        placementSpec = motion.spatial(),
-                        fadeOutSpec = motion.effects(),
-                    ),
-                )
             }
         }
     }

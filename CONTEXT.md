@@ -26,6 +26,16 @@ _Avoid_: BillingPeriod, ResetInterval, QuotaSpan
 A configured alert or enforcement threshold triggering notifications or warnings when plan usage reaches a defined percentage.
 _Avoid_: Rule, Trigger, LimitAction
 
+### Per-App Governance
+
+**Budget**:
+A user-configured mobile data allowance applied to a specific application over a daily or plan cycle window, alerting when usage approaches or exceeds the limit.
+_Avoid_: AppLimit, AppCap, QuotaRule
+
+**Spike**:
+A detected sudden surge in an application's mobile data consumption exceeding its 14-day historical baseline within a 2-hour measurement window.
+_Avoid_: DataSurge, TrafficBurst, UsageAnomaly
+
 ### Connectivity & Hardware
 
 **SimSlot**:

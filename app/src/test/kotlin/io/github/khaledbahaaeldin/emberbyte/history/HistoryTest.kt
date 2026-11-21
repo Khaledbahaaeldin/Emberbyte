@@ -11,6 +11,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -55,10 +56,10 @@ class HistoryTest {
 
     @Test fun bar_labels_and_descriptions_follow_the_granularity() {
         val day = historyBars(listOf(point("2026-10-05T00:00:00Z", 100_000_000)), Granularity.DAY, ByteUnits.DECIMAL, zone, Locale.ENGLISH).single()
-        assertEquals("5", day.label)
+        assertEquals("M\n5", day.label)
         assertEquals("Monday, 5 October, 100 megabytes", day.description)
         val week = historyBars(listOf(point("2026-10-05T00:00:00Z", 1)), Granularity.WEEK, ByteUnits.DECIMAL, zone, Locale.ENGLISH).single()
-        assertEquals("5 Oct", week.label)
+        assertEquals("5 to 11 Oct", week.label)
         assertEquals("Week of 5 October, 1 bytes", week.description)
         val month = historyBars(listOf(point("2026-10-01T00:00:00Z", 2_000_000_000)), Granularity.MONTH, ByteUnits.DECIMAL, zone, Locale.ENGLISH).single()
         assertEquals("Oct", month.label)
@@ -126,14 +127,32 @@ class HistoryTest {
     @Test fun the_average_counts_only_days_with_data() {
         val base = Instant.parse("2026-09-24T00:00:00Z")
         val points = (0 until 12).map { day ->
-            UsagePoint(base.plus(day.toLong(), java.time.temporal.ChronoUnit.DAYS), 0L, 0L)
+            UsagePoint(base.plus(day.toLong(), ChronoUnit.DAYS), 0L, 0L)
         } + listOf(
-            UsagePoint(base.plus(12, java.time.temporal.ChronoUnit.DAYS), 300L, 0L),
-            UsagePoint(base.plus(13, java.time.temporal.ChronoUnit.DAYS), 100L, 0L),
+            UsagePoint(base.plus(12, ChronoUnit.DAYS), 300L, 0L),
+            UsagePoint(base.plus(13, ChronoUnit.DAYS), 100L, 0L),
         )
         assertEquals(14, points.size)
         val state = buildHistoryUiState(Granularity.DAY, points, ByteUnits.DECIMAL, zone, Locale.ENGLISH)
         assertEquals(400L, state.totalBytes)
         assertEquals(200L, state.averageBytes)
+    }
+
+    @Test fun equal_usage_between_periods_shows_flat_trend() {
+        val base = Instant.parse("2026-09-24T00:00:00Z")
+        // 14 days, first 7 days sum = 700MB, last 7 days sum = 700MB
+        val points = (0 until 14).map { day ->
+            UsagePoint(base.plus(day.toLong(), ChronoUnit.DAYS), 100_000_000L, 0L)
+        }
+        val state = buildHistoryUiState(Granularity.DAY, points, ByteUnits.DECIMAL, zone, Locale.ENGLISH)
+        assertEquals(TrendDirection.FLAT, state.trendDirection)
+        assertEquals("About the same as last week", state.comparisonText)
+    }
+
+    @Test fun date_range_across_year_boundary_includes_both_years() {
+        val start = LocalDate.of(2026, 12, 28)
+        val end = LocalDate.of(2027, 1, 4)
+        val formatted = formatDateRange(start, end, Locale.ENGLISH)
+        assertEquals("28 Dec 2026 to 4 Jan 2027", formatted)
     }
 }

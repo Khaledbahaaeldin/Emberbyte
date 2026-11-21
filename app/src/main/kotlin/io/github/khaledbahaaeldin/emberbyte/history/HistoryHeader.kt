@@ -4,25 +4,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingFlat
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.R
+import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -34,7 +32,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalett
  * Header section for History screen (Mockup 06-history option B).
  *
  * Contains:
- * - Screen title ("History") and Back navigation button
  * - Period selector as ConnectedButtonGroup (Day / Week / Month)
  * - Period total as HeroNumber with accessible one-node description
  * - Comparison against previous period ("12% more than last week") with an icon, never colour alone
@@ -43,7 +40,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalett
 fun HistoryHeader(
     state: HistoryUiState,
     onEvent: (HistoryEvent) -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
@@ -59,8 +55,6 @@ fun HistoryHeader(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ScreenHeader("History", onBack)
-
         ConnectedButtonGroup(
             options = granularityOptions,
             selectedIndex = selectedGranularityIndex,
@@ -76,46 +70,78 @@ fun HistoryHeader(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        // Period total as HeroNumber (or selected day/week/month when a bar is selected)
+        // Period total and labels grouped compactly
         val selectedPoint = state.selectedIndex?.let { state.points.getOrNull(it) }
         val displayBytes = selectedPoint?.totalBytes ?: state.totalBytes
         val formatted = formatBytes(displayBytes, state.units)
-
-        val spokenTotal = io.github.khaledbahaaeldin.emberbyte.common.spokenBytes(displayBytes, state.units)
-        val totalDescription = when (state.granularity) {
-            Granularity.WEEK -> "$spokenTotal this week"
-            Granularity.MONTH -> "$spokenTotal this month"
-            else -> "$spokenTotal total"
+        val heroDesc = state.heroDescription ?: run {
+            val spokenTotal = spokenBytes(displayBytes, state.units)
+            when (state.granularity) {
+                Granularity.WEEK -> "$spokenTotal this week"
+                Granularity.MONTH -> "$spokenTotal this month"
+                else -> "$spokenTotal total"
+            }
         }
 
-        HeroNumber(
-            value = formatted.value,
-            unit = formatted.unit,
-            contentDescription = state.heroDescription ?: totalDescription,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Visible range label if present
+            state.rangeLabel?.let { range ->
+                Text(
+                    text = range,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.muted,
+                )
+            }
 
-        // Comparison against previous period
-        state.comparisonText?.let { compText ->
+            // Hero caption (e.g. "Last 14 days" or selected bar date)
+            val defaultHero = when (state.granularity) {
+                Granularity.WEEK -> stringResource(R.string.history_last_12_weeks)
+                Granularity.MONTH -> stringResource(R.string.history_last_12_months)
+                else -> stringResource(R.string.history_last_14_days)
+            }
+            Text(
+                text = state.heroLabel ?: defaultHero,
+                style = MaterialTheme.typography.titleSmall,
+                color = palette.muted,
+            )
+
+            HeroNumber(
+                value = formatted.value,
+                unit = formatted.unit,
+                contentDescription = heroDesc,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Comparison against previous period: fixed height to prevent layout shift
+            val compText = state.comparisonText ?: when (state.granularity) {
+                Granularity.MONTH -> stringResource(R.string.history_no_previous_month)
+                Granularity.WEEK -> stringResource(R.string.history_no_previous_week)
+                else -> stringResource(R.string.history_no_previous_period)
+            }
+            val trend = state.trendDirection
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.semantics(mergeDescendants = true) {},
+                modifier = Modifier
+                    .height(24.dp)
+                    .semantics(mergeDescendants = true) {},
             ) {
-                val icon = when {
-                    compText.contains("more than", ignoreCase = true) -> Icons.AutoMirrored.Rounded.TrendingUp
-                    compText.contains("less than", ignoreCase = true) -> Icons.AutoMirrored.Rounded.TrendingDown
-                    else -> Icons.AutoMirrored.Rounded.TrendingFlat
+                val icon = when (trend) {
+                    TrendDirection.UP -> Icons.AutoMirrored.Rounded.TrendingUp
+                    TrendDirection.DOWN -> Icons.AutoMirrored.Rounded.TrendingDown
+                    TrendDirection.FLAT -> Icons.AutoMirrored.Rounded.TrendingFlat
+                    TrendDirection.NONE -> Icons.AutoMirrored.Rounded.TrendingFlat
                 }
-                val iconDesc = when {
-                    compText.contains("more than", ignoreCase = true) -> "Increased usage"
-                    compText.contains("less than", ignoreCase = true) -> "Decreased usage"
-                    else -> "Steady usage"
+                val iconDesc = when (trend) {
+                    TrendDirection.UP -> "Increased usage"
+                    TrendDirection.DOWN -> "Decreased usage"
+                    TrendDirection.FLAT -> "Steady usage"
+                    TrendDirection.NONE -> "No comparison available"
                 }
                 Icon(
                     imageVector = icon,
                     contentDescription = iconDesc,
-                    tint = palette.primary,
+                    tint = if (trend != TrendDirection.NONE) palette.primary else palette.muted,
                     modifier = Modifier.size(18.dp),
                 )
                 ForceLtr {

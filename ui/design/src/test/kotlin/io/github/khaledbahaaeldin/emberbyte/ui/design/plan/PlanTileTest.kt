@@ -1,8 +1,12 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.plan
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -129,5 +133,28 @@ class PlanTileTest {
 
         rule.onNodeWithText("Unlimited Plus", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("3.70 GB left", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun plan_tile_accepts_delay_millis() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = 1f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                PlanTile(
+                    model = baseModel,
+                    onClick = {},
+                    delayMillis = 80,
+                    onAnimatedSweepChanged = { animatedSweep = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(0f, animatedSweep, 0.0001f)
+        rule.mainClock.advanceTimeBy(50)
+        assertEquals(0f, animatedSweep, 0.0001f)
+        rule.mainClock.advanceTimeBy(50)
+        assertTrue("Ring progress should advance after delay: $animatedSweep", animatedSweep > 0f)
+        rule.onNodeWithText("Unlimited Plus", useUnmergedTree = true).assertIsDisplayed()
     }
 }

@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.tiles
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,7 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -28,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import androidx.compose.ui.graphics.ImageBitmap
@@ -55,11 +59,18 @@ fun AppRow(
 ) {
     val total = formatBytes(model.totalBytes, units)
     val mobileShare = if (model.totalBytes > 0) model.mobileBytes.toFloat() / model.totalBytes else 0f
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
+            .testTag("app_row")
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(onClick = onClick)
+            .pressMorph(shape = MaterialTheme.shapes.medium, interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
+                onClick = onClick,
+            )
             .semantics {
                 stateDescription = "Mobile ${spoken(model.mobileBytes, units)}, Wi-Fi ${spoken(model.wifiBytes, units)}"
             }
@@ -106,12 +117,19 @@ fun AppRow(
     val palette = LocalEmberbytePalette.current
     val total = formatBytes(bytes, units)
     val rowDescription = "$label, ${total.value} ${spokenUnit(total.unit)}, Mobile ${spoken(mobileBytes, units)}, Wi-Fi ${spoken(wifiBytes, units)}"
+    val interactionSource = remember { MutableInteractionSource() }
 
     Row(
         modifier = modifier
+            .testTag("app_row")
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(onClick = onClick)
+            .pressMorph(shape = MaterialTheme.shapes.medium, interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
+                onClick = onClick,
+            )
             .semantics(mergeDescendants = true) {
                 this.contentDescription = rowDescription
             }

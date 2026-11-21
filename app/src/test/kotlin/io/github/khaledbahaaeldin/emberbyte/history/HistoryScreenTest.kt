@@ -1,12 +1,47 @@
 package io.github.khaledbahaaeldin.emberbyte.history
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
+import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.onNodeWithTag
+import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
+import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
+import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.Locale
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,13 +54,131 @@ class HistoryScreenTest {
     @get:Rule
     val rule = createComposeRule()
 
+    private val zone = ZoneOffset.UTC
+    private val locale = Locale.ENGLISH
+    private val baseDate = LocalDate.of(2026, 9, 24)
+    private val dayPoints = (0 until 14).map { dayOffset ->
+        val d = baseDate.plusDays(dayOffset.toLong())
+        val instant = d.atStartOfDay(zone).toInstant()
+        UsagePoint(instant, 100_000_000L, 50_000_000L)
+    }
+
+    @Test
+    fun history_screen_renders_inside_screen_scaffold_with_scrim() {
+        val state = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(state = state, onEvent = {}, onBack = {})
+            }
+        }
+        rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
+        rule.onNode(hasText("History") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun history_labels_the_visible_range() {
+        var state by mutableStateOf(buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale))
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(state = state, onEvent = {}, onBack = {})
+            }
+        }
+        rule.onNodeWithText("24 Sep to 7 Oct").assertIsDisplayed()
+        rule.onNodeWithText("Last 14 days").assertIsDisplayed()
+
+        // When a bar is selected
+        state = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale, selectedIndex = 13)
+        rule.waitForIdle()
+        rule.onNodeWithText("Wednesday, 7 October").assertIsDisplayed()
+    }
+
+    @Test
+    fun selected_bar_is_tinted_and_others_dim() {
+        val selectedState = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale, selectedIndex = 13)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(state = selectedState, onEvent = {}, onBack = {})
+            }
+        }
+        rule.onNode(hasContentDescription("Wednesday, 7 October", substring = true) and isSelected())
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun split_bar_has_a_legend() {
+        val selectedState = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale, selectedIndex = 13)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(state = selectedState, onEvent = {}, onBack = {})
+            }
+        }
+        rule.onAllNodes(hasScrollAction())[0]
+            .performScrollToNode(hasText("Mobile", substring = true))
+        rule.onNodeWithText("Mobile", substring = true).assertExists()
+        rule.onNodeWithText("Wi-Fi", substring = true).assertExists()
+    }
+
+    @Test
+    fun selecting_a_bar_does_not_move_the_chart() {
+        var state by mutableStateOf(buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale))
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(
+                    state = state,
+                    onEvent = { event ->
+                        if (event is HistoryEvent.SelectBar) {
+                            state = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale, selectedIndex = event.index)
+                        }
+                    },
+                    onBack = {},
+                )
+            }
+        }
+        val chartTopBefore = rule.onNodeWithContentDescription("Daily usage", substring = true).getBoundsInRoot().top
+        state = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale, selectedIndex = 13)
+        rule.waitForIdle()
+        val chartTopAfter = rule.onNodeWithContentDescription("Daily usage", substring = true).getBoundsInRoot().top
+        assertEquals(chartTopBefore.value, chartTopAfter.value, 1f)
+    }
+
+    @Test
+    fun month_switch_keeps_chart_top_stable() {
+        val monthPoints = (0 until 12).map { offset ->
+            val d = LocalDate.of(2025, 11, 1).plusMonths(offset.toLong())
+            UsagePoint(d.atStartOfDay(zone).toInstant(), 1_000_000_000L, 0L)
+        }
+        var currentGranularity by mutableStateOf(Granularity.DAY)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                val activePoints = if (currentGranularity == Granularity.DAY) dayPoints else monthPoints
+                val s = buildHistoryUiState(currentGranularity, activePoints, ByteUnits.DECIMAL, zone, locale)
+                HistoryContent(
+                    state = s,
+                    onEvent = { event ->
+                        if (event is HistoryEvent.SetGranularity) {
+                            currentGranularity = event.granularity
+                        }
+                    },
+                    onBack = {},
+                )
+            }
+        }
+        val dayChartTop = rule.onNodeWithContentDescription("Daily usage", substring = true).getBoundsInRoot().top
+        currentGranularity = Granularity.MONTH
+        rule.waitForIdle()
+        val monthChartTop = rule.onNodeWithContentDescription("Monthly usage", substring = true).getBoundsInRoot().top
+        assertEquals(dayChartTop.value, monthChartTop.value, 1f)
+    }
+
     @Test
     fun period_group_selects_and_reloads() {
-        var selectedGranularity: io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity? = null
+        var selectedGranularity: Granularity? = null
         val state = HistoryUiState(
             loaded = true,
             totalBytes = 1_000_000_000L,
             comparisonText = "12% more than last week",
+            trendDirection = TrendDirection.UP,
         )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
@@ -41,7 +194,7 @@ class HistoryScreenTest {
             }
         }
         rule.onNodeWithText("Week").performClick()
-        org.junit.Assert.assertEquals(io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity.WEEK, selectedGranularity)
+        assertEquals(Granularity.WEEK, selectedGranularity)
     }
 
     @Test
@@ -50,6 +203,7 @@ class HistoryScreenTest {
             loaded = true,
             totalBytes = 1_000_000_000L,
             comparisonText = "12% more than last week",
+            trendDirection = TrendDirection.UP,
         )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
@@ -80,6 +234,7 @@ class HistoryScreenTest {
                 )
             }
         }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("No history yet"))
         rule.onNodeWithText("No history yet").assertIsDisplayed()
     }
 
@@ -139,5 +294,104 @@ class HistoryScreenTest {
             }
         }
         rule.onNodeWithText("12% more than last week").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun font_scale_2_selected_bar_no_clip() {
+        val base = buildHistoryUiState(
+            Granularity.DAY,
+            dayPoints,
+            ByteUnits.DECIMAL,
+            zone,
+            locale,
+            selectedIndex = 0,
+        )
+        val state = base.copy(
+            bars = base.bars.mapIndexed { idx, bar ->
+                if (idx == 0) bar.copy(title = "Wednesday, 30 September") else bar
+            },
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    HistoryContent(
+                        state = state,
+                        onEvent = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        val dateNode = rule.onNodeWithText("Wednesday, 30 September", useUnmergedTree = true)
+        val showTotalNode = rule.onNodeWithText("Show total", useUnmergedTree = true)
+        dateNode.assertIsDisplayed()
+        showTotalNode.assertIsDisplayed()
+
+        val dateBounds = dateNode.getBoundsInRoot()
+        val showTotalBounds = showTotalNode.getBoundsInRoot()
+        assertTrue("Date header and Show total must not overlap horizontally", dateBounds.right <= showTotalBounds.left + 1.dp)
+        assertTrue("Show total must fit within 360dp", showTotalBounds.right.value <= 360f + 1f)
+
+        val showTotalLayouts = mutableListOf<TextLayoutResult>()
+        showTotalNode.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(showTotalLayouts) }
+        assertEquals("Show total must stay on a single line", 1, showTotalLayouts.first().lineCount)
+
+        rule.onNodeWithText("Mobile", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Wi-Fi", substring = true, useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun show_total_uses_link_text_and_meets_aa_contrast_across_all_palettes() {
+        val state = buildHistoryUiState(
+            Granularity.DAY,
+            dayPoints,
+            ByteUnits.DECIMAL,
+            zone,
+            locale,
+            selectedIndex = 0,
+        )
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedLinkColor = Color.Unspecified
+        var expectedBackground = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedLinkColor = palette.linkText
+                    expectedBackground = palette.background
+                }
+                HistoryContent(
+                    state = state,
+                    onEvent = {},
+                    onBack = {},
+                )
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+                val results = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithText("Show total", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                val actualColor = results.first().layoutInput.style.color
+                assertEquals(
+                    "Show total must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedLinkColor,
+                    actualColor,
+                )
+                val fg = actualColor.compositeOver(expectedBackground)
+                val l1 = fg.luminance() + 0.05
+                val l2 = expectedBackground.luminance() + 0.05
+                val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                assertTrue(
+                    "Show total on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on background, was $ratio",
+                    ratio >= 4.5,
+                )
+            }
+        }
     }
 }

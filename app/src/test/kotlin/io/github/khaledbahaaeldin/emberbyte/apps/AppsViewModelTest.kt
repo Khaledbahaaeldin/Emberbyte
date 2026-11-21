@@ -1,18 +1,24 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
 import io.github.khaledbahaaeldin.emberbyte.data.PermissionState
+import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakePermissionRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeUsageRepository
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
+import io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage
+import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
+import io.github.khaledbahaaeldin.emberbyte.engine.model.UsageFilter
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -30,11 +36,25 @@ class AppsViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-05T12:00:00Z"), ZoneOffset.UTC)
     private val dispatcher = StandardTestDispatcher()
 
+    private class SortingUsageRepository(
+        private val delegate: FakeUsageRepository,
+    ) : UsageRepository by delegate {
+        override fun observeApps(range: DateRange, filter: UsageFilter, sort: AppSort): Flow<List<AppUsage>> =
+            delegate.observeApps(range, filter, sort).map { list ->
+                when (sort) {
+                    AppSort.NAME -> list.sortedBy { it.label.lowercase() }
+                    AppSort.BYTES_ASC -> list.sortedBy { it.totalBytes }
+                    AppSort.BYTES_DESC -> list.sortedByDescending { it.totalBytes }
+                    else -> list
+                }
+            }
+    }
+
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(permissions: FakePermissionRepository = FakePermissionRepository()) = AppsViewModel(
-        usage = FakeUsageRepository(clock, MutableSharedFlow()),
+        usage = SortingUsageRepository(FakeUsageRepository(clock, MutableSharedFlow())),
         settings = FakeSettingsRepository(),
         permissions = permissions,
         clock = clock,
@@ -46,8 +66,9 @@ class AppsViewModelTest {
         val job = launch { vm.uiState.collect {} }
         advanceUntilIdle()
         val state = vm.uiState.value
-        assertEquals(5, state.apps.size)
-        assertEquals("YouTube", state.apps.first().label)
+        assertEquals("YouTube", state.featured?.label)
+        assertEquals(4, state.apps.size)
+        assertEquals("Chrome", state.apps.first().label)
         assertEquals(1_022_000_000L, state.totalBytes)
         job.cancel()
     }
@@ -96,6 +117,34 @@ class AppsViewModelTest {
         assertEquals(null, vm.uiState.value.featured)
         jobUi.cancel()
         jobFeat.cancel()
+    }
+
+    @Test fun featured_app_is_the_largest_even_when_sorted_by_name() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.onEvent(AppsEvent.SetSort(AppSort.NAME))
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("YouTube", state.featured?.label)
+        // When sorted by name, the list below contains all apps alphabetically
+        assertEquals(listOf("Chrome", "Maps", "Spotify", "Telegram", "YouTube"), state.apps.map { it.label })
+        job.cancel()
+    }
+
+    @Test fun featured_app_is_not_repeated_when_sorted_by_usage() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        // Default sort is BYTES_DESC
+        assertEquals(AppSort.BYTES_DESC, vm.uiState.value.sort)
+        assertEquals("YouTube", vm.uiState.value.featured?.label)
+        // Featured app (YouTube) must NOT be repeated in the list below
+        assertEquals(listOf("Chrome", "Maps", "Spotify", "Telegram"), vm.uiState.value.apps.map { it.label })
+        job.cancel()
     }
 
     @Test fun removing_a_chip_resets_only_that_filter() = runTest(dispatcher) {

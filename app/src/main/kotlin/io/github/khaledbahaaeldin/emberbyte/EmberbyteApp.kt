@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -93,12 +94,17 @@ fun EmberbyteApp(graph: AppGraph, hapticsEnabled: Boolean = true) {
 
     EmberbyteTheme(spec = spec) {
         val completed by graph.onboardingCompleted.collectAsStateWithLifecycle()
-        val value = completed
         // `null` only before the first read. The scaffold is created ONCE with the right start destination and then stays.
-        if (value != null) {
-            AppScaffold(graph, startOnboarding = !value, hapticsEnabled = hapticsEnabled)
-        } else {
-            StartupPlaceholder()
+        EmberbyteCrossfade(
+            targetState = (completed != null),
+            modifier = Modifier.fillMaxSize(),
+        ) { ready ->
+            if (ready) {
+                val initialStartOnboarding = remember { !(completed ?: false) }
+                AppScaffold(graph, startOnboarding = initialStartOnboarding, hapticsEnabled = hapticsEnabled)
+            } else {
+                StartupPlaceholder()
+            }
         }
     }
 }

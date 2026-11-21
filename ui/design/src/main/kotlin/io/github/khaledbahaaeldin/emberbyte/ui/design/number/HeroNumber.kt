@@ -1,30 +1,44 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.number
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
-
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
-
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.em
@@ -140,31 +154,79 @@ fun HeroNumber(
             val badgeWidthPx = with(density) { HERO_NUMBER_BADGE_SIZE.toPx() }
             val spacingPx = with(density) { HERO_NUMBER_SPACING.toPx() }
 
-            val chosenSize = calculateHeroNumberSize(
-                value = value,
-                targetSize = size,
-                availableWidthPx = availableWidthPx,
-                density = density,
-                textMeasurer = textMeasurer,
-                badgeWidthPx = badgeWidthPx,
-                spacingPx = spacingPx,
-            )
+            val chosenSize = remember(value, size, availableWidthPx, density) {
+                calculateHeroNumberSize(
+                    value = value,
+                    targetSize = size,
+                    availableWidthPx = availableWidthPx,
+                    density = density,
+                    textMeasurer = textMeasurer,
+                    badgeWidthPx = badgeWidthPx,
+                    spacingPx = spacingPx,
+                )
+            }
 
-            onSizeResolved?.invoke(chosenSize)
+            if (onSizeResolved != null) {
+                SideEffect {
+                    onSizeResolved(chosenSize)
+                }
+            }
 
-            val annotatedValue = formatHeroValue(value)
+            val motion = rememberEmberbyteMotion()
+            val live = !LocalReduceMotion.current
+            val rollSpatial = motion.spatial<IntOffset>()
+            val rollEffects = motion.effects<Float>()
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(HERO_NUMBER_SPACING),
             ) {
-                Text(
-                    text = annotatedValue,
+                Row(
                     modifier = Modifier.clearAndSetSemantics { },
-                    color = color,
-                    style = EmberbyteType.hero(chosenSize),
-                    maxLines = 1,
-                    softWrap = false,
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val text = value
+                    text.forEachIndexed { index, char ->
+                        val slotKey = digitSlotKey(text, index)
+                        key(slotKey) {
+                            if (live) {
+                                AnimatedContent(
+                                    targetState = char,
+                                    modifier = Modifier.testTag("hero_digit_slot_$slotKey"),
+                                    transitionSpec = {
+                                        (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
+                                            (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
+                                    },
+                                    label = "heroDigit",
+                                ) { digit ->
+                                    val letterSpacing = if (digit == '.') 0.08.em else 0.04.em
+                                    Text(
+                                        text = digit.toString(),
+                                        modifier = Modifier
+                                            .testTag("hero_digit_$digit")
+                                            .clearAndSetSemantics { },
+                                        color = color,
+                                        style = EmberbyteType.hero(chosenSize).copy(letterSpacing = letterSpacing),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                                }
+                            } else {
+                                val letterSpacing = if (char == '.') 0.08.em else 0.04.em
+                                Text(
+                                    text = char.toString(),
+                                    modifier = Modifier
+                                        .testTag("hero_digit_$char")
+                                        .clearAndSetSemantics { },
+                                    color = color,
+                                    style = EmberbyteType.hero(chosenSize).copy(letterSpacing = letterSpacing),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                        }
+                    }
+                }
                 UnitBadge(
                     unit = unit,
                     size = HERO_NUMBER_BADGE_SIZE,
