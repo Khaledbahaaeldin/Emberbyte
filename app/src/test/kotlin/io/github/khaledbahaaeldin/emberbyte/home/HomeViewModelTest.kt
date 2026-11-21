@@ -130,6 +130,98 @@ class HomeViewModelTest {
         secondJob.cancel()
     }
 
+    private class DayAwareUsage(base: io.github.khaledbahaaeldin.emberbyte.data.UsageRepository) :
+        io.github.khaledbahaaeldin.emberbyte.data.UsageRepository by base {
+        // App "Alpha" uses as many MB of mobile data as the day of the month; a system bucket uses 500 MB of Wi-Fi.
+        override fun observeApps(
+            range: io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange,
+            filter: io.github.khaledbahaaeldin.emberbyte.engine.model.UsageFilter,
+            sort: io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort,
+        ) = flowOf(
+            listOf(
+                io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage(
+                    "pkg.alpha", "Alpha", 1,
+                    mobileBytes = java.time.LocalDate.ofInstant(range.from, ZoneOffset.UTC).dayOfMonth * 1_000_000L,
+                    wifiBytes = 0L, screenTimeMs = null,
+                ),
+                io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage(
+                    "uid:1000", "System", 2, mobileBytes = 0L, wifiBytes = 500_000_000L, screenTimeMs = null,
+                ),
+            ),
+        )
+    }
+
+    private fun usageViewModel() = HomeViewModel(
+        usage = DayAwareUsage(FakeUsageRepository(clock, MutableSharedFlow())),
+        plans = FakePlanRepository(clock),
+        settings = FakeSettingsRepository(),
+        permissions = FakePermissionRepository(),
+        spikes = RoomSpikeRepository(InMemorySpikeStore()),
+        clock = clock,
+        locale = Locale.ENGLISH,
+        dates = flowOf(LocalDate.of(2026, 10, 5)),
+    )
+
+    @Test fun usage_days_has_seven_days_ending_today() = runTest(dispatcher) {
+        val vm = usageViewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val usage = vm.uiState.value.usage!!
+        assertEquals(7, usage.days.size)
+        assertEquals(LocalDate.of(2026, 10, 5), usage.days.last().date)
+        assertEquals(LocalDate.of(2026, 9, 29), usage.days.first().date)
+        assertEquals(6, usage.selectedIndex)
+        job.cancel()
+    }
+
+    @Test fun per_app_rows_follow_the_selected_day() = runTest(dispatcher) {
+        val vm = usageViewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(listOf("Alpha"), vm.uiState.value.usage!!.rows.map { it.row.label })
+        assertEquals(5_000_000L, vm.uiState.value.usage!!.rows.first().amountBytes)
+
+        vm.onEvent(HomeEvent.SelectDay(3)) // 2 October
+        advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.usage!!.selectedIndex)
+        assertEquals(2_000_000L, vm.uiState.value.usage!!.rows.first().amountBytes)
+
+        // Selecting today's button goes back to Today, like tapping the selected bar again.
+        vm.onEvent(HomeEvent.SelectDay(6))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.isToday)
+        assertEquals(6, vm.uiState.value.usage!!.selectedIndex)
+        job.cancel()
+    }
+
+    @Test fun filters_are_session_only_and_independent_of_apps() = runTest(dispatcher) {
+        val vm = usageViewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilters(), vm.uiState.value.usage!!.filters)
+
+        vm.onEvent(HomeEvent.SetUsageFilters(io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilters(
+            network = io.github.khaledbahaaeldin.emberbyte.ui.design.usage.NetworkFilter.WiFi, showSystemApps = true,
+        )))
+        advanceUntilIdle()
+        val filtered = vm.uiState.value.usage!!
+        // Wi-Fi only with system apps: just the 500 MB system bucket remains, on every day, in totals and ranking.
+        assertEquals(List(7) { 500_000_000L }, filtered.days.map { it.totalBytes })
+        assertEquals(listOf("System"), filtered.rows.map { it.row.label })
+
+        vm.onEvent(HomeEvent.RemoveUsageFilter(io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilter.SystemApps))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.usage!!.rows.isEmpty()) // Wi-Fi only and no system apps: nothing left
+        job.cancel()
+
+        // A new view model starts with no filters: nothing is stored and the Apps screen's filters are separate.
+        val fresh = usageViewModel()
+        val freshJob = launch { fresh.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilters(), fresh.uiState.value.usage!!.filters)
+        freshJob.cancel()
+    }
+
     @Test fun selecting_a_day_switches_the_hero_and_selecting_it_again_returns_to_today() = runTest(dispatcher) {
         val vm = viewModel()
         val job = launch { vm.uiState.collect {} }

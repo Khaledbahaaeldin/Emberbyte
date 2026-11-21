@@ -30,6 +30,12 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanChipUi
 import java.time.Duration
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.AppUsageRow
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageCardState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilters
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.dayTotal
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.rankApps
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.DayUsage as StripDay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -129,9 +135,12 @@ internal fun buildHomeUiState(
     spike: SpikeTileUi? = null,
     liveRxHistory: List<Long> = emptyList(),
     liveTxHistory: List<Long> = emptyList(),
+    dayApps: List<List<AppUsage>> = emptyList(),
+    usageFilters: UsageFilters = UsageFilters(),
 ): HomeUiState {
     val byteUnits = units.toByteUnits()
-    val validSelection = selectedDay?.takeIf { it in week.indices }
+    // Selecting the last button (today) is the same as "Today".
+    val validSelection = selectedDay?.takeIf { it in week.indices && it != week.lastIndex }
 
     val bars = weekdayBars(week, byteUnits, zone, locale)
 
@@ -188,6 +197,7 @@ internal fun buildHomeUiState(
         liveTxBps = live?.txBps ?: 0L,
         liveRxHistory = liveRxHistory,
         liveTxHistory = liveTxHistory,
+        usage = buildUsageCard(week, dayApps, validSelection, usageFilters, byteUnits, zone),
         network = when (live?.network) {
             NetworkKind.MOBILE -> NetworkKindUi.Mobile
             NetworkKind.WIFI -> NetworkKindUi.Wifi
@@ -263,4 +273,44 @@ internal fun latestGap(coverage: CoverageStatus, now: Instant, zone: ZoneId, is2
     val from = formatter.format(gap.from.atZone(zone))
     val to = formatter.format(gap.to.atZone(zone))
     return GapUi("Not measured $from–$to because ${gapReasonText(gap.reason)}")
+}
+
+private fun AppUsage.toUsageRow() = AppUsageRow(
+    packageName = packageName,
+    label = label,
+    mobileBytes = mobileBytes,
+    wifiBytes = wifiBytes,
+    isSystem = packageName.startsWith("uid:"),
+)
+
+/**
+ * The Top apps card: the last seven days with the filters applied to their totals, the selected day (today when none),
+ * and its ranking. Days without app rows (a first day of data) show as empty bars.
+ */
+internal fun buildUsageCard(
+    week: List<UsagePoint>,
+    dayApps: List<List<AppUsage>>,
+    selectedDay: Int?,
+    filters: UsageFilters,
+    units: ByteUnits,
+    zone: ZoneId,
+): UsageCardState? {
+    if (week.isEmpty()) return null
+    val rowsByDay = week.indices.map { index -> dayApps.getOrNull(index).orEmpty().map { it.toUsageRow() } }
+    val days = week.mapIndexed { index, point ->
+        StripDay(
+            date = point.start.atZone(zone).toLocalDate(),
+            totalBytes = dayTotal(rowsByDay[index], filters),
+            mobileBytes = point.mobileBytes,
+            wifiBytes = point.wifiBytes,
+        )
+    }
+    val selectedIndex = selectedDay?.takeIf { it in week.indices } ?: week.lastIndex
+    return UsageCardState(
+        days = days,
+        selectedIndex = selectedIndex,
+        rows = rankApps(rowsByDay[selectedIndex], filters),
+        filters = filters,
+        units = units,
+    )
 }
