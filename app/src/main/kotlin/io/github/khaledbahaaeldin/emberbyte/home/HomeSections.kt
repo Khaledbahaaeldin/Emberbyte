@@ -45,7 +45,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.ForecastTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NoticeLine
@@ -57,7 +56,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 @Composable
 internal fun HomeHeader(
     state: HomeUiState,
-    onOpenSettings: () -> Unit = {},
     onSelectPlan: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {

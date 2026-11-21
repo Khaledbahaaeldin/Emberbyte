@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -242,7 +243,7 @@ class HomeContentTest {
     @Test
     fun home_hero_labeled_today_with_system_traffic_footnote() {
         show(HomeUiState(heroBytes = 500_000_000L, isToday = true))
-        rule.onNodeWithText("Today").assertIsDisplayed()
+        rule.onAllNodes(hasText("Today")).assertCountEquals(2)
         rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
     }
 

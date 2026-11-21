@@ -75,6 +75,7 @@ class HomeLayoutTest {
     fun home_screen_renders_inside_screen_scaffold_with_scrim() {
         show(HomeUiState())
         rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
+        rule.onAllNodes(hasText("Today")).assertCountEquals(2)
     }
 
     @Test

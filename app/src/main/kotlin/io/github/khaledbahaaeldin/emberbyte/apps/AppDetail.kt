@@ -7,6 +7,7 @@ import android.provider.Settings as AndroidSettings
 import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
@@ -91,7 +92,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.warnText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
@@ -429,22 +429,43 @@ fun AppDetailContent(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val mobileFmt = formatBytes(state.mobileBytes, state.units)
                     val wifiFmt = formatBytes(state.wifiBytes, state.units)
-                    ForceLtr {
-                        Text(
-                            text = "• Mobile ${mobileFmt.value} ${mobileFmt.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.warnText,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(palette.warn, CircleShape),
                         )
+                        ForceLtr {
+                            Text(
+                                text = "Mobile ${mobileFmt.value} ${mobileFmt.unit}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.text,
+                            )
+                        }
                     }
-                    ForceLtr {
-                        Text(
-                            text = "• Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.primary,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(palette.primary, CircleShape),
                         )
+                        ForceLtr {
+                            Text(
+                                text = "Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.text,
+                            )
+                        }
                     }
                 }
             }

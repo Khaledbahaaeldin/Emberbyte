@@ -28,13 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -43,7 +38,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMo
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.GapBanner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
@@ -106,21 +100,7 @@ internal fun HomeContent(
 ) {
     val palette = LocalEmberbytePalette.current
     EmberbyteScreenScaffold(
-        title = stringResource(R.string.app_name),
-        titleContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                BrandMark(size = 32.dp)
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = palette.text,
-                    modifier = Modifier.semantics { heading() },
-                )
-            }
-        },
+        title = "Today",
         actions = {
             IconButton(
                 onClick = onOpenSettings,
@@ -180,12 +160,13 @@ internal fun HomeContent(
         }
 
         // Header
-        item(key = "header") {
-            HomeHeader(
-                state = state,
-                onOpenSettings = onOpenSettings,
-                onSelectPlan = { onEvent(HomeEvent.SelectPlan(it)) },
-            )
+        if (state.planChips.size >= 2) {
+            item(key = "header") {
+                HomeHeader(
+                    state = state,
+                    onSelectPlan = { onEvent(HomeEvent.SelectPlan(it)) },
+                )
+            }
         }
 
         // Hero Section
@@ -198,7 +179,16 @@ internal fun HomeContent(
 
         // Gap banner
         state.gap?.let { gap ->
-            item(key = "gap") { GapBanner(gap) }
+            item(key = "gap") {
+                GapBanner(
+                    model = gap,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
+                )
+            }
         }
 
         // Remaining prompts if not locked (or notification prompts)

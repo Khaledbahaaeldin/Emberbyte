@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.warnText
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -80,11 +79,11 @@ class AppDetailAccessibilityTest {
         rule.setContent {
             EmberbyteTheme(lightSpec) {
                 val palette = LocalEmberbytePalette.current
-                val fg = palette.warnText.compositeOver(palette.surface)
+                val fg = palette.text.compositeOver(palette.background)
                 val l1 = fg.luminance() + 0.05
-                val l2 = palette.surface.luminance() + 0.05
+                val l2 = palette.background.luminance() + 0.05
                 val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                assertTrue("warnText on dusk light must meet 4.5:1, was $ratio", ratio >= 4.5)
+                assertTrue("legend text on dusk light must meet 4.5:1, was $ratio", ratio >= 4.5)
             }
         }
     }

@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.history
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,6 +22,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
@@ -274,6 +276,28 @@ class HistoryScreenTest {
                 )
             }
         }
+        rule.onNodeWithText("12% more than last week").assertIsDisplayed()
+    }
+
+    @Test
+    fun reduce_motion_snaps_instantly() {
+        val state = HistoryUiState(
+            loaded = true,
+            totalBytes = 640_000_000L,
+            comparisonText = "12% more than last week",
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalReduceMotion provides true) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    HistoryContent(
+                        state = state,
+                        onEvent = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        rule.onNodeWithText("History").assertIsDisplayed()
         rule.onNodeWithText("12% more than last week").assertIsDisplayed()
     }
 }

@@ -167,75 +167,6 @@ internal fun AppsContent(
                     ),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-        // Search bar with Filters button
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = { onEvent(AppsEvent.SetQuery(it)) },
-                    label = { Text("Search apps") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = null,
-                            tint = palette.muted,
-                        )
-                    },
-                    trailingIcon = if (state.query.isNotEmpty()) {
-                        {
-                            IconButton(
-                                onClick = { onEvent(AppsEvent.SetQuery("")) },
-                                shapes = IconButtonDefaults.shapes(),
-                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Clear search",
-                                )
-                            }
-                        }
-                    } else null,
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = palette.primary,
-                        unfocusedBorderColor = palette.muted,
-                        focusedTextColor = palette.text,
-                        unfocusedTextColor = palette.text,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-
-                Button(
-                    onClick = { showFiltersSheet = true },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.surface2,
-                        contentColor = palette.text,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                    modifier = Modifier.sizeIn(minHeight = 48.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Tune,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text("Filters")
-                    }
-                }
-            }
-        }
-
         // Removable filter chips row (for each non-default filter)
         val activeFilters = buildList {
             if (state.range != AppsRange.TODAY) {
@@ -268,28 +199,99 @@ internal fun AppsContent(
             }
         }
 
-        item {
-            EmberbyteAnimatedVisibility(visible = activeFilters.isNotEmpty()) {
+        // Search bar with Filters button & active filters
+        item(key = "search_and_filters") {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    activeFilters.forEach { filter ->
-                        EmberbyteFilterChip(
-                            selected = true,
-                            showCheckIcon = false,
-                            onClick = { onEvent(AppsEvent.RemoveFilter(filter.kind)) },
-                            label = { Text(filter.label) },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Remove ${filter.label} filter",
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                        )
+                    OutlinedTextField(
+                        value = state.query,
+                        onValueChange = { onEvent(AppsEvent.SetQuery(it)) },
+                        label = { Text("Search apps") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Search,
+                                contentDescription = null,
+                                tint = palette.muted,
+                            )
+                        },
+                        trailingIcon = {
+                            EmberbyteAnimatedVisibility(
+                                visible = state.query.isNotEmpty(),
+                            ) {
+                                IconButton(
+                                    onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
+                                    modifier = Modifier.size(48.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Close,
+                                        contentDescription = "Clear search",
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = palette.primary,
+                            unfocusedBorderColor = palette.muted,
+                            focusedTextColor = palette.text,
+                            unfocusedTextColor = palette.text,
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    Button(
+                        onClick = { showFiltersSheet = true },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = palette.surface2,
+                            contentColor = palette.text,
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        modifier = Modifier.sizeIn(minHeight = 48.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Tune,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text("Filters")
+                        }
+                    }
+                }
+
+                EmberbyteAnimatedVisibility(visible = activeFilters.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        activeFilters.forEach { filter ->
+                            EmberbyteFilterChip(
+                                selected = true,
+                                showCheckIcon = false,
+                                onClick = { onEvent(AppsEvent.RemoveFilter(filter.kind)) },
+                                label = { Text(filter.label) },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Close,
+                                        contentDescription = "Remove ${filter.label} filter",
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -297,29 +299,39 @@ internal fun AppsContent(
 
         // Featured card
         if (state.featured != null) {
-            item {
+            item(key = "featured") {
                 FeaturedAppCard(
                     app = state.featured,
                     totalBytes = state.totalBytes,
                     units = state.units,
                     icon = icons(state.featured.packageName),
                     onClick = { onOpenApp(state.featured.packageName) },
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
                 )
             }
         }
 
         // Usage access prompt
         if (state.needsUsageAccess) {
-            item {
+            item(key = "usage_prompt") {
                 PermissionPrompt(
                     USAGE_ACCESS_PROMPT,
                     onAction = { onPromptAction(USAGE_ACCESS_PROMPT.id) },
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
                 )
             }
         }
 
         // Total bytes readout
-        item {
+        item(key = "total_bytes") {
             val formatted = formatBytes(state.totalBytes, state.units)
             val fullReadout = "${plainBytes(state.totalBytes, state.units)} (apps only)"
             ForceLtr {
@@ -346,7 +358,7 @@ internal fun AppsContent(
 
         // Apps list or empty state
         if (state.loaded && state.apps.isEmpty()) {
-            item {
+            item(key = "empty_state") {
                 if (state.query.isNotBlank()) {
                     io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState(
                         icon = androidx.compose.material.icons.Icons.Rounded.Search,
