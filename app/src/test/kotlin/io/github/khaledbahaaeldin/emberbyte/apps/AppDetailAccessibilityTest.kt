@@ -226,6 +226,7 @@ class AppDetailAccessibilityTest {
         var expectedWarn = Color.Unspecified
         var expectedLinkColor = Color.Unspecified
         var expectedSurface2 = Color.Unspecified
+        var expectedDanger = Color.Unspecified
         rule.setContent {
             EmberbyteTheme(currentSpec) {
                 val palette = LocalEmberbytePalette.current
@@ -234,6 +235,7 @@ class AppDetailAccessibilityTest {
                     expectedWarn = palette.warn
                     expectedLinkColor = palette.linkText
                     expectedSurface2 = palette.surface2
+                    expectedDanger = palette.danger
                 }
                 AppDetailContent(
                     state = sampleAppDetailState.copy(
@@ -288,6 +290,24 @@ class AppDetailAccessibilityTest {
                 assertTrue(
                     "Edit on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $ratio",
                     ratio >= 4.5,
+                )
+
+                val removeResults = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithText("Remove", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(removeResults) }
+                val removeColor = removeResults.first().layoutInput.style.color
+                assertEquals(
+                    "Remove must bind to palette.danger on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedDanger,
+                    removeColor,
+                )
+                val removeFg = removeColor.compositeOver(expectedSurface2)
+                val removeL1 = removeFg.luminance() + 0.05
+                val removeL2 = expectedSurface2.luminance() + 0.05
+                val removeRatio = maxOf(removeL1, removeL2) / minOf(removeL1, removeL2)
+                assertTrue(
+                    "Remove on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $removeRatio",
+                    removeRatio >= 4.5,
                 )
             }
         }
@@ -347,7 +367,8 @@ class AppDetailAccessibilityTest {
             periodText = "Cycle",
             enabled = true,
         )
-        var state by mutableStateOf(sampleAppDetailState.copy(loaded = true, budget = initialBudget))
+        var state by mutableStateOf(sampleAppDetailState.copy(loaded = false, budget = initialBudget))
+        rule.mainClock.autoAdvance = false
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(LocalReduceMotion provides true) {
@@ -360,17 +381,31 @@ class AppDetailAccessibilityTest {
                 }
             }
         }
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Loading app details").assertIsDisplayed()
+
+        // Snaps out of loading to content within 2 frames (32ms) under reduced motion
+        state = state.copy(loaded = true)
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithContentDescription("Loading app details").assertDoesNotExist()
+        rule.onNodeWithText("Last 7 days").assertIsDisplayed()
+
+        // Scroll to Data budget card and verify budget removal snaps within 2 frames (32ms) under reduced motion
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("500 MB of 1 GB"))
         rule.onNodeWithText("500 MB of 1 GB").assertIsDisplayed()
 
-        // Snaps from budget to "Set a budget" under reduced motion
-        rule.mainClock.autoAdvance = false
         state = state.copy(budget = null)
         rule.waitForIdle()
-        repeat(3) { rule.mainClock.advanceTimeBy(16) }
-        rule.onNodeWithText("Set a budget").assertExists()
-        rule.mainClock.advanceTimeBy(200)
-        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
         rule.onNodeWithText("500 MB of 1 GB").assertDoesNotExist()
         rule.onNodeWithText("Set a budget").assertIsDisplayed()
     }

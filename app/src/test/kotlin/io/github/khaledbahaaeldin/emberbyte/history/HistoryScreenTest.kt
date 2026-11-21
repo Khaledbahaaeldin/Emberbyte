@@ -1,12 +1,23 @@
 package io.github.khaledbahaaeldin.emberbyte.history
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
+import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
@@ -285,15 +296,20 @@ class HistoryScreenTest {
     }
 
     @Test
-    @Config(qualifiers = "w411dp-h3000dp")
+    @Config(qualifiers = "w360dp-h3000dp")
     fun font_scale_2_selected_bar_no_clip() {
-        val state = buildHistoryUiState(
+        val base = buildHistoryUiState(
             Granularity.DAY,
             dayPoints,
             ByteUnits.DECIMAL,
             zone,
             locale,
             selectedIndex = 0,
+        )
+        val state = base.copy(
+            bars = base.bars.mapIndexed { idx, bar ->
+                if (idx == 0) bar.copy(title = "Wednesday, 30 September") else bar
+            },
         )
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
@@ -306,8 +322,63 @@ class HistoryScreenTest {
                 }
             }
         }
+        rule.onNodeWithText("Wednesday, 30 September").assertIsDisplayed()
         rule.onNodeWithText("Show total").assertIsDisplayed()
         rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
         rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun show_total_uses_link_text_and_meets_aa_contrast_across_all_palettes() {
+        val state = buildHistoryUiState(
+            Granularity.DAY,
+            dayPoints,
+            ByteUnits.DECIMAL,
+            zone,
+            locale,
+            selectedIndex = 0,
+        )
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedLinkColor = Color.Unspecified
+        var expectedBackground = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedLinkColor = palette.linkText
+                    expectedBackground = palette.background
+                }
+                HistoryContent(
+                    state = state,
+                    onEvent = {},
+                    onBack = {},
+                )
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+                val results = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithText("Show total", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                val actualColor = results.first().layoutInput.style.color
+                assertEquals(
+                    "Show total must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedLinkColor,
+                    actualColor,
+                )
+                val fg = actualColor.compositeOver(expectedBackground)
+                val l1 = fg.luminance() + 0.05
+                val l2 = expectedBackground.luminance() + 0.05
+                val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                assertTrue(
+                    "Show total on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on background, was $ratio",
+                    ratio >= 4.5,
+                )
+            }
+        }
     }
 }

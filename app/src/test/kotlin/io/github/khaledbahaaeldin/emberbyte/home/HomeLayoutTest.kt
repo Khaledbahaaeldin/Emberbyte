@@ -513,28 +513,32 @@ class HomeLayoutTest {
 
         state = state.copy(forecast = sampleForecast, isEstimated = true)
         val enterWidths = mutableListOf<Float>()
+        val estimatedHeights = mutableListOf<Float>()
         repeat(10) {
             rule.mainClock.advanceTimeBy(16)
             if (rule.onAllNodes(hasText("3 days left")).fetchSemanticsNodes().isNotEmpty()) {
                 val bounds = rule.onNodeWithText("3 days left").getBoundsInRoot()
                 enterWidths += (bounds.right - bounds.left).value
             }
+            if (rule.onAllNodes(hasText("Data usage is estimated")).fetchSemanticsNodes().isNotEmpty()) {
+                val estBounds = rule.onNodeWithText("Data usage is estimated").getBoundsInRoot()
+                estimatedHeights += (estBounds.bottom - estBounds.top).value
+            }
         }
         assertTrue("ForecastTile must appear under reduced motion", enterWidths.isNotEmpty())
         val fullWidth = enterWidths.last()
         assertTrue("ForecastTile must snap without intermediate expand widths, saw $enterWidths", enterWidths.all { it >= fullWidth - 0.5f })
+        assertTrue("Estimated notice must appear under reduced motion", estimatedHeights.isNotEmpty())
+        val fullEstHeight = estimatedHeights.last()
+        assertTrue("Estimated notice must snap without intermediate expand heights, saw $estimatedHeights", estimatedHeights.all { it >= fullEstHeight - 0.5f })
         rule.onNodeWithText("Data usage is estimated").assertIsDisplayed()
 
         state = state.copy(forecast = null, isEstimated = false)
-        val exitWidths = mutableListOf<Float>()
-        repeat(10) {
-            rule.mainClock.advanceTimeBy(16)
-            if (rule.onAllNodes(hasText("3 days left")).fetchSemanticsNodes().isNotEmpty()) {
-                val bounds = rule.onNodeWithText("3 days left").getBoundsInRoot()
-                exitWidths += (bounds.right - bounds.left).value
-            }
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
         }
-        assertTrue("ForecastTile must snap exit without intermediate shrink widths, saw $exitWidths", exitWidths.all { it >= fullWidth - 0.5f })
         rule.onNodeWithText("3 days left").assertDoesNotExist()
         rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
     }

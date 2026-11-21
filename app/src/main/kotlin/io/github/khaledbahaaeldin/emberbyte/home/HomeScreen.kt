@@ -184,16 +184,18 @@ internal fun HomeContent(
                     }
 
                     // Hero Section
-                    item(key = "hero") {
-                        HomeHeroSection(
-                            state = state,
-                            onSetUpPlan = onSetUpPlan,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
-                        )
+                    if (!state.topAppsLocked) {
+                        item(key = "hero") {
+                            HomeHeroSection(
+                                state = state,
+                                onSetUpPlan = onSetUpPlan,
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = motion.effects(),
+                                    placementSpec = motion.spatial(),
+                                    fadeOutSpec = motion.effects(),
+                                ),
+                            )
+                        }
                     }
 
                     // Gap banner

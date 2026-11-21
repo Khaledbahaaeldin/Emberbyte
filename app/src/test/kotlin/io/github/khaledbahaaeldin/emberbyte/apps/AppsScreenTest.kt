@@ -1,11 +1,17 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -19,6 +25,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
@@ -26,7 +35,10 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -393,5 +405,80 @@ class AppsScreenTest {
         }
 
         rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun font_scale_2_no_clip() {
+        val state = AppsUiState(
+            apps = sampleApps,
+            featured = sampleFeatured,
+            totalBytes = 1_100_000_000L,
+            units = ByteUnits.DECIMAL,
+            range = AppsRange.LAST_7_DAYS,
+            loaded = true,
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    AppsContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenApp = {},
+                        onPromptAction = {},
+                    )
+                }
+            }
+        }
+        rule.onNodeWithText("Filters").assertIsDisplayed()
+        rule.onNodeWithText("7 days").assertIsDisplayed()
+        rule.onNodeWithText("YouTube").assertIsDisplayed()
+        rule.onNodeWithText("Chat").assertIsDisplayed()
+    }
+
+    @Test
+    fun clear_search_uses_link_text_and_meets_aa_contrast_across_all_palettes() {
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedLinkColor = Color.Unspecified
+        var expectedBackground = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedLinkColor = palette.linkText
+                    expectedBackground = palette.background
+                }
+                AppsContent(
+                    state = AppsUiState(query = "unknown", apps = emptyList(), loaded = true),
+                    onEvent = {},
+                    onOpenApp = {},
+                    onPromptAction = {},
+                )
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+                val results = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithText("Clear search", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                val actualColor = results.first().layoutInput.style.color
+                assertEquals(
+                    "Clear search must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedLinkColor,
+                    actualColor,
+                )
+                val fg = actualColor.compositeOver(expectedBackground)
+                val l1 = fg.luminance() + 0.05
+                val l2 = expectedBackground.luminance() + 0.05
+                val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                assertTrue(
+                    "Clear search on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on background, was $ratio",
+                    ratio >= 4.5,
+                )
+            }
+        }
     }
 }
