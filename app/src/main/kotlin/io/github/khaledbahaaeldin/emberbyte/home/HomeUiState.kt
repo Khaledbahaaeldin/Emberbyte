@@ -26,6 +26,10 @@ data class HomeUiState(
     val throughputBps: Long = 0L,
     val liveRxBps: Long = 0L,
     val liveTxBps: Long = 0L,
+    /** The last 60 one-second download rates, oldest first. In memory only; never persisted. */
+    val liveRxHistory: List<Long> = emptyList(),
+    /** The last 60 one-second upload rates, oldest first. In memory only; never persisted. */
+    val liveTxHistory: List<Long> = emptyList(),
     val network: NetworkKindUi? = null,
     val mobileBytes: Long = 0L,
     val wifiBytes: Long = 0L,

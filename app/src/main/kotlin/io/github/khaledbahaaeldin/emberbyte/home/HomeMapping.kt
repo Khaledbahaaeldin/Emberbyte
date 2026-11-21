@@ -127,6 +127,8 @@ internal fun buildHomeUiState(
     planChips: List<PlanChipUi> = emptyList(),
     is24Hour: Boolean = true,
     spike: SpikeTileUi? = null,
+    liveRxHistory: List<Long> = emptyList(),
+    liveTxHistory: List<Long> = emptyList(),
 ): HomeUiState {
     val byteUnits = units.toByteUnits()
     val validSelection = selectedDay?.takeIf { it in week.indices }
@@ -184,6 +186,8 @@ internal fun buildHomeUiState(
         throughputBps = (live?.rxBps ?: 0L) + (live?.txBps ?: 0L),
         liveRxBps = live?.rxBps ?: 0L,
         liveTxBps = live?.txBps ?: 0L,
+        liveRxHistory = liveRxHistory,
+        liveTxHistory = liveTxHistory,
         network = when (live?.network) {
             NetworkKind.MOBILE -> NetworkKindUi.Mobile
             NetworkKind.WIFI -> NetworkKindUi.Wifi

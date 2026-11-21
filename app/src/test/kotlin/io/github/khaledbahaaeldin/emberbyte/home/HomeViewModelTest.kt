@@ -79,6 +79,57 @@ class HomeViewModelTest {
         job.cancel()
     }
 
+    @Test fun live_history_keeps_receive_and_transmit_separately() = runTest(dispatcher) {
+        val tick = MutableSharedFlow<Unit>()
+        val vm = viewModel(tick)
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        repeat(3) {
+            tick.emit(Unit)
+            advanceUntilIdle()
+        }
+        val state = vm.uiState.value
+        assertEquals(3, state.liveRxHistory.size)
+        assertEquals(3, state.liveTxHistory.size)
+        assertEquals(setOf(io.github.khaledbahaaeldin.emberbyte.data.fake.FakeTraffic.rxBpsAt(0L)), state.liveRxHistory.toSet())
+        assertEquals(setOf(io.github.khaledbahaaeldin.emberbyte.data.fake.FakeTraffic.txBpsAt(0L)), state.liveTxHistory.toSet())
+        assertTrue(state.liveRxHistory.first() != state.liveTxHistory.first())
+        job.cancel()
+    }
+
+    @Test fun live_history_is_capped_at_60() = runTest(dispatcher) {
+        val tick = MutableSharedFlow<Unit>()
+        val vm = viewModel(tick)
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        repeat(75) {
+            tick.emit(Unit)
+            advanceUntilIdle()
+        }
+        assertEquals(60, vm.uiState.value.liveRxHistory.size)
+        assertEquals(60, vm.uiState.value.liveTxHistory.size)
+        job.cancel()
+    }
+
+    @Test fun history_is_not_persisted() = runTest(dispatcher) {
+        val tick = MutableSharedFlow<Unit>()
+        val first = viewModel(tick)
+        val firstJob = launch { first.uiState.collect {} }
+        advanceUntilIdle()
+        tick.emit(Unit)
+        advanceUntilIdle()
+        assertEquals(1, first.uiState.value.liveRxHistory.size)
+        firstJob.cancel()
+
+        // A new view model (a new process in practice) starts with nothing: samples live only in memory.
+        val second = viewModel()
+        val secondJob = launch { second.uiState.collect {} }
+        advanceUntilIdle()
+        assertTrue(second.uiState.value.liveRxHistory.isEmpty())
+        assertTrue(second.uiState.value.liveTxHistory.isEmpty())
+        secondJob.cancel()
+    }
+
     @Test fun selecting_a_day_switches_the_hero_and_selecting_it_again_returns_to_today() = runTest(dispatcher) {
         val vm = viewModel()
         val job = launch { vm.uiState.collect {} }
