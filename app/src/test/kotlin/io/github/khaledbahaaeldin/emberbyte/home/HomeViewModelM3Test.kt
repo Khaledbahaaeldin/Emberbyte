@@ -47,7 +47,6 @@ class HomeViewModelM3Test {
             plans = plans,
             settings = FakeSettingsRepository(),
             permissions = FakePermissionRepository(),
-            spikes = RoomSpikeRepository(InMemorySpikeStore()),
             clock = clock,
             locale = Locale.ENGLISH,
             dates = flowOf(LocalDate.of(2026, 10, 5)),

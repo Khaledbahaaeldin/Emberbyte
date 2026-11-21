@@ -78,7 +78,6 @@ class HomeAccessibilityTest {
             PlanChipUi(1L, "SIM 1", true),
             PlanChipUi(2L, "SIM 2", false),
         ),
-        spike = SpikeTileUi(1L, "com.video", "Spike detected", "Video used 1.2 GB in 2h"),
     )
 
     private fun show(state: HomeUiState = sampleHomeState) {

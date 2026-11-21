@@ -187,6 +187,17 @@ internal fun AppsContent(
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    state.spike?.let { spike ->
+                        item(key = "spike_banner") {
+                            SpikeBanner(
+                                spike = spike,
+                                onOpen = { onOpenApp(spike.packageName) },
+                                onDismiss = { onEvent(AppsEvent.DismissSpike(spike.id)) },
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
+
                     item(key = "search_row") {
                         AppsSearchRow(
                             query = state.query,

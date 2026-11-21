@@ -296,36 +296,6 @@ internal fun HomeContent(
                         )
                     }
 
-                    // Spike tile
-                    state.spike?.let { spike ->
-                        item(key = "spike") {
-                            BentoTile(
-                                title = "Spike detected",
-                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
-                                container = TileContainer.Accent,
-                                onClick = { onOpenApp(spike.packageName) },
-                            ) {
-                                Text(spike.title, style = MaterialTheme.typography.titleMedium)
-                                ForceLtr {
-                                    Text(
-                                        spike.detail,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = palette.onAccent,
-                                    )
-                                }
-                                TextButton(
-                                    onClick = { onEvent(HomeEvent.DismissSpike(spike.id)) },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = palette.onAccent,
-                                    ),
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Dismiss")
-                                }
-                            }
-                        }
-                    }
-
                     // One usage card (week strip, ranking, filters, History). While usage access is missing the
                     // existing explanation is shown instead of an empty card.
                     if (state.topAppsLocked) {

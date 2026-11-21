@@ -132,7 +132,6 @@ internal fun buildHomeUiState(
     permissions: PermissionState? = null,
     planChips: List<PlanChipUi> = emptyList(),
     is24Hour: Boolean = true,
-    spike: SpikeTileUi? = null,
     liveRxHistory: List<Long> = emptyList(),
     liveTxHistory: List<Long> = emptyList(),
     dayApps: List<List<AppUsage>> = emptyList(),
@@ -216,7 +215,6 @@ internal fun buildHomeUiState(
         hasPlan = planState != null,
         units = byteUnits,
         planChips = if (planChips.size >= 2) planChips else emptyList(),
-        spike = spike,
         planLine = planLine,
         planFraction = planFraction,
     )

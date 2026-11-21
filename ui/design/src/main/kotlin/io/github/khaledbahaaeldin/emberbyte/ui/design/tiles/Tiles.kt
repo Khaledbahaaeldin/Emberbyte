@@ -80,12 +80,6 @@ fun ForecastTile(
         ForceLtr {
             Text(model.headline, style = MaterialTheme.typography.headlineLarge, color = palette.onAccent)
             Text(model.detail, style = MaterialTheme.typography.bodyMedium, color = palette.onAccent.copy(alpha = 0.85f))
-            Text(
-                model.confidence,
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.onAccent.copy(alpha = 0.75f),
-                modifier = Modifier.padding(top = 4.dp),
-            )
         }
     }
 }

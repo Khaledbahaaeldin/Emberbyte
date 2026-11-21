@@ -1,7 +1,6 @@
-package io.github.khaledbahaaeldin.emberbyte.home
+package io.github.khaledbahaaeldin.emberbyte.apps
 
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakePermissionRepository
-import io.github.khaledbahaaeldin.emberbyte.data.fake.FakePlanRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeUsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.InMemorySpikeStore
@@ -11,7 +10,6 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,7 +28,7 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class HomeViewModelM4Test {
+class AppsViewModelSpikeTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-05T12:00:00Z"), ZoneOffset.UTC)
     private val dispatcher = StandardTestDispatcher()
     private val spikeStore = InMemorySpikeStore()
@@ -41,16 +39,14 @@ class HomeViewModelM4Test {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun createViewModel(): HomeViewModel = HomeViewModel(
+    private fun createViewModel(): AppsViewModel = AppsViewModel(
         usage = FakeUsageRepository(clock, MutableSharedFlow()),
-        plans = FakePlanRepository(clock),
         settings = FakeSettingsRepository(),
         permissions = FakePermissionRepository(),
+        clock = clock,
+        dates = flowOf(LocalDate.of(2026, 10, 5)),
         spikes = spikes,
         labelOf = labelOf,
-        clock = clock,
-        locale = Locale.ENGLISH,
-        dates = flowOf(LocalDate.of(2026, 10, 5)),
     )
 
     @Test
@@ -135,7 +131,7 @@ class HomeViewModelM4Test {
 
         assertEquals(2L, vm.uiState.value.spike?.id)
 
-        vm.onEvent(HomeEvent.DismissSpike(2L))
+        vm.onEvent(AppsEvent.DismissSpike(2L))
         advanceUntilIdle()
 
         val currentSpike = vm.uiState.value.spike
@@ -144,7 +140,7 @@ class HomeViewModelM4Test {
         assertEquals("com.music", currentSpike?.packageName)
         assertEquals("Music App used a lot of data", currentSpike?.title)
 
-        vm.onEvent(HomeEvent.DismissSpike(1L))
+        vm.onEvent(AppsEvent.DismissSpike(1L))
         advanceUntilIdle()
 
         assertNull(vm.uiState.value.spike)

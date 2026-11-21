@@ -178,50 +178,6 @@ class HomeContentTest {
         assertEquals(LayoutDirection.Ltr, node2.fetchSemanticsNode().layoutInfo.layoutDirection)
     }
 
-    @Test fun spike_tile_shows_title_and_detail_and_tapping_it_calls_on_open_app() {
-        var opened: String? = null
-        show(
-            HomeUiState(
-                spike = SpikeTileUi(
-                    id = 42L,
-                    packageName = "com.video",
-                    title = "Video used a lot of data",
-                    detail = "1.24 GB in two hours, 8.3x its usual",
-                ),
-            ),
-            onOpenApp = { opened = it },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Spike detected"))
-        rule.onNodeWithText("Spike detected").assertIsDisplayed()
-        rule.onNodeWithText("Video used a lot of data").assertIsDisplayed()
-        rule.onNodeWithText("1.24 GB in two hours, 8.3x its usual").assertIsDisplayed()
-        rule.onNodeWithText("Spike detected").performClick()
-        assertEquals("com.video", opened)
-    }
-
-    @Test fun spike_tile_dismiss_button_sends_dismiss_event() {
-        var dismissedEvent: HomeEvent? = null
-        show(
-            HomeUiState(
-                spike = SpikeTileUi(
-                    id = 42L,
-                    packageName = "com.video",
-                    title = "Video used a lot of data",
-                    detail = "1.24 GB in two hours, 8.3x its usual",
-                ),
-            ),
-            onEvent = { dismissedEvent = it },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Dismiss"))
-        rule.onNodeWithText("Dismiss").performClick()
-        assertEquals(HomeEvent.DismissSpike(42L), dismissedEvent)
-    }
-
-    @Test fun without_a_spike_the_spike_detected_tile_is_not_shown() {
-        show(HomeUiState(spike = null))
-        rule.onNodeWithText("Spike detected").assertDoesNotExist()
-    }
-
     @Test fun loading_shows_loading_state() {
         show(HomeUiState(isLoading = true))
         rule.onNodeWithContentDescription("Loading today's usage").assertIsDisplayed()

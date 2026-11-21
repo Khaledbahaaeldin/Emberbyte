@@ -482,12 +482,6 @@ class HomeLayoutTest {
                         planLine = null,
                         subtitle = null,
                         usage = sampleUsageCard(),
-                        spike = SpikeTileUi(
-                            id = 1L,
-                            packageName = "com.video",
-                            title = "Video spiked",
-                            detail = "3x normal today",
-                        ),
                     ),
                     onEvent = {},
                     onOpenSettings = {},
@@ -522,25 +516,6 @@ class HomeLayoutTest {
                     val ratio = maxOf(l1, l2) / minOf(l1, l2)
                     assertTrue(
                         "$label on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
-                        ratio >= 4.5,
-                    )
-                }
-                for (accentLabel in listOf("3x normal today", "Dismiss")) {
-                    val results = mutableListOf<TextLayoutResult>()
-                    rule.onNodeWithText(accentLabel, useUnmergedTree = true)
-                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-                    val actualColor = results.first().layoutInput.style.color
-                    assertEquals(
-                        "$accentLabel must bind to palette.onAccent on ${preset.id} dark=$dark amoled=$amoled",
-                        expectedOnAccent,
-                        actualColor,
-                    )
-                    val fg = actualColor.compositeOver(expectedAccent)
-                    val l1 = fg.luminance() + 0.05
-                    val l2 = expectedAccent.luminance() + 0.05
-                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                    assertTrue(
-                        "$accentLabel on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on accent, was $ratio",
                         ratio >= 4.5,
                     )
                 }

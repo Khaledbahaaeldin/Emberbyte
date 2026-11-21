@@ -46,7 +46,6 @@ data class HomeUiState(
     val hasPlan: Boolean = false,
     val units: ByteUnits = ByteUnits.DECIMAL,
     val planChips: List<PlanChipUi> = emptyList(),
-    val spike: SpikeTileUi? = null,
     val planLine: String? = null,
     val planFraction: Float = 0f,
     val isLoading: Boolean = false,
@@ -58,7 +57,6 @@ sealed interface HomeEvent {
     /** Tapping the selected bar again returns to "Today". */
     data class SelectDay(val index: Int) : HomeEvent
     data class SelectPlan(val planId: Long) : HomeEvent
-    data class DismissSpike(val id: Long) : HomeEvent
     /** The usage card's own filters: session only, independent of the Apps screen. */
     data class SetUsageFilters(val filters: UsageFilters) : HomeEvent
     data class RemoveUsageFilter(val filter: UsageFilter) : HomeEvent

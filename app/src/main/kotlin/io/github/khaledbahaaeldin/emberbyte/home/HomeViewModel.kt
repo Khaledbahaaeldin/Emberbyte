@@ -6,7 +6,6 @@ import io.github.khaledbahaaeldin.emberbyte.data.PermissionRepository
 import io.github.khaledbahaaeldin.emberbyte.data.PermissionState
 import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
 import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
-import io.github.khaledbahaaeldin.emberbyte.data.SpikeRepository
 import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
@@ -18,7 +17,6 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.Forecast
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.engine.model.LiveSpeed
 import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
-import io.github.khaledbahaaeldin.emberbyte.engine.model.SpikeEvent
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanChipUi
 import java.time.Clock
@@ -61,7 +59,6 @@ private data class HomeBundle(
     val data: HomeData,
     val coverage: CoverageStatus,
     val permissions: PermissionState,
-    val spikes: List<SpikeEvent>,
 )
 
 /**
@@ -74,8 +71,6 @@ class HomeViewModel(
     plans: PlanRepository,
     settings: SettingsRepository,
     permissions: PermissionRepository,
-    private val spikes: SpikeRepository,
-    private val labelOf: (String) -> String = { it },
     private val clock: Clock = SystemZoneClock(),
     private val locale: Locale = Locale.getDefault(),
     dates: Flow<LocalDate> = DayClock(clock).dates(),
@@ -135,18 +130,11 @@ class HomeViewModel(
             data,
             usage.observeCoverage(),
             permissions.observe(),
-            spikes.observeSpikes(includeDismissed = false),
-        ) { d, coverage, perms, spikesList ->
-            HomeBundle(d, coverage, perms, spikesList)
+        ) { d, coverage, perms ->
+            HomeBundle(d, coverage, perms)
         }
 
     val uiState: StateFlow<HomeUiState> = combine(bundle, settings.observe(), selectedDay, liveHistory, usageFilters) { b, s, selected, history, filters ->
-        val newestSpike = b.spikes
-            .filter { !it.dismissed }
-            .maxWithOrNull(compareBy<SpikeEvent> { it.detectedAt }.thenBy { it.id })
-        val spikeUi = newestSpike?.let {
-            spikeTile(it, labelOf(it.packageName), s.unitSystem.toByteUnits())
-        }
         buildHomeUiState(
             today = b.data.today,
             live = b.data.live,
@@ -163,7 +151,6 @@ class HomeViewModel(
             permissions = b.permissions,
             planChips = b.data.planChips,
             is24Hour = is24Hour(),
-            spike = spikeUi,
             liveRxHistory = history.first,
             liveTxHistory = history.second,
             dayApps = b.data.dayApps,
@@ -175,7 +162,6 @@ class HomeViewModel(
         when (event) {
             is HomeEvent.SelectDay -> selectedDay.update { current -> if (current == event.index) null else event.index }
             is HomeEvent.SelectPlan -> selectedPlanId.value = event.planId
-            is HomeEvent.DismissSpike -> viewModelScope.launch { spikes.dismiss(event.id) }
             is HomeEvent.SetUsageFilters -> usageFilters.value = event.filters
             is HomeEvent.ShowDay -> selectedDay.value = event.index
             is HomeEvent.RemoveUsageFilter -> usageFilters.update { current ->

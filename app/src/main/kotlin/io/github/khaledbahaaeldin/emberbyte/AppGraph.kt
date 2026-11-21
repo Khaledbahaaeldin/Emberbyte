@@ -161,8 +161,6 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 plans = plans,
                 settings = settings,
                 permissions = permissions,
-                spikes = spikes,
-                labelOf = ::appLabel,
                 clock = clock,
                 is24Hour = { DateFormat.is24HourFormat(appContext) },
             )
@@ -170,7 +168,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun appsViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { AppsViewModel(usage, settings, permissions) }
+        initializer { AppsViewModel(usage, settings, permissions, spikes = spikes, labelOf = ::appLabel) }
     }
 
     fun appDetailViewModelFactory(packageName: String): ViewModelProvider.Factory = viewModelFactory {
