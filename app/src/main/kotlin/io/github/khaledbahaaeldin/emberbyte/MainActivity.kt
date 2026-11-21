@@ -28,6 +28,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) {
+            // A fresh window (the app was closed, not rotated): replay the Home and Apps entrances.
+            io.github.khaledbahaaeldin.emberbyte.ui.design.number.resetHomeEntrance()
+            io.github.khaledbahaaeldin.emberbyte.apps.AppsEntranceGate.reset()
+        }
         if (BuildConfig.DEBUG) {
             val fakeNowMillis = intent?.getLongExtra("debug_fake_now", -1L) ?: -1L
             if (fakeNowMillis > 0L) {

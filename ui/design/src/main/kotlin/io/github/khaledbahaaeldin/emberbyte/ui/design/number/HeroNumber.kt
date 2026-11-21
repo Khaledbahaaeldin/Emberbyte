@@ -291,6 +291,13 @@ internal object HeroEntranceGate {
     }
 }
 
+/**
+ * Call when the app's window is opened fresh (a new activity, not a rotation or other recreation): the Home entrance
+ * plays again. The process often outlives the window because the sampler service keeps it alive, so a process flag
+ * alone would play it only once after install.
+ */
+fun resetHomeEntrance() = HeroEntranceGate.reset()
+
 private data class HeroChange(val value: String, val indices: List<Int>, val generation: Int)
 
 /** Test-only readout of one hero digit's current `wght`. */
