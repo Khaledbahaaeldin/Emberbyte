@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.apps
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTouchInput
@@ -16,10 +17,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w360dp-h3000dp")
 class AppsAccessibilityTest {
     @get:Rule
     val rule = createComposeRule()
+
+    @org.junit.Before fun settleEntrance() { AppsEntranceGate.played = true }
 
     private val sampleAppsState = AppsUiState(
         range = AppsRange.TODAY,
@@ -50,12 +53,11 @@ class AppsAccessibilityTest {
         show(sampleAppsState.copy(range = AppsRange.LAST_7_DAYS, network = AppsNetwork.WIFI, query = "test"))
         // Screen headline, search field, and Filters button have clear text labels/names
         rule.onNodeWithText("Apps").assertIsDisplayed()
-        rule.onNodeWithText("Search apps").assertIsDisplayed()
-        rule.onNodeWithText("Filters").assertIsDisplayed()
+        rule.onNodeWithTag("apps_search_field").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Filters, 1 active").assertIsDisplayed()
         rule.onNodeWithContentDescription("Clear search").assertIsDisplayed()
         // Removable filter chips have accessible remove descriptions
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Remove Wi-Fi filter").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertIsDisplayed()
         // App items have clear text
         rule.onNodeWithText("Video").assertIsDisplayed()
         rule.onNodeWithText("Chat").assertIsDisplayed()

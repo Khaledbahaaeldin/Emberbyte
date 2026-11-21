@@ -105,3 +105,15 @@ object UsageShapes {
     val SegmentMiddle: CornerBasedShape = RoundedCornerShape(9.dp)
     val SegmentEnd: CornerBasedShape = RoundedCornerShape(topStart = 9.dp, bottomStart = 9.dp, topEnd = 27.dp, bottomEnd = 27.dp)
 }
+
+/** Shapes of the Apps page: the connected search and Filters pair, the period buttons and the rows. */
+object AppsShapes {
+    val SearchField: CornerBasedShape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp, topEnd = 10.dp, bottomEnd = 10.dp)
+    val SearchFieldFocused: CornerBasedShape = RoundedCornerShape(28.dp)
+    val FiltersButton: CornerBasedShape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp, topEnd = 28.dp, bottomEnd = 28.dp)
+    val PeriodStart: CornerBasedShape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp, topEnd = 9.dp, bottomEnd = 9.dp)
+    val PeriodMiddle: CornerBasedShape = RoundedCornerShape(9.dp)
+    val PeriodEnd: CornerBasedShape = RoundedCornerShape(topStart = 9.dp, bottomStart = 9.dp, topEnd = 24.dp, bottomEnd = 24.dp)
+    val Row: CornerBasedShape = RoundedCornerShape(22.dp)
+    val Chip: CornerBasedShape = RoundedCornerShape(50)
+}

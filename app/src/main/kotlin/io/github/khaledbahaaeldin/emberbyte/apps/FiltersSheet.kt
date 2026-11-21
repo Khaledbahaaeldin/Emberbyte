@@ -3,9 +3,8 @@ package io.github.khaledbahaaeldin.emberbyte.apps
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -13,9 +12,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -25,49 +24,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ExpressiveSwitch
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.AppsType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
-private val PERIOD_OPTIONS = listOf("Today", "7 days", "30 days", "Cycle")
 private val NETWORK_OPTIONS = listOf("All", "Mobile", "Wi-Fi")
-private val SORT_OPTIONS = listOf("Usage", "Name")
+private val SORT_OPTIONS = listOf("Most", "Least", "Name")
 
+/**
+ * The Apps filters: Network, Sort by and Show system apps. The period lives on the page as buttons. The sheet edits a
+ * draft: Reset clears the draft only, Apply commits it and closes the sheet.
+ */
 @Composable
 fun FiltersSheetContent(
-    range: AppsRange,
     network: AppsNetwork,
     sort: AppSort,
     showSystemApps: Boolean,
-    onApply: (range: AppsRange, network: AppsNetwork, sort: AppSort, showSystemApps: Boolean) -> Unit,
-    onReset: () -> Unit,
+    onApply: (network: AppsNetwork, sort: AppSort, showSystemApps: Boolean) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-    var currentRange by remember(range) { mutableStateOf(range) }
     var currentNetwork by remember(network) { mutableStateOf(network) }
     var currentSort by remember(sort) { mutableStateOf(sort) }
     var currentShowSystemApps by remember(showSystemApps) { mutableStateOf(showSystemApps) }
-
-    val periodIndex = when (currentRange) {
-        AppsRange.TODAY -> 0
-        AppsRange.LAST_7_DAYS -> 1
-        AppsRange.LAST_30_DAYS -> 2
-        AppsRange.THIS_MONTH, AppsRange.CYCLE -> 3
-    }
 
     val networkIndex = when (currentNetwork) {
         AppsNetwork.ALL -> 0
         AppsNetwork.MOBILE -> 1
         AppsNetwork.WIFI -> 2
     }
-
     val sortIndex = when (currentSort) {
-        AppSort.NAME -> 1
+        AppSort.BYTES_ASC -> 1
+        AppSort.NAME -> 2
         else -> 0
     }
 
@@ -76,43 +72,19 @@ fun FiltersSheetContent(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .imePadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .testTag("apps_filters_sheet"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = "Filters",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            style = EmberbyteType.grotesk(AppsType.SheetTitle, 700),
             color = palette.text,
+            modifier = Modifier.semantics { heading() },
         )
 
-        // Period section
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = "Period",
-                style = MaterialTheme.typography.labelLarge,
-                color = palette.muted,
-            )
-            ConnectedButtonGroup(
-                options = PERIOD_OPTIONS,
-                selectedIndex = periodIndex,
-                onSelect = { idx ->
-                    currentRange = when (idx) {
-                        0 -> AppsRange.TODAY
-                        1 -> AppsRange.LAST_7_DAYS
-                        2 -> AppsRange.LAST_30_DAYS
-                        else -> AppsRange.CYCLE
-                    }
-                },
-            )
-        }
-
-        // Network section
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = "Network",
-                style = MaterialTheme.typography.labelLarge,
-                color = palette.muted,
-            )
+            Text("Network", style = EmberbyteType.grotesk(AppsType.SheetLabel, 600), color = palette.muted)
             ConnectedButtonGroup(
                 options = NETWORK_OPTIONS,
                 selectedIndex = networkIndex,
@@ -126,37 +98,28 @@ fun FiltersSheetContent(
             )
         }
 
-        // Sort section
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = "Sort by",
-                style = MaterialTheme.typography.labelLarge,
-                color = palette.muted,
-            )
+            Text("Sort by", style = EmberbyteType.grotesk(AppsType.SheetLabel, 600), color = palette.muted)
             ConnectedButtonGroup(
                 options = SORT_OPTIONS,
                 selectedIndex = sortIndex,
                 onSelect = { idx ->
                     currentSort = when (idx) {
-                        1 -> AppSort.NAME
+                        1 -> AppSort.BYTES_ASC
+                        2 -> AppSort.NAME
                         else -> AppSort.BYTES_DESC
                     }
                 },
             )
         }
 
-        // System apps toggle
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Show system apps",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = palette.text,
-                )
+                Text("Show system apps", style = EmberbyteType.grotesk(AppsType.SheetLabel, 600), color = palette.text)
                 Text(
                     text = "Include OS and pre-installed background processes",
                     style = MaterialTheme.typography.bodySmall,
@@ -169,37 +132,27 @@ fun FiltersSheetContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Action buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedButton(
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FilledTonalButton(
                 onClick = {
-                    currentRange = AppsRange.TODAY
+                    // Only the draft: nothing changes on the page until Apply.
                     currentNetwork = AppsNetwork.ALL
                     currentSort = AppSort.BYTES_DESC
                     currentShowSystemApps = false
-                    onReset()
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp).testTag("apps_filters_reset"),
             ) {
-                Text("Reset")
+                Text("Reset", style = EmberbyteType.grotesk(AppsType.SheetButton, 700))
             }
             Button(
                 onClick = {
-                    onApply(currentRange, currentNetwork, currentSort, currentShowSystemApps)
+                    onApply(currentNetwork, currentSort, currentShowSystemApps)
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.primary,
-                    contentColor = palette.onPrimary,
-                ),
-                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = palette.primary, contentColor = palette.onPrimary),
+                modifier = Modifier.weight(1.6f).heightIn(min = 52.dp).testTag("apps_filters_apply"),
             ) {
-                Text("Apply")
+                Text("Apply", style = EmberbyteType.grotesk(AppsType.SheetButton, 700))
             }
         }
     }
@@ -208,12 +161,10 @@ fun FiltersSheetContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FiltersSheet(
-    initialRange: AppsRange,
     initialNetwork: AppsNetwork,
     initialSort: AppSort,
     initialShowSystemApps: Boolean,
-    onApply: (range: AppsRange, network: AppsNetwork, sort: AppSort, showSystemApps: Boolean) -> Unit,
-    onReset: () -> Unit,
+    onApply: (network: AppsNetwork, sort: AppSort, showSystemApps: Boolean) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -224,15 +175,14 @@ fun FiltersSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = palette.surface,
+        shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = androidx.compose.foundation.shape.CornerSize(0.dp), bottomEnd = androidx.compose.foundation.shape.CornerSize(0.dp)),
         modifier = modifier,
     ) {
         FiltersSheetContent(
-            range = initialRange,
             network = initialNetwork,
             sort = initialSort,
             showSystemApps = initialShowSystemApps,
             onApply = onApply,
-            onReset = onReset,
             onDismiss = onDismiss,
         )
     }

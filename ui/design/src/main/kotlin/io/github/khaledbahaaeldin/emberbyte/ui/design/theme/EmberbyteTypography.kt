@@ -76,3 +76,28 @@ object UsageType {
     val Button: TextUnit = 15.sp
     val Chip: TextUnit = 13.sp
 }
+
+/** Text sizes of the Apps page (Space Grotesk). Tokens live here so the page carries no raw sizes. */
+object AppsType {
+    val Title: TextUnit = 34.sp
+    val Pill: TextUnit = 13.sp
+    val Search: TextUnit = 16.sp
+    val Badge: TextUnit = 11.sp
+    val Period: TextUnit = 14.sp
+    val Chip: TextUnit = 13.sp
+    val SummaryLabel: TextUnit = 14.sp
+    val SummaryTotal: TextUnit = 48.sp
+    val SummaryUnit: TextUnit = 20.sp
+    val SummarySplit: TextUnit = 13.sp
+    val MostCaption: TextUnit = 11.sp
+    val MostName: TextUnit = 22.sp
+    val MostAmount: TextUnit = 30.sp
+    val MostSub: TextUnit = 13.sp
+    val RowName: TextUnit = 17.sp
+    val RowAmount: TextUnit = 20.sp
+    val RowSub: TextUnit = 12.sp
+    val ListHeader: TextUnit = 14.sp
+    val SheetTitle: TextUnit = 22.sp
+    val SheetLabel: TextUnit = 14.sp
+    val SheetButton: TextUnit = 15.sp
+}
