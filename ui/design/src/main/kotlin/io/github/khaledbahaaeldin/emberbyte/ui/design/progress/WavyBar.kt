@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +52,12 @@ fun WavyBar(
     val clamped = clampBarFraction(fraction)
     val motion = rememberEmberbyteMotion()
     val animSpec = motion.spatial<Float>()
-    onAnimationSpecResolved?.invoke(animSpec)
+    if (onAnimationSpecResolved != null) {
+        SideEffect { onAnimationSpecResolved(animSpec) }
+    }
 
     val reduceMotion = LocalReduceMotion.current
-    val anim = remember { Animatable(0f) }
+    val anim = remember(reduceMotion) { Animatable(if (reduceMotion) clamped else 0f) }
     LaunchedEffect(clamped, reduceMotion) {
         if (reduceMotion) {
             anim.snapTo(clamped)
@@ -62,8 +65,9 @@ fun WavyBar(
             anim.animateTo(clamped, animSpec)
         }
     }
-    val animatedFraction = anim.value
-    onAnimatedFractionChanged?.invoke(animatedFraction)
+    if (onAnimatedFractionChanged != null) {
+        SideEffect { onAnimatedFractionChanged(anim.value) }
+    }
 
     val palette = LocalEmberbytePalette.current
     val trackColor = palette.track
@@ -82,6 +86,7 @@ fun WavyBar(
         contentAlignment = Alignment.CenterStart,
     ) {
         Canvas(Modifier.fillMaxSize()) {
+            val animatedFraction = anim.value
             val strokeWidth = 4.dp.toPx()
             val cy = size.height / 2f
             val startX = strokeWidth / 2f

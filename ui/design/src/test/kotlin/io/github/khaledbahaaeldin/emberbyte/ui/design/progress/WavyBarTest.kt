@@ -69,4 +69,26 @@ class WavyBarTest {
         rule.mainClock.advanceTimeByFrame()
         assertTrue("Wavy bar should start from 0 on first show: $animatedProgress", animatedProgress < 0.8f)
     }
+
+    @Test
+    fun wavy_bar_snaps_when_reduced() {
+        rule.mainClock.autoAdvance = false
+        var animatedProgress = 0f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
+                ) {
+                    WavyBar(
+                        fraction = 0.8f,
+                        color = Color.Green,
+                        modifier = Modifier.testTag("bar"),
+                        onAnimatedFractionChanged = { animatedProgress = it },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(0.8f, animatedProgress, 0.001f)
+    }
 }

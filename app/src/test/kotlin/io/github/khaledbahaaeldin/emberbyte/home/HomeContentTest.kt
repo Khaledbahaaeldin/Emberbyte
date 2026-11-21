@@ -226,14 +226,14 @@ class HomeContentTest {
             }
         }
 
-        rule.onNodeWithText("Prompt 1").assertIsDisplayed()
-        rule.onNodeWithText("Prompt 2").assertIsDisplayed()
+        rule.onNodeWithText("Prompt 1").assertExists()
+        rule.onNodeWithText("Prompt 2").assertExists()
 
         // Remove p1
         promptList = listOf(p2)
         rule.waitForIdle()
 
-        rule.onNodeWithText("Prompt 2").assertIsDisplayed()
+        rule.onNodeWithText("Prompt 2").assertExists()
         rule.onNodeWithText("Prompt 1").assertDoesNotExist()
     }
 

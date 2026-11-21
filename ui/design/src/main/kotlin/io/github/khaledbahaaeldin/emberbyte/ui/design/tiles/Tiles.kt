@@ -50,6 +50,7 @@ fun SpeedTile(
                     prefix = "↓ ",
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.text,
+                    contentDescription = "Download ${down.value} ${down.unit} per second",
                 )
                 MorphingNumber(
                     value = up.value,
@@ -57,6 +58,7 @@ fun SpeedTile(
                     prefix = "↑ ",
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.muted,
+                    contentDescription = "Upload ${up.value} ${up.unit} per second",
                 )
             }
         }

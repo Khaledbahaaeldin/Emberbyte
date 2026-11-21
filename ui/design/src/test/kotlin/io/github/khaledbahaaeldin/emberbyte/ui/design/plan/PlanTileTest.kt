@@ -130,4 +130,14 @@ class PlanTileTest {
         rule.onNodeWithText("Unlimited Plus", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("3.70 GB left", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun plan_tile_accepts_delay_millis() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                PlanTile(model = baseModel, onClick = {}, delayMillis = 80)
+            }
+        }
+        rule.onNodeWithText("Unlimited Plus", useUnmergedTree = true).assertIsDisplayed()
+    }
 }

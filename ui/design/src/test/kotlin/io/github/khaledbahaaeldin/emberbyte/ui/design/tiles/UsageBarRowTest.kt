@@ -340,5 +340,49 @@ class UsageBarRowTest {
         rule.waitForIdle()
         assertEquals(targetHeight, capturedHeight)
     }
+
+    @Test
+    fun bars_snap_height_when_reduced_motion() {
+        rule.mainClock.autoAdvance = false
+        val points = listOf(BarUi(bytes = 100L, label = "Mon", description = "Monday"))
+        var capturedHeight: androidx.compose.ui.unit.Dp? = null
+
+        rule.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
+            ) {
+                Box(Modifier.size(360.dp, 200.dp)) {
+                    UsageBarRow(
+                        points = points,
+                        selectedIndex = null,
+                        onSelect = {},
+                        onBarHeightChanged = { index, h -> if (index == 0) capturedHeight = h },
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        // Reduced motion must snap immediately to target height (8 + 56 = 64.dp)
+        assertEquals((8 + 56 * 1f).dp, capturedHeight)
+    }
+
+    @Test
+    fun bars_grow_in_from_base_on_first_show() {
+        rule.mainClock.autoAdvance = false
+        val points = listOf(BarUi(bytes = 100L, label = "Mon", description = "Monday"))
+        val recordedHeights = mutableListOf<androidx.compose.ui.unit.Dp>()
+
+        rule.setContent {
+            Box(Modifier.size(360.dp, 200.dp)) {
+                UsageBarRow(
+                    points = points,
+                    selectedIndex = null,
+                    onSelect = {},
+                    onBarHeightChanged = { index, h -> if (index == 0) recordedHeights.add(h) },
+                )
+            }
+        }
+        assertTrue("Initial height must start at 8.dp: $recordedHeights", recordedHeights.contains(8.dp))
+    }
 }
 

@@ -47,6 +47,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
@@ -510,6 +511,8 @@ fun HistoryContent(
                 } else {
                     plainBytes(state.totalBytes, state.units)
                 }
+                val formattedTotal = formatBytes(state.totalBytes, state.units)
+                val formattedAvg = formatBytes(state.averageBytes, state.units)
                 val avgTitle = "Avg / active $unit"
 
                 if (fontScale >= 1.5f) {
@@ -519,12 +522,26 @@ fun HistoryContent(
                     ) {
                         BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
                             ForceLtr {
-                                Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                if (isDay) {
+                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                } else {
+                                    MorphingNumber(
+                                        value = formattedTotal.value,
+                                        unit = formattedTotal.unit,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        contentDescription = "$firstTileTitle ${plainBytes(state.totalBytes, state.units)}",
+                                    )
+                                }
                             }
                         }
                         BentoTile(title = avgTitle, modifier = Modifier.fillMaxWidth()) {
                             ForceLtr {
-                                Text(plainBytes(state.averageBytes, state.units), style = MaterialTheme.typography.headlineSmall)
+                                MorphingNumber(
+                                    value = formattedAvg.value,
+                                    unit = formattedAvg.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = "$avgTitle ${plainBytes(state.averageBytes, state.units)}",
+                                )
                             }
                         }
                     }
@@ -539,7 +556,16 @@ fun HistoryContent(
                             container = TileContainer.Primary,
                         ) {
                             ForceLtr {
-                                Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                if (isDay) {
+                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                } else {
+                                    MorphingNumber(
+                                        value = formattedTotal.value,
+                                        unit = formattedTotal.unit,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        contentDescription = "$firstTileTitle ${plainBytes(state.totalBytes, state.units)}",
+                                    )
+                                }
                             }
                         }
                         BentoTile(
@@ -547,7 +573,12 @@ fun HistoryContent(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         ) {
                             ForceLtr {
-                                Text(plainBytes(state.averageBytes, state.units), style = MaterialTheme.typography.headlineSmall)
+                                MorphingNumber(
+                                    value = formattedAvg.value,
+                                    unit = formattedAvg.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = "$avgTitle ${plainBytes(state.averageBytes, state.units)}",
+                                )
                             }
                         }
                     }

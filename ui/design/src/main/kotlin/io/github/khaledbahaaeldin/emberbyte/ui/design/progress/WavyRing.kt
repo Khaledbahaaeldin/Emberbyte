@@ -13,7 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -114,29 +118,35 @@ fun WavyRing(
 
     val motion = rememberEmberbyteMotion()
     val animSpec: AnimationSpec<Float> = motion.spatial()
-    onAnimationSpecResolved?.invoke(animSpec)
+    if (onAnimationSpecResolved != null) {
+        SideEffect { onAnimationSpecResolved(animSpec) }
+    }
 
     val targetSweep = effectiveSweep(fraction)
     val reduceMotion = LocalReduceMotion.current
-    val anim = remember { Animatable(0f) }
-    LaunchedEffect(targetSweep, reduceMotion, delayMillis) {
+    val anim = remember(reduceMotion) { Animatable(if (reduceMotion) targetSweep else 0f) }
+    var hasEntered by remember { mutableStateOf(reduceMotion) }
+    LaunchedEffect(targetSweep, reduceMotion) {
         if (reduceMotion) {
             anim.snapTo(targetSweep)
         } else {
-            if (delayMillis > 0) {
+            if (!hasEntered && delayMillis > 0) {
                 delay(delayMillis.toLong())
+                hasEntered = true
             }
             anim.animateTo(targetSweep, animSpec)
         }
     }
-    val sweep = anim.value
-    onAnimatedSweepChanged?.invoke(sweep)
+    if (onAnimatedSweepChanged != null) {
+        SideEffect { onAnimatedSweepChanged(anim.value) }
+    }
 
     Box(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.fillMaxSize()) {
+            val sweep = anim.value
             val strokeWidth = this.size.minDimension * 0.12f
             val amplitude = strokeWidth * 0.25f
             val baseRadius = (this.size.minDimension - strokeWidth) / 2f - amplitude

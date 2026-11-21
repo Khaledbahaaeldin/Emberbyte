@@ -77,7 +77,7 @@ internal fun HomeHeader(
             ) {
                 BrandMark(size = 32.dp)
                 Text(
-                    text = state.heroLabel,
+                    text = "Emberbyte",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = palette.text,
                 )
@@ -148,6 +148,12 @@ internal fun HomeHeroSection(
             .testTag("hero_section"),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        Text(
+            text = stringResource(R.string.home_hero_label_today),
+            style = MaterialTheme.typography.labelMedium,
+            color = palette.muted,
+        )
+
         HeroNumber(
             value = formatted.value,
             unit = formatted.unit,

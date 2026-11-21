@@ -142,4 +142,15 @@ class PlansContentTest {
         rule.onNodeWithText("Hide archived").assertIsDisplayed()
         rule.onNodeWithText("Archived Plan").assertIsDisplayed()
     }
+
+    @Test fun multiple_cards_render_in_plans_bento() {
+        val card1 = sampleCard(id = 1L, name = "Primary SIM")
+        val card2 = sampleCard(id = 2L, name = "Secondary SIM")
+        show(
+            state = PlansUiState(cards = listOf(card1, card2), loaded = true),
+        )
+
+        rule.onNodeWithText("Primary SIM").assertIsDisplayed()
+        rule.onNodeWithText("Secondary SIM").assertIsDisplayed()
+    }
 }

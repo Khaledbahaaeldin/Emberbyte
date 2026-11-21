@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -163,7 +164,11 @@ fun HeroNumber(
                 spacingPx = spacingPx,
             )
 
-            onSizeResolved?.invoke(chosenSize)
+            if (onSizeResolved != null) {
+                SideEffect {
+                    onSizeResolved(chosenSize)
+                }
+            }
 
             val motion = rememberEmberbyteMotion()
             val live = !LocalReduceMotion.current
@@ -192,17 +197,19 @@ fun HeroNumber(
                                     },
                                     label = "heroDigit",
                                 ) { digit ->
-                                    DisposableEffect(digit, slotKey) {
-                                        val list = activeMap.getOrPut(slotKey) { mutableListOf() }
-                                        list.add(digit)
-                                        val currentDigits = text.indices.map { text.length - it }
-                                            .flatMap { activeMap[it] ?: emptyList() }
-                                        onDigitsComposed?.invoke(currentDigits)
-                                        onDispose {
-                                            list.remove(digit)
-                                            val remainingDigits = text.indices.map { text.length - it }
+                                    if (onDigitsComposed != null) {
+                                        DisposableEffect(digit, slotKey) {
+                                            val list = activeMap.getOrPut(slotKey) { mutableListOf() }
+                                            list.add(digit)
+                                            val currentDigits = text.indices.map { text.length - it }
                                                 .flatMap { activeMap[it] ?: emptyList() }
-                                            onDigitsComposed?.invoke(remainingDigits)
+                                            onDigitsComposed(currentDigits)
+                                            onDispose {
+                                                list.remove(digit)
+                                                val remainingDigits = text.indices.map { text.length - it }
+                                                    .flatMap { activeMap[it] ?: emptyList() }
+                                                onDigitsComposed(remainingDigits)
+                                            }
                                         }
                                     }
                                     val letterSpacing = if (digit == '.') 0.08.em else 0.04.em
@@ -216,15 +223,17 @@ fun HeroNumber(
                                     )
                                 }
                             } else {
-                                DisposableEffect(char, slotKey) {
-                                    val list = activeMap.getOrPut(slotKey) { mutableListOf() }
-                                    list.clear()
-                                    list.add(char)
-                                    val currentDigits = text.indices.map { text.length - it }
-                                        .flatMap { activeMap[it] ?: emptyList() }
-                                    onDigitsComposed?.invoke(currentDigits)
-                                    onDispose {
-                                        list.remove(char)
+                                if (onDigitsComposed != null) {
+                                    DisposableEffect(char, slotKey) {
+                                        val list = activeMap.getOrPut(slotKey) { mutableListOf() }
+                                        list.clear()
+                                        list.add(char)
+                                        val currentDigits = text.indices.map { text.length - it }
+                                            .flatMap { activeMap[it] ?: emptyList() }
+                                        onDigitsComposed(currentDigits)
+                                        onDispose {
+                                            list.remove(char)
+                                        }
                                     }
                                 }
                                 val letterSpacing = if (char == '.') 0.08.em else 0.04.em

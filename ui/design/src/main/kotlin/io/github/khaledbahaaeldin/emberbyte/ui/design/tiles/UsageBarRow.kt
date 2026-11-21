@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
 @Composable
 fun UsageBarRow(
@@ -80,8 +82,7 @@ fun UsageBarRow(
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
     val motion = rememberEmberbyteMotion()
-    var shown by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { shown = true }
+    val reduceMotion = LocalReduceMotion.current
     val isCrowded = points.size > 7 || density.fontScale > 1.3f
     var showAllValues by rememberSaveable(scrollKey) { mutableStateOf(false) }
     val highestIndex = points.indices.maxByOrNull { points[it].bytes }
@@ -120,6 +121,8 @@ fun UsageBarRow(
                 .fillMaxWidth()
                 .semantics { this.contentDescription = summary },
         ) {
+            var shown by remember(reduceMotion) { mutableStateOf<Boolean>(reduceMotion) }
+            LaunchedEffect(reduceMotion) { shown = true }
             val count = points.size
             val totalNeeded = (count * 48).dp + ((count - 1).coerceAtLeast(0) * 8).dp
             val scrollable = totalNeeded > maxWidth
@@ -208,7 +211,7 @@ fun UsageBarRow(
                         val barShape = if (isSelected) CircleShape else MaterialTheme.shapes.small
                         val targetHeight = (8 + 56 * (bar.bytes.toFloat() / max)).dp
                         val animatedHeight by animateDpAsState(
-                            targetValue = if (shown) targetHeight else 8.dp,
+                            targetValue = if (shown || reduceMotion) targetHeight else 8.dp,
                             animationSpec = motion.spatial(),
                             label = "bar_height_$index",
                         )
@@ -217,7 +220,11 @@ fun UsageBarRow(
                             animationSpec = motion.effects(),
                             label = "bar_color_$index",
                         )
-                        onBarHeightChanged?.invoke(index, animatedHeight)
+                        if (onBarHeightChanged != null) {
+                            SideEffect {
+                                onBarHeightChanged(index, animatedHeight)
+                            }
+                        }
                         Box(
                             Modifier
                                 .widthIn(max = 24.dp)
