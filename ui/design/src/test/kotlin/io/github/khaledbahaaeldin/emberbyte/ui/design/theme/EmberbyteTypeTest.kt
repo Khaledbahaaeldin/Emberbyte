@@ -57,4 +57,20 @@ class EmberbyteTypeTest {
         assertEquals(heading, EmberbyteType.axes("heading"))
         assertEquals(value, EmberbyteType.axes("value"))
     }
+
+    @Test
+    fun grotesk_style_uses_the_bundled_family() {
+        val style = EmberbyteType.grotesk(44.sp, 600)
+        assertNotNull(style.fontFamily)
+        assertEquals(44.sp, style.fontSize)
+        assertEquals("tnum", style.fontFeatureSettings)
+        assertEquals(style.fontFamily, EmberbyteType.grotesk(20.sp, 600).fontFamily)
+        assertEquals(false, style.fontFamily == EmberbyteType.hero(44.sp).fontFamily)
+    }
+
+    @Test
+    fun grotesk_weight_is_clamped_to_the_font_range() {
+        assertEquals(androidx.compose.ui.text.font.FontWeight(400), EmberbyteType.grotesk(20.sp, 100).fontWeight)
+        assertEquals(androidx.compose.ui.text.font.FontWeight(700), EmberbyteType.grotesk(20.sp, 900).fontWeight)
+    }
 }

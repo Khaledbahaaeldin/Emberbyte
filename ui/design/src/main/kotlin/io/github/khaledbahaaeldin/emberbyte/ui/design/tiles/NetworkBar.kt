@@ -48,6 +48,7 @@ fun NetworkBar(
     modifier: Modifier = Modifier,
     height: Dp = 16.dp,
     units: ByteUnits = ByteUnits.DECIMAL,
+    minMobileSegment: Dp = 6.dp,
 ) {
     val spokenDesc = "Mobile ${spokenNetworkBytes(mobileBytes, units)}, Wi-Fi ${spokenNetworkBytes(wifiBytes, units)}"
     val safeMobile = mobileBytes.coerceAtLeast(0L)
@@ -104,9 +105,9 @@ fun NetworkBar(
         var wifiWidth = rawWifiWidth
 
         if (availableWidth >= minSegmentWidth * 2) {
-            if (mobileWidth < minSegmentWidth) {
-                mobileWidth = minSegmentWidth
-                wifiWidth = availableWidth - minSegmentWidth
+            if (mobileWidth < minMobileSegment) {
+                mobileWidth = minMobileSegment.coerceAtMost(availableWidth - minSegmentWidth)
+                wifiWidth = availableWidth - mobileWidth
             } else if (wifiWidth < minSegmentWidth) {
                 wifiWidth = minSegmentWidth
                 mobileWidth = availableWidth - minSegmentWidth

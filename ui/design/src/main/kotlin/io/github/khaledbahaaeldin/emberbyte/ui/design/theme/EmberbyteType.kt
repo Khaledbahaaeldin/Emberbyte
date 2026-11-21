@@ -115,6 +115,31 @@ object EmberbyteType {
         return hero(size).copy(fontFamily = family)
     }
 
+    private val groteskFamilies = java.util.concurrent.ConcurrentHashMap<Int, FontFamily>()
+
+    /**
+     * Space Grotesk (variable, `wght` 400 to 700) with tabular figures, used by the two Home bento tiles only.
+     * Families are cached per whole weight.
+     */
+    fun grotesk(size: TextUnit, weight: Int): TextStyle {
+        val w = weight.coerceIn(400, 700)
+        val family = groteskFamilies.getOrPut(w) {
+            FontFamily(
+                Font(
+                    resId = R.font.space_grotesk,
+                    weight = FontWeight(w),
+                    variationSettings = FontVariation.Settings(FontVariation.weight(w)),
+                ),
+            )
+        }
+        return TextStyle(
+            fontFamily = family,
+            fontWeight = FontWeight(w),
+            fontSize = size,
+            fontFeatureSettings = "tnum",
+        )
+    }
+
     fun badge(size: TextUnit): TextStyle = TextStyle(
         fontFamily = badgeFamily,
         fontSize = size,

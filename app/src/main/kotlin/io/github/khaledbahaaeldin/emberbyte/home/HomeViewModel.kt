@@ -26,6 +26,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.appendSample
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +36,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -78,7 +81,15 @@ class HomeViewModel(
     private val selectedDay = MutableStateFlow<Int?>(null)
     private val selectedPlanId = MutableStateFlow<Long?>(null)
 
+    // Shared so the speed tile, the Live trace and the totals all follow one collection of the live rate.
     private val live: Flow<LiveSpeed?> = usage.observeLiveSpeed().map<LiveSpeed, LiveSpeed?> { it }.onStart { emit(null) }
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    /** In-memory ring buffers (60 samples) of the receive and transmit rates, kept apart. Never persisted. */
+    private val liveHistory: Flow<Pair<List<Long>, List<Long>>> =
+        live.scan(emptyList<Long>() to emptyList<Long>()) { (rx, tx), speed ->
+            if (speed == null) rx to tx else appendSample(rx, speed.rxBps) to appendSample(tx, speed.txBps)
+        }
 
     private data class PlanBundle(val state: PlanState?, val forecast: Forecast?, val chips: List<PlanChipUi>)
 
@@ -117,7 +128,7 @@ class HomeViewModel(
             HomeBundle(d, coverage, perms, spikesList)
         }
 
-    val uiState: StateFlow<HomeUiState> = combine(bundle, settings.observe(), selectedDay) { b, s, selected ->
+    val uiState: StateFlow<HomeUiState> = combine(bundle, settings.observe(), selectedDay, liveHistory) { b, s, selected, history ->
         val newestSpike = b.spikes
             .filter { !it.dismissed }
             .maxWithOrNull(compareBy<SpikeEvent> { it.detectedAt }.thenBy { it.id })
@@ -141,6 +152,8 @@ class HomeViewModel(
             planChips = b.data.planChips,
             is24Hour = is24Hour(),
             spike = spikeUi,
+            liveRxHistory = history.first,
+            liveTxHistory = history.second,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(isLoading = true))
 

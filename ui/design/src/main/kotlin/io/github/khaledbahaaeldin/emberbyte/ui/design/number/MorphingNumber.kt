@@ -185,6 +185,7 @@ fun MorphingNumber(
     contentDescription: String? = null,
     prefix: String = "",
     animate: Boolean = true,
+    unitStyle: TextStyle? = null,
 ) {
     val live = animate && !LocalReduceMotion.current
     val motion = rememberEmberbyteMotion()
@@ -257,7 +258,7 @@ fun MorphingNumber(
                 Text(
                     text = if (unit.startsWith(" ") || unit.startsWith("/")) unit else " $unit",
                     modifier = Modifier.clearAndSetSemantics { },
-                    style = style,
+                    style = unitStyle ?: style,
                     color = color,
                 )
             }

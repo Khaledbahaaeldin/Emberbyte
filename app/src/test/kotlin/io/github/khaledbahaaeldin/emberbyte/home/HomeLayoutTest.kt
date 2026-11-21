@@ -22,6 +22,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -131,6 +132,95 @@ class HomeLayoutTest {
         assertEquals(8f, homeBadgeSpinDegPerSec(HomeUiState(throughputBps = 0L)), 0.001f)
         assertEquals(63.2f, homeBadgeSpinDegPerSec(HomeUiState(throughputBps = 1_200_000L)), 0.01f)
         assertEquals(238f, homeBadgeSpinDegPerSec(HomeUiState(throughputBps = 9_000_000L)), 0.01f)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun live_and_network_tiles_sit_side_by_side_with_equal_width() {
+        show(HomeUiState(network = io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi.Wifi, wifiBytes = 3_700_000_000L, mobileBytes = 9_000_000L))
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeBy(2_000) // let the one-time tile entrance finish before measuring
+        val live = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
+        val network = rule.onNodeWithTag("network_bento_tile").getBoundsInRoot()
+        assertEquals("same top", live.top.value, network.top.value, 0.5f)
+        assertEquals("equal width", (live.right - live.left).value, (network.right - network.left).value, 0.5f)
+        assertEquals("10 dp apart", 10f, (network.left - live.right).value, 0.5f)
+        assertEquals("equal height", (live.bottom - live.top).value, (network.bottom - network.top).value, 0.5f)
+        assertTrue("at least 212 dp tall (was ${(live.bottom - live.top).value}, density ${rule.density.density})", (live.bottom - live.top).value >= 211.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun corners_interlock_and_mirror_in_rtl() {
+        rule.setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    HomeContent(
+                        state = HomeUiState(wifiBytes = 5L),
+                        onEvent = {}, onOpenSettings = {}, onOpenHistory = {}, onPromptAction = {},
+                        onOpenApp = {}, onSetUpPlan = {}, onNavigateToApps = {},
+                    )
+                }
+            }
+        }
+        val live = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
+        val network = rule.onNodeWithTag("network_bento_tile").getBoundsInRoot()
+        assertTrue("Live is on the start (right) side in RTL", live.left > network.left)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun tiles_have_no_icon_beside_their_label() {
+        show(HomeUiState(network = io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi.Wifi, wifiBytes = 5L))
+        val tile = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
+        val label = rule.onNodeWithText("Live · Wi-Fi", useUnmergedTree = true).getBoundsInRoot()
+        assertEquals("the label starts at the tile padding, nothing before it", 16f, (label.left - tile.left).value, 0.5f)
+        val netTile = rule.onNodeWithTag("network_bento_tile").getBoundsInRoot()
+        val netLabel = rule.onNodeWithText("Today by network", useUnmergedTree = true).getBoundsInRoot()
+        assertEquals(16f, (netLabel.left - netTile.left).value, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun forecast_has_its_own_full_width_row_above_the_pair() {
+        val forecast = ForecastUi(
+            headline = "Runs out Sat 22 Nov", detail = "At this pace", confidence = "Medium confidence",
+            kind = ForecastKind.RunsOut,
+        )
+        show(HomeUiState(hasPlan = true, forecast = forecast, network = io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi.Wifi, wifiBytes = 5L))
+        val forecastBounds = rule.onNodeWithText("Forecast", useUnmergedTree = true).getBoundsInRoot()
+        val live = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
+        val tile = rule.onNodeWithTag("bento_tile_accent").getBoundsInRoot()
+        assertTrue("forecast above the pair", tile.bottom <= live.top + 0.5.dp)
+        assertTrue("forecast spans the full width", (tile.right - tile.left).value >= (live.right - live.left).value * 2f)
+    }
+
+    @Test
+    fun direction_survives_recreation_but_is_not_saved_to_settings() {
+        val tester = androidx.compose.ui.test.junit4.StateRestorationTester(rule)
+        tester.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = HomeUiState(network = io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi.Wifi, wifiBytes = 5L),
+                    onEvent = {}, onOpenSettings = {}, onOpenHistory = {}, onPromptAction = {},
+                    onOpenApp = {}, onSetUpPlan = {}, onNavigateToApps = {},
+                )
+            }
+        }
+        rule.onNodeWithTag("live_bento_tile").performClick()
+        rule.waitForIdle()
+        assertEquals(
+            "Showing upload speed",
+            rule.onNodeWithTag("live_bento_tile").fetchSemanticsNode().config[SemanticsProperties.StateDescription],
+        )
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+        assertEquals(
+            "Showing upload speed",
+            rule.onNodeWithTag("live_bento_tile").fetchSemanticsNode().config[SemanticsProperties.StateDescription],
+        )
+        // The direction is session state only: HomeUiState (the only thing the view model emits) carries no direction.
+        assertTrue(HomeUiState::class.java.declaredFields.none { it.name.contains("direction", ignoreCase = true) })
     }
 
     @Test
@@ -465,7 +555,7 @@ class HomeLayoutTest {
 
     @Test
     @Config(qualifiers = "w411dp-h800dp")
-    fun home_bento_row_forecast_exit_never_crushes_speed_tile() {
+    fun home_forecast_exit_never_crushes_the_live_tile() {
         val sampleForecast = ForecastUi(
             headline = "3 days left",
             detail = "On pace to finish under",
@@ -488,14 +578,14 @@ class HomeLayoutTest {
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        val initialSpeedBounds = rule.onNodeWithTag("home_speed_tile").getBoundsInRoot()
+        val initialSpeedBounds = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
         val initialSpeedWidth = (initialSpeedBounds.right - initialSpeedBounds.left).value
         assertTrue("Initial speed tile container width must be >= 150dp, was $initialSpeedWidth", initialSpeedWidth >= 150f)
 
         state = state.copy(forecast = null)
         repeat(15) {
             rule.mainClock.advanceTimeBy(16)
-            val bounds = rule.onNodeWithTag("home_speed_tile").getBoundsInRoot()
+            val bounds = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
             val width = (bounds.right - bounds.left).value
             assertTrue(
                 "Speed tile must never be crushed during ForecastTile exit, saw width=$width",
@@ -622,7 +712,9 @@ class HomeLayoutTest {
                 }
             }
         }
-        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "Wi-Fi 100 GB", "See all", "Set up a plan")) {
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeBy(2_000) // let the one-time tile entrance finish before measuring
+        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "GB on Wi-Fi", "See all", "Set up a plan")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()
