@@ -158,11 +158,7 @@ internal fun HomeContent(
                                 PermissionPrompt(
                                     usagePrompt,
                                     onAction = { onPromptAction(usagePrompt.id) },
-                                    modifier = Modifier.animateItem(
-                                        fadeInSpec = motion.effects(),
-                                        placementSpec = motion.spatial(),
-                                        fadeOutSpec = motion.effects(),
-                                    ),
+                                    modifier = emberbyteAnimateItem(motion),
                                 )
                             }
                         }
@@ -174,11 +170,7 @@ internal fun HomeContent(
                             HomeHeader(
                                 state = state,
                                 onSelectPlan = { onEvent(HomeEvent.SelectPlan(it)) },
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                                modifier = emberbyteAnimateItem(motion),
                             )
                         }
                     }
@@ -189,11 +181,7 @@ internal fun HomeContent(
                             HomeHeroSection(
                                 state = state,
                                 onSetUpPlan = onSetUpPlan,
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                                modifier = emberbyteAnimateItem(motion),
                             )
                         }
                     }
@@ -203,11 +191,7 @@ internal fun HomeContent(
                         item(key = "gap") {
                             GapBanner(
                                 model = gap,
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                                modifier = emberbyteAnimateItem(motion),
                             )
                         }
                     }
@@ -222,11 +206,7 @@ internal fun HomeContent(
                         PermissionPrompt(
                             prompt,
                             onAction = { onPromptAction(prompt.id) },
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                            modifier = emberbyteAnimateItem(motion),
                         )
                     }
 
@@ -234,11 +214,7 @@ internal fun HomeContent(
                     item(key = "bento_row") {
                         HomeBentoRow(
                             state = state,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                            modifier = emberbyteAnimateItem(motion),
                         )
                     }
 
@@ -247,13 +223,7 @@ internal fun HomeContent(
                         item(key = "spike") {
                             BentoTile(
                                 title = "Spike detected",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateItem(
-                                        fadeInSpec = motion.effects(),
-                                        placementSpec = motion.spatial(),
-                                        fadeOutSpec = motion.effects(),
-                                    ),
+                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                                 container = TileContainer.Accent,
                                 onClick = { onOpenApp(spike.packageName) },
                             ) {
@@ -282,11 +252,7 @@ internal fun HomeContent(
                     item(key = "network") {
                         HomeNetworkTile(
                             state = state,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                            modifier = emberbyteAnimateItem(motion),
                         )
                     }
 
@@ -294,13 +260,7 @@ internal fun HomeContent(
                         item(key = "data_plan") {
                             BentoTile(
                                 title = "Data plan",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateItem(
-                                        fadeInSpec = motion.effects(),
-                                        placementSpec = motion.spatial(),
-                                        fadeOutSpec = motion.effects(),
-                                    ),
+                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                                 onClick = onSetUpPlan,
                             ) {
                                 Text(
@@ -324,11 +284,7 @@ internal fun HomeContent(
                             onOpenApp = onOpenApp,
                             onNavigateToApps = onNavigateToApps,
                             icons = icons,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                            modifier = emberbyteAnimateItem(motion),
                         )
                     }
 
@@ -338,11 +294,7 @@ internal fun HomeContent(
                             state = state,
                             onSelectDay = { onEvent(HomeEvent.SelectDay(it)) },
                             onOpenHistory = onOpenHistory,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                            modifier = emberbyteAnimateItem(motion),
                         )
                     }
                 }

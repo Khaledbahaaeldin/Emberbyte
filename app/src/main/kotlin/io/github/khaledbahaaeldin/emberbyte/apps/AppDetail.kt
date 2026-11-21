@@ -36,12 +36,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.common.weekdayBars
+import io.github.khaledbahaaeldin.emberbyte.home.emberbyteAnimateItem
+import io.github.khaledbahaaeldin.emberbyte.home.rememberRetainedWhen
 import io.github.khaledbahaaeldin.emberbyte.data.BudgetRepository
 import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
@@ -357,14 +360,12 @@ fun AppDetailContent(
                 // Header with Back button, AppIcon, Title & Package
                 item(key = "app_header") {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                        modifier = emberbyteAnimateItem(
+                            motion,
+                            Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding(),
+                        ),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
@@ -409,11 +410,7 @@ fun AppDetailContent(
                 // Hero Number section
                 item(key = "hero_number") {
                     Column(
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
+                        modifier = emberbyteAnimateItem(motion),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
@@ -435,11 +432,7 @@ fun AppDetailContent(
                 // Network split bar & legend
                 item(key = "network_summary") {
                     Column(
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
+                        modifier = emberbyteAnimateItem(motion),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         NetworkBar(
@@ -479,11 +472,7 @@ fun AppDetailContent(
                         val fontScale = LocalDensity.current.fontScale
                         val fgFmt = formatBytes(state.foregroundBytes, state.units)
                         val bgFmt = formatBytes(state.backgroundBytes, state.units)
-                        val itemAnim = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        )
+                        val itemAnim = emberbyteAnimateItem(motion)
                         if (fontScale >= 1.5f) {
                             Column(
                                 modifier = Modifier.fillMaxWidth().then(itemAnim),
@@ -513,14 +502,12 @@ fun AppDetailContent(
                     }
                     BentoTile(
                         title = "Daily usage",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("DAILY_USAGE_CARD")
-                            .animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                        modifier = emberbyteAnimateItem(
+                            motion,
+                            Modifier
+                                .fillMaxWidth()
+                                .testTag("DAILY_USAGE_CARD"),
+                        ),
                         container = TileContainer.Standard,
                     ) {
                         EmberbyteCrossfade(
@@ -551,13 +538,7 @@ fun AppDetailContent(
                     item(key = "spikes") {
                         BentoTile(
                             title = "Spikes",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                            modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                             container = TileContainer.Warn,
                         ) {
                             Column(
@@ -613,22 +594,9 @@ fun AppDetailContent(
                 item(key = "data_budget") {
                     BentoTile(
                         title = "Data budget",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                        modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                     ) {
-                        val retainedBudget = remember {
-                            object {
-                                var value: BudgetUi? = state.budget
-                            }
-                        }
-                        if (state.budget != null) {
-                            retainedBudget.value = state.budget
-                        }
+                        val lastBudget = rememberRetainedWhen(state.budget) { it != null }
                         EmberbyteCrossfade(
                             targetState = state.budget != null,
                             modifier = Modifier.fillMaxWidth(),
@@ -653,7 +621,7 @@ fun AppDetailContent(
                                     }
                                 }
                             } else {
-                                val budget = state.budget ?: retainedBudget.value ?: return@EmberbyteCrossfade
+                                val budget = state.budget ?: lastBudget ?: return@EmberbyteCrossfade
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -706,14 +674,12 @@ fun AppDetailContent(
                 if (!state.packageName.startsWith("uid:") && onOpenSettings != null) {
                     item(key = "app_settings") {
                         Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                            emberbyteAnimateItem(
+                                motion,
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                            ),
                         ) {
                             TextButton(
                                 onClick = onOpenSettings,
@@ -850,10 +816,11 @@ private fun AppDetailDailyChart(
 }
 
 @Composable
-private fun NetworkLegendItem(
+internal fun NetworkLegendItem(
     label: String,
     dotColor: Color,
     textColor: Color,
+    textStyle: TextStyle = MaterialTheme.typography.bodySmall,
     textModifier: Modifier = Modifier,
 ) {
     Row(
@@ -869,7 +836,7 @@ private fun NetworkLegendItem(
         ForceLtr {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
+                style = textStyle,
                 color = textColor,
                 modifier = textModifier,
             )

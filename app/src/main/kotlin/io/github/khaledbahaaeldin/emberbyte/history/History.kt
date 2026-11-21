@@ -49,6 +49,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import io.github.khaledbahaaeldin.emberbyte.R
+import io.github.khaledbahaaeldin.emberbyte.apps.NetworkLegendItem
+import io.github.khaledbahaaeldin.emberbyte.home.emberbyteAnimateItem
 import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -390,11 +392,7 @@ fun HistoryContent(
                         icon = Icons.Rounded.History,
                         title = "No history yet",
                         body = "Usage data will appear here once recorded.",
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
+                        modifier = emberbyteAnimateItem(motion),
                     )
                 }
             } else {
@@ -425,11 +423,7 @@ fun HistoryContent(
                         scrollKey = state.granularity,
                         summaryDescription = summary,
                         todayIndex = if (state.granularity == Granularity.DAY) state.bars.lastIndex else null,
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
+                        modifier = emberbyteAnimateItem(motion),
                     )
                 }
 
@@ -441,14 +435,12 @@ fun HistoryContent(
 
                 item(key = "chart_detail_slot") {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 88.dp)
-                            .animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                        modifier = emberbyteAnimateItem(
+                            motion,
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 88.dp),
+                        ),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (isSelected && bar != null && point != null) {
@@ -497,15 +489,17 @@ fun HistoryContent(
                                 ) {
                                     val mobileFormatted = formatBytes(point.mobileBytes, state.units)
                                     val wifiFormatted = formatBytes(point.wifiBytes, state.units)
-                                    HistoryLegendItem(
+                                    NetworkLegendItem(
                                         label = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
                                         dotColor = palette.primary,
                                         textColor = palette.muted,
+                                        textStyle = MaterialTheme.typography.labelSmall,
                                     )
-                                    HistoryLegendItem(
+                                    NetworkLegendItem(
                                         label = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
                                         dotColor = palette.accent,
                                         textColor = palette.muted,
+                                        textStyle = MaterialTheme.typography.labelSmall,
                                     )
                                 }
                             }
@@ -535,13 +529,7 @@ fun HistoryContent(
 
                     if (fontScale >= 1.5f) {
                         Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                            emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
@@ -569,14 +557,12 @@ fun HistoryContent(
                         }
                     } else {
                         Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Max)
-                                .animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                            emberbyteAnimateItem(
+                                motion,
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(IntrinsicSize.Max),
+                            ),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             BentoTile(
@@ -619,40 +605,10 @@ fun HistoryContent(
                         "Without usage access only the last 7 days are available; older bars stay empty.",
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.muted,
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
+                        modifier = emberbyteAnimateItem(motion),
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun HistoryLegendItem(
-    label: String,
-    dotColor: Color,
-    textColor: Color,
-) {
-    Row(
-        modifier = Modifier.semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier
-                .size(8.dp)
-                .background(color = dotColor, shape = CircleShape),
-        )
-        ForceLtr {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = textColor,
-            )
         }
     }
 }

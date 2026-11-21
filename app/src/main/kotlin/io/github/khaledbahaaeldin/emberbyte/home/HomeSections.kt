@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +40,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.progress.WavyBar
@@ -110,25 +112,18 @@ internal fun HomeHeroSection(
         }
 
         val lineText = state.planLine ?: state.subtitle
-        val retainedLineText = remember {
-            object {
-                var value: String? = lineText
-            }
-        }
-        if (lineText != null) {
-            retainedLineText.value = lineText
-        }
+        val lastLineText = rememberRetainedWhen(lineText) { it != null }
         EmberbyteCrossfade(
             targetState = when {
-                lineText != null -> 0
-                !state.hasPlan -> 1
-                else -> 2
+                lineText != null -> HeroStatusKind.Line
+                !state.hasPlan -> HeroStatusKind.SetupPrompt
+                else -> HeroStatusKind.None
             },
         ) { statusState ->
             when (statusState) {
-                0 -> {
+                HeroStatusKind.Line -> {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        (lineText ?: retainedLineText.value)?.let { text ->
+                        (lineText ?: lastLineText)?.let { text ->
                             ForceLtr {
                                 Text(
                                     text = text,
@@ -147,7 +142,7 @@ internal fun HomeHeroSection(
                         }
                     }
                 }
-                1 -> {
+                HeroStatusKind.SetupPrompt -> {
                     TextButton(
                         onClick = onSetUpPlan,
                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
@@ -159,6 +154,7 @@ internal fun HomeHeroSection(
                         )
                     }
                 }
+                HeroStatusKind.None -> Unit
             }
         }
 
@@ -179,14 +175,7 @@ internal fun HomeBentoRow(
     val fontScale = LocalDensity.current.fontScale
     val motion = rememberEmberbyteMotion()
     val reduceMotion = LocalReduceMotion.current
-    val lastForecast = remember {
-        object {
-            var value = state.forecast
-        }
-    }
-    if (state.forecast != null) {
-        lastForecast.value = state.forecast
-    }
+    val lastForecast = rememberRetainedWhen(state.forecast) { it != null }
 
     if (fontScale >= 1.5f) {
         Column(
@@ -201,7 +190,7 @@ internal fun HomeBentoRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             EmberbyteAnimatedVisibility(visible = state.forecast != null) {
-                (state.forecast ?: lastForecast.value)?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+                (state.forecast ?: lastForecast)?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
             }
         }
     } else {
@@ -225,7 +214,7 @@ internal fun HomeBentoRow(
                         shrinkHorizontally(animationSpec = motion.spatial()) + fadeOut(animationSpec = motion.effects())
                     },
                 ) {
-                    (state.forecast ?: lastForecast.value)?.let { forecast ->
+                    (state.forecast ?: lastForecast)?.let { forecast ->
                         ForecastTile(
                             model = forecast,
                             modifier = Modifier
@@ -324,36 +313,29 @@ internal fun HomeTopAppsSection(
         },
     ) {
         val topAppsState = when {
-            state.topAppsLocked -> 0
-            state.topApps.isEmpty() -> 1
-            else -> 2
+            state.topAppsLocked -> TopAppsStateKind.Locked
+            state.topApps.isEmpty() -> TopAppsStateKind.Empty
+            else -> TopAppsStateKind.Content
         }
-        val lastTopApps = remember {
-            object {
-                var value = state.topApps
-            }
-        }
-        if (state.topApps.isNotEmpty()) {
-            lastTopApps.value = state.topApps
-        }
+        val lastTopApps = rememberRetainedWhen(state.topApps) { it.isNotEmpty() }
         EmberbyteCrossfade(targetState = topAppsState, modifier = Modifier.fillMaxWidth()) { displayMode ->
             when (displayMode) {
-                0 -> {
+                TopAppsStateKind.Locked -> {
                     Text(
                         text = "Allow usage access to see which apps use your data.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.muted,
                     )
                 }
-                1 -> {
+                TopAppsStateKind.Empty -> {
                     Text(
                         text = "No per-app data yet. It appears within about 5 minutes once usage access is allowed.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.muted,
                     )
                 }
-                else -> {
-                    val rows = state.topApps.ifEmpty { lastTopApps.value }
+                TopAppsStateKind.Content -> {
+                    val rows = state.topApps.ifEmpty { lastTopApps }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val maxBytes = rows.maxOfOrNull { it.totalBytes } ?: 1L
                         rows.take(5).forEach { app ->
@@ -418,3 +400,40 @@ internal fun HomeHistorySection(
         )
     }
 }
+
+private enum class HeroStatusKind {
+    Line,
+    SetupPrompt,
+    None,
+}
+
+private enum class TopAppsStateKind {
+    Locked,
+    Empty,
+    Content,
+}
+
+@Composable
+internal fun <T> rememberRetainedWhen(
+    value: T,
+    keep: (T) -> Boolean,
+): T {
+    val ref = remember {
+        object {
+            var retained: T = value
+        }
+    }
+    if (keep(value)) {
+        ref.retained = value
+    }
+    return ref.retained
+}
+
+internal fun LazyItemScope.emberbyteAnimateItem(
+    motion: EmberbyteMotion,
+    modifier: Modifier = Modifier,
+): Modifier = modifier.animateItem(
+    fadeInSpec = motion.effects(),
+    placementSpec = motion.spatial(),
+    fadeOutSpec = motion.effects(),
+)

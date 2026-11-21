@@ -63,6 +63,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.common.plainBytes
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
+import io.github.khaledbahaaeldin.emberbyte.home.emberbyteAnimateItem
+import io.github.khaledbahaaeldin.emberbyte.home.rememberRetainedWhen
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
@@ -213,11 +215,7 @@ internal fun AppsContent(
                     // Search bar with Filters button & active filters
                     item(key = "search_and_filters") {
                         Column(
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = motion.effects(),
-                                placementSpec = motion.spatial(),
-                                fadeOutSpec = motion.effects(),
-                            ),
+                            modifier = emberbyteAnimateItem(motion),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Row(
@@ -299,14 +297,7 @@ internal fun AppsContent(
                                 }
                             }
 
-                            val renderedFilters = remember {
-                                object {
-                                    var value: List<ActiveFilter> = activeFilters
-                                }
-                            }
-                            if (activeFilters.isNotEmpty()) {
-                                renderedFilters.value = activeFilters
-                            }
+                            val lastFilters = rememberRetainedWhen(activeFilters) { it.isNotEmpty() }
                             EmberbyteAnimatedVisibility(visible = activeFilters.isNotEmpty()) {
                                 Row(
                                     modifier = Modifier
@@ -314,7 +305,7 @@ internal fun AppsContent(
                                         .horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    (activeFilters.ifEmpty { renderedFilters.value }).forEach { filter ->
+                                    (activeFilters.ifEmpty { lastFilters }).forEach { filter ->
                                         EmberbyteFilterChip(
                                             selected = true,
                                             showCheckIcon = false,
@@ -343,11 +334,7 @@ internal fun AppsContent(
                                 units = state.units,
                                 icon = icons(state.featured.packageName),
                                 onClick = { onOpenApp(state.featured.packageName) },
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                                modifier = emberbyteAnimateItem(motion),
                             )
                         }
                     }
@@ -358,11 +345,7 @@ internal fun AppsContent(
                             PermissionPrompt(
                                 USAGE_ACCESS_PROMPT,
                                 onAction = { onPromptAction(USAGE_ACCESS_PROMPT.id) },
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                                modifier = emberbyteAnimateItem(motion),
                             )
                         }
                     }
@@ -373,14 +356,10 @@ internal fun AppsContent(
                         val fullReadout = "${plainBytes(state.totalBytes, state.units)} (apps only)"
                         ForceLtr {
                             Row(
-                                modifier = Modifier
-                                    .padding(vertical = 4.dp)
-                                    .animateItem(
-                                        fadeInSpec = motion.effects(),
-                                        placementSpec = motion.spatial(),
-                                        fadeOutSpec = motion.effects(),
-                                    )
-                                    .clearAndSetSemantics { this.text = AnnotatedString(fullReadout) },
+                                modifier = emberbyteAnimateItem(
+                                    motion,
+                                    Modifier.padding(vertical = 4.dp),
+                                ).clearAndSetSemantics { this.text = AnnotatedString(fullReadout) },
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 MorphingNumber(
@@ -401,26 +380,13 @@ internal fun AppsContent(
                     // Apps list or empty state
                     if (state.loaded && state.apps.isEmpty()) {
                         item(key = "empty_state") {
-                            val lastQuery = remember {
-                                object {
-                                    var value: String = state.query
-                                }
-                            }
-                            if (state.query.isNotBlank()) {
-                                lastQuery.value = state.query
-                            }
+                            val lastQuery = rememberRetainedWhen(state.query) { it.isNotBlank() }
                             EmberbyteCrossfade(
                                 targetState = state.query.isNotBlank(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateItem(
-                                        fadeInSpec = motion.effects(),
-                                        placementSpec = motion.spatial(),
-                                        fadeOutSpec = motion.effects(),
-                                    ),
+                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                             ) { isSearching ->
                                 if (isSearching) {
-                                    val displayQuery = state.query.ifBlank { lastQuery.value }.trim()
+                                    val displayQuery = state.query.ifBlank { lastQuery }.trim()
                                     EmptyState(
                                         icon = Icons.Rounded.Search,
                                         title = "No apps match",
@@ -455,11 +421,7 @@ internal fun AppsContent(
                                 wifiBytes = app.wifiBytes,
                                 onClick = { onOpenApp(app.packageName) },
                                 units = state.units,
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
+                                modifier = emberbyteAnimateItem(motion),
                             )
                         }
                     }
