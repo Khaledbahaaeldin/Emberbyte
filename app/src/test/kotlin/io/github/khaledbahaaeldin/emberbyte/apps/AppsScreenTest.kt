@@ -10,16 +10,22 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.LayoutDirection
+import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -39,6 +45,43 @@ class AppsScreenTest {
         sampleFeatured,
         AppRowUi("com.chat", "Chat", 100_000_000L, 0L),
     )
+
+    @Test
+    fun active_filters_visibility_snaps_under_reduced_motion() {
+        var state by mutableStateOf(AppsUiState(loaded = true))
+        rule.setContent {
+            CompositionLocalProvider(LocalReduceMotion provides true) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    AppsContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenApp = {},
+                        onPromptAction = {},
+                    )
+                }
+            }
+        }
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
+
+        state = state.copy(range = AppsRange.LAST_7_DAYS)
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
+    }
+
+    @Test
+    fun apps_screen_renders_inside_screen_scaffold_with_scrim() {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppsContent(
+                    state = AppsUiState(loaded = true),
+                    onEvent = {},
+                    onOpenApp = {},
+                    onPromptAction = {},
+                )
+            }
+        }
+        rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
+    }
 
     @Test
     fun each_non_default_filter_shows_a_removable_chip_with_a_remove_action_described() {
@@ -128,8 +171,10 @@ class AppsScreenTest {
         }
 
         // Shows empty state message
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("No apps match \"unknown\"."))
         rule.onNodeWithText("No apps match \"unknown\".").assertIsDisplayed()
         // "Clear search" action is available
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Clear search"))
         rule.onNodeWithText("Clear search").assertIsDisplayed().performClick()
         assertEquals(AppsEvent.SetQuery(""), events.last())
     }

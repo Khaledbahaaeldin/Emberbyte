@@ -27,6 +27,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastKind
@@ -68,6 +69,12 @@ class HomeLayoutTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun home_screen_renders_inside_screen_scaffold_with_scrim() {
+        show(HomeUiState())
+        rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
     }
 
     @Test

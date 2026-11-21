@@ -91,6 +91,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.warnText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
@@ -435,7 +436,7 @@ fun AppDetailContent(
                         Text(
                             text = "• Mobile ${mobileFmt.value} ${mobileFmt.unit}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = palette.warn,
+                            color = palette.warnText,
                         )
                     }
                     ForceLtr {

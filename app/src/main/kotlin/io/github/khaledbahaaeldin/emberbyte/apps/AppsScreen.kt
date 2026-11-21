@@ -23,6 +23,8 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tune
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
@@ -139,35 +141,32 @@ internal fun AppsContent(
         )
     }
 
-    EmberbyteCrossfade(
-        targetState = state.isLoading,
-        modifier = modifier.fillMaxSize(),
-    ) { loading ->
-        if (loading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
-                contentAlignment = Alignment.Center,
-            ) {
-                LoadingState(label = "Loading apps")
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-        item {
-            Text(
-                "Apps",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = palette.text,
-            )
-        }
-
+    EmberbyteScreenScaffold(
+        title = "Apps",
+        modifier = modifier,
+    ) { padding ->
+        EmberbyteCrossfade(
+            targetState = state.isLoading,
+            modifier = Modifier.fillMaxSize(),
+        ) { loading ->
+            if (loading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading apps")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
         // Search bar with Filters button
         item {
             Row(
@@ -269,8 +268,8 @@ internal fun AppsContent(
             }
         }
 
-        if (activeFilters.isNotEmpty()) {
-            item {
+        item {
+            EmberbyteAnimatedVisibility(visible = activeFilters.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -391,6 +390,7 @@ internal fun AppsContent(
             }
         }
     }
+}
 }
 }
 }

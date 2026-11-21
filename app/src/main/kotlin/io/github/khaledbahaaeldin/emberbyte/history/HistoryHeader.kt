@@ -58,8 +58,6 @@ fun HistoryHeader(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ScreenHeader("History", onBack)
-
         ConnectedButtonGroup(
             options = granularityOptions,
             selectedIndex = selectedGranularityIndex,

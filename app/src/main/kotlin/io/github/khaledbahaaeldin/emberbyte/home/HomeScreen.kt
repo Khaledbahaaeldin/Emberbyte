@@ -10,7 +10,14 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,14 +28,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.GapBanner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
@@ -89,29 +104,63 @@ internal fun HomeContent(
     onNavigateToApps: () -> Unit = {},
     icons: (String) -> ImageBitmap? = { null },
 ) {
-    EmberbyteCrossfade(
-        targetState = state.isLoading,
-        modifier = modifier.fillMaxSize(),
-    ) { loading ->
-        if (loading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .testTag("home_loading_indicator"),
-                contentAlignment = Alignment.Center,
+    val palette = LocalEmberbytePalette.current
+    EmberbyteScreenScaffold(
+        title = stringResource(R.string.app_name),
+        titleContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                LoadingState(label = "Loading today's usage")
+                BrandMark(size = 32.dp)
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = palette.text,
+                    modifier = Modifier.semantics { heading() },
+                )
             }
-        } else {
-            val motion = rememberEmberbyteMotion()
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+        },
+        actions = {
+            IconButton(
+                onClick = onOpenSettings,
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
+                modifier = Modifier.size(48.dp),
             ) {
+                Icon(
+                    imageVector = Icons.Rounded.Settings,
+                    contentDescription = "Settings",
+                )
+            }
+        },
+        modifier = modifier,
+    ) { padding ->
+        EmberbyteCrossfade(
+            targetState = state.isLoading,
+            modifier = Modifier.fillMaxSize(),
+        ) { loading ->
+            if (loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("home_loading_indicator"),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading today's usage")
+                }
+            } else {
+                val motion = rememberEmberbyteMotion()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
         // When usage access permission is missing, show prompt first
         if (state.topAppsLocked) {
             val usagePrompt = state.prompts.firstOrNull { it.id == "usage_access" }
@@ -250,6 +299,7 @@ internal fun HomeContent(
             )
         }
     }
+}
 }
 }
 }

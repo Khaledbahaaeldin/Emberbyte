@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.onEach
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
 import io.github.khaledbahaaeldin.emberbyte.common.plainBytes
 import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.data.PermissionRepository
@@ -345,11 +346,21 @@ fun HistoryContent(
         else -> "day"
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    EmberbyteScreenScaffold(
+        title = "History",
+        onBack = onBack,
+        modifier = modifier,
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = padding.calculateTopPadding(),
+                bottom = padding.calculateBottomPadding(),
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
         // Header with Back button, ConnectedButtonGroup period selector, HeroNumber & comparison
         item {
             HistoryHeader(
@@ -592,4 +603,5 @@ fun HistoryContent(
             }
         }
     }
+}
 }

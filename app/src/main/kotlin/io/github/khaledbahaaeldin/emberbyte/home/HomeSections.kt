@@ -57,58 +57,23 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 @Composable
 internal fun HomeHeader(
     state: HomeUiState,
-    onOpenSettings: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     onSelectPlan: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalEmberbytePalette.current
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    if (state.planChips.size >= 2) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                BrandMark(size = 32.dp)
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = palette.text,
+            state.planChips.forEach { chip ->
+                EmberbyteFilterChip(
+                    selected = chip.selected,
+                    onClick = { onSelectPlan(chip.id) },
+                    label = { Text(chip.name) },
                 )
-            }
-            IconButton(
-                onClick = onOpenSettings,
-                shapes = IconButtonDefaults.shapes(),
-                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = "Settings",
-                )
-            }
-        }
-
-        if (state.planChips.size >= 2) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                state.planChips.forEach { chip ->
-                    EmberbyteFilterChip(
-                        selected = chip.selected,
-                        onClick = { onSelectPlan(chip.id) },
-                        label = { Text(chip.name) },
-                    )
-                }
             }
         }
     }

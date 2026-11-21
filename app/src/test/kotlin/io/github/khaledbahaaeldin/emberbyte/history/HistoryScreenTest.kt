@@ -14,6 +14,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.onNodeWithTag
+import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
@@ -42,6 +44,17 @@ class HistoryScreenTest {
         val d = baseDate.plusDays(dayOffset.toLong())
         val instant = d.atStartOfDay(zone).toInstant()
         UsagePoint(instant, 100_000_000L, 50_000_000L)
+    }
+
+    @Test
+    fun history_screen_renders_inside_screen_scaffold_with_scrim() {
+        val state = buildHistoryUiState(Granularity.DAY, dayPoints, ByteUnits.DECIMAL, zone, locale)
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(state = state, onEvent = {}, onBack = {})
+            }
+        }
+        rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
     }
 
     @Test
@@ -202,6 +215,7 @@ class HistoryScreenTest {
                 )
             }
         }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("No history yet"))
         rule.onNodeWithText("No history yet").assertIsDisplayed()
     }
 
