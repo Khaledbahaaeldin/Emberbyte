@@ -494,50 +494,18 @@ fun HistoryContent(
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    Row(
-                                        modifier = Modifier.semantics(mergeDescendants = true) {},
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Box(
-                                            Modifier
-                                                .size(8.dp)
-                                                .background(
-                                                    color = palette.primary,
-                                                    shape = CircleShape,
-                                                )
-                                        )
-                                        val mobileFormatted = formatBytes(point.mobileBytes, state.units)
-                                        ForceLtr {
-                                            Text(
-                                                text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = palette.muted,
-                                            )
-                                        }
-                                    }
-                                    Row(
-                                        modifier = Modifier.semantics(mergeDescendants = true) {},
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Box(
-                                            Modifier
-                                                .size(8.dp)
-                                                .background(
-                                                    color = palette.accent,
-                                                    shape = CircleShape,
-                                                )
-                                        )
-                                        val wifiFormatted = formatBytes(point.wifiBytes, state.units)
-                                        ForceLtr {
-                                            Text(
-                                                text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = palette.muted,
-                                            )
-                                        }
-                                    }
+                                    val mobileFormatted = formatBytes(point.mobileBytes, state.units)
+                                    val wifiFormatted = formatBytes(point.wifiBytes, state.units)
+                                    HistoryLegendItem(
+                                        label = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
+                                        dotColor = palette.primary,
+                                        textColor = palette.muted,
+                                    )
+                                    HistoryLegendItem(
+                                        label = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
+                                        dotColor = palette.accent,
+                                        textColor = palette.muted,
+                                    )
                                 }
                             }
                         } else {
@@ -658,6 +626,32 @@ fun HistoryContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HistoryLegendItem(
+    label: String,
+    dotColor: Color,
+    textColor: Color,
+) {
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .background(color = dotColor, shape = CircleShape),
+        )
+        ForceLtr {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor,
+            )
         }
     }
 }

@@ -455,44 +455,18 @@ fun AppDetailContent(
                         ) {
                             val mobileFmt = formatBytes(state.mobileBytes, state.units)
                             val wifiFmt = formatBytes(state.wifiBytes, state.units)
-                            Row(
-                                modifier = Modifier.semantics(mergeDescendants = true) {},
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(palette.warn, CircleShape),
-                                )
-                                ForceLtr {
-                                    Text(
-                                        text = "Mobile ${mobileFmt.value} ${mobileFmt.unit}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = palette.text,
-                                        modifier = Modifier.testTag("app_detail_mobile_label"),
-                                    )
-                                }
-                            }
-                            Row(
-                                modifier = Modifier.semantics(mergeDescendants = true) {},
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(palette.primary, CircleShape),
-                                )
-                                ForceLtr {
-                                    Text(
-                                        text = "Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = palette.text,
-                                        modifier = Modifier.testTag("app_detail_wifi_label"),
-                                    )
-                                }
-                            }
+                            NetworkLegendItem(
+                                label = "Mobile ${mobileFmt.value} ${mobileFmt.unit}",
+                                dotColor = palette.warn,
+                                textColor = palette.text,
+                                textModifier = Modifier.testTag("app_detail_mobile_label"),
+                            )
+                            NetworkLegendItem(
+                                label = "Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
+                                dotColor = palette.primary,
+                                textColor = palette.text,
+                                textModifier = Modifier.testTag("app_detail_wifi_label"),
+                            )
                         }
                     }
                 }
@@ -717,7 +691,7 @@ fun AppDetailContent(
                                                 onClick = { onEvent(AppDetailEvent.RemoveBudget) },
                                                 modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                             ) {
-                                                Text("Remove", color = palette.danger)
+                                                Text("Remove", color = palette.dangerText)
                                             }
                                         }
                                     }
@@ -870,6 +844,34 @@ private fun AppDetailDailyChart(
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun NetworkLegendItem(
+    label: String,
+    dotColor: Color,
+    textColor: Color,
+    textModifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(dotColor, CircleShape),
+        )
+        ForceLtr {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = textColor,
+                modifier = textModifier,
+            )
         }
     }
 }
