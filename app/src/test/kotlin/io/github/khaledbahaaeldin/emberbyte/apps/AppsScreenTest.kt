@@ -124,6 +124,10 @@ class AppsScreenTest {
         state = state.copy(range = AppsRange.TODAY)
         rule.mainClock.advanceTimeBy(16)
         rule.onNodeWithContentDescription("Remove 7 days filter").assertExists()
+
+        // Once the exit animation completes, the chip is removed
+        rule.mainClock.advanceTimeBy(1000)
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
     }
 
     @Test

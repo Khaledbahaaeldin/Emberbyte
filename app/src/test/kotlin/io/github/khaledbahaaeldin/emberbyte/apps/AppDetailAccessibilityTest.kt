@@ -1,9 +1,11 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
@@ -250,7 +252,7 @@ class AppDetailAccessibilityTest {
                 currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
                 rule.waitForIdle()
 
-                for (warnLabel in listOf("Yesterday 14:00", "350 MB", "4.2x normal", "Dismiss")) {
+                for (warnLabel in listOf("Yesterday 14:00", "350 MB", "·", "4.2x normal", "Dismiss")) {
                     val results = mutableListOf<TextLayoutResult>()
                     rule.onNodeWithText(warnLabel, useUnmergedTree = true)
                         .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
@@ -330,6 +332,46 @@ class AppDetailAccessibilityTest {
         // Removing budget must crossfade out safely without throwing checkNotNull
         state = state.copy(budget = null)
         rule.waitForIdle()
+        rule.onNodeWithText("Set a budget").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun budget_and_loading_snap_under_reduced_motion() {
+        val initialBudget = BudgetUi(
+            id = 1L,
+            fraction = 0.5f,
+            ringState = BudgetStateUi.Ok,
+            percentText = "50%",
+            usedText = "500 MB of 1 GB",
+            periodText = "Cycle",
+            enabled = true,
+        )
+        var state by mutableStateOf(sampleAppDetailState.copy(loaded = true, budget = initialBudget))
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    AppDetailContent(
+                        state = state,
+                        onEvent = {},
+                        onBack = {},
+                        onOpenSettings = {},
+                    )
+                }
+            }
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("500 MB of 1 GB"))
+        rule.onNodeWithText("500 MB of 1 GB").assertIsDisplayed()
+
+        // Snaps from budget to "Set a budget" under reduced motion
+        rule.mainClock.autoAdvance = false
+        state = state.copy(budget = null)
+        rule.waitForIdle()
+        repeat(3) { rule.mainClock.advanceTimeBy(16) }
+        rule.onNodeWithText("Set a budget").assertExists()
+        rule.mainClock.advanceTimeBy(200)
+        rule.waitForIdle()
+        rule.onNodeWithText("500 MB of 1 GB").assertDoesNotExist()
         rule.onNodeWithText("Set a budget").assertIsDisplayed()
     }
 

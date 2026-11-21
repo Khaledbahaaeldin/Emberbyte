@@ -216,7 +216,6 @@ internal fun HomeBentoRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 AnimatedVisibility(
                     visible = state.forecast != null,
@@ -234,7 +233,9 @@ internal fun HomeBentoRow(
                     (state.forecast ?: lastForecast.value)?.let { forecast ->
                         ForecastTile(
                             model = forecast,
-                            modifier = Modifier.width(halfWidth),
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .width(halfWidth),
                             corner = Corner.TopStart,
                             container = TileContainer.Accent,
                         )
@@ -245,7 +246,9 @@ internal fun HomeBentoRow(
                     txBps = state.liveTxBps,
                     network = state.network,
                     units = state.units,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("home_speed_tile"),
                     corner = Corner.BottomStart,
                 )
             }
@@ -329,6 +332,14 @@ internal fun HomeTopAppsSection(
             state.topApps.isEmpty() -> 1
             else -> 2
         }
+        val lastTopApps = remember {
+            object {
+                var value = state.topApps
+            }
+        }
+        if (state.topApps.isNotEmpty()) {
+            lastTopApps.value = state.topApps
+        }
         EmberbyteCrossfade(targetState = topAppsState, modifier = Modifier.fillMaxWidth()) { displayMode ->
             when (displayMode) {
                 0 -> {
@@ -346,9 +357,10 @@ internal fun HomeTopAppsSection(
                     )
                 }
                 else -> {
+                    val rows = state.topApps.ifEmpty { lastTopApps.value }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val maxBytes = state.topApps.maxOfOrNull { it.totalBytes } ?: 1L
-                        state.topApps.take(5).forEach { app ->
+                        val maxBytes = rows.maxOfOrNull { it.totalBytes } ?: 1L
+                        rows.take(5).forEach { app ->
                             val fraction = if (maxBytes > 0L) app.totalBytes.toFloat() / maxBytes else 0f
                             AppRow(
                                 icon = icons(app.packageName),

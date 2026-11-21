@@ -1,9 +1,12 @@
 package io.github.khaledbahaaeldin.emberbyte.history
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
@@ -279,5 +282,32 @@ class HistoryScreenTest {
             }
         }
         rule.onNodeWithText("12% more than last week").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun font_scale_2_selected_bar_no_clip() {
+        val state = buildHistoryUiState(
+            Granularity.DAY,
+            dayPoints,
+            ByteUnits.DECIMAL,
+            zone,
+            locale,
+            selectedIndex = 0,
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    HistoryContent(
+                        state = state,
+                        onEvent = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        rule.onNodeWithText("Show total").assertIsDisplayed()
+        rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
     }
 }

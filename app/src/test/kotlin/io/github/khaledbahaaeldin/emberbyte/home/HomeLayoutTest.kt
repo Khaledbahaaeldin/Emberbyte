@@ -355,6 +355,8 @@ class HomeLayoutTest {
         var expectedLinkColor = Color.Unspecified
         var expectedSurface2 = Color.Unspecified
         var expectedBackground = Color.Unspecified
+        var expectedOnAccent = Color.Unspecified
+        var expectedAccent = Color.Unspecified
         rule.setContent {
             EmberbyteTheme(currentSpec) {
                 val palette = LocalEmberbytePalette.current
@@ -362,9 +364,21 @@ class HomeLayoutTest {
                     expectedLinkColor = palette.linkText
                     expectedSurface2 = palette.surface2
                     expectedBackground = palette.background
+                    expectedOnAccent = palette.onAccent
+                    expectedAccent = palette.accent
                 }
                 HomeContent(
-                    state = HomeUiState(hasPlan = false, planLine = null, subtitle = null),
+                    state = HomeUiState(
+                        hasPlan = false,
+                        planLine = null,
+                        subtitle = null,
+                        spike = SpikeTileUi(
+                            id = 1L,
+                            packageName = "com.video",
+                            title = "Video spiked",
+                            detail = "3x normal today",
+                        ),
+                    ),
                     onEvent = {},
                     onOpenSettings = {},
                     onOpenHistory = {},
@@ -379,7 +393,12 @@ class HomeLayoutTest {
             for ((dark, amoled) in variants) {
                 currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
                 rule.waitForIdle()
-                for ((label, bg) in listOf("See all" to expectedSurface2, "Set up a plan" to expectedBackground)) {
+                val linkPairs = listOf(
+                    "See all" to expectedSurface2,
+                    "Set up a plan" to expectedBackground,
+                    "Set up your data plan" to expectedSurface2,
+                )
+                for ((label, bg) in linkPairs) {
                     val results = mutableListOf<TextLayoutResult>()
                     rule.onNodeWithText(label, useUnmergedTree = true)
                         .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
@@ -395,6 +414,25 @@ class HomeLayoutTest {
                     val ratio = maxOf(l1, l2) / minOf(l1, l2)
                     assertTrue(
                         "$label on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
+                for (accentLabel in listOf("3x normal today", "Dismiss")) {
+                    val results = mutableListOf<TextLayoutResult>()
+                    rule.onNodeWithText(accentLabel, useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                    val actualColor = results.first().layoutInput.style.color
+                    assertEquals(
+                        "$accentLabel must bind to palette.onAccent on ${preset.id} dark=$dark amoled=$amoled",
+                        expectedOnAccent,
+                        actualColor,
+                    )
+                    val fg = actualColor.compositeOver(expectedAccent)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = expectedAccent.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$accentLabel on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on accent, was $ratio",
                         ratio >= 4.5,
                     )
                 }
@@ -427,19 +465,77 @@ class HomeLayoutTest {
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        val initialSpeedBounds = rule.onNodeWithText("Live ·", substring = true).getBoundsInRoot()
+        val initialSpeedBounds = rule.onNodeWithTag("home_speed_tile").getBoundsInRoot()
         val initialSpeedWidth = (initialSpeedBounds.right - initialSpeedBounds.left).value
-        assertTrue("Initial speed tile width should be positive, was $initialSpeedWidth", initialSpeedWidth > 10f)
+        assertTrue("Initial speed tile container width must be >= 150dp, was $initialSpeedWidth", initialSpeedWidth >= 150f)
 
         state = state.copy(forecast = null)
         repeat(15) {
             rule.mainClock.advanceTimeBy(16)
-            val bounds = rule.onNodeWithText("Live ·", substring = true).getBoundsInRoot()
+            val bounds = rule.onNodeWithTag("home_speed_tile").getBoundsInRoot()
             val width = (bounds.right - bounds.left).value
             assertTrue(
                 "Speed tile must never be crushed during ForecastTile exit, saw width=$width",
                 width >= initialSpeedWidth - 1f,
             )
         }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp")
+    fun home_bento_row_and_hero_snap_under_reduced_motion() {
+        val sampleForecast = ForecastUi(
+            headline = "3 days left",
+            detail = "On pace to finish under",
+            confidence = "High",
+            kind = ForecastKind.Safe,
+        )
+        var state by mutableStateOf(HomeUiState(forecast = null, isEstimated = false))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    HomeContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenSettings = {},
+                        onOpenHistory = {},
+                        onPromptAction = {},
+                        onOpenApp = {},
+                        onSetUpPlan = {},
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("3 days left").assertDoesNotExist()
+        rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
+
+        state = state.copy(forecast = sampleForecast, isEstimated = true)
+        val enterWidths = mutableListOf<Float>()
+        repeat(10) {
+            rule.mainClock.advanceTimeBy(16)
+            if (rule.onAllNodes(hasText("3 days left")).fetchSemanticsNodes().isNotEmpty()) {
+                val bounds = rule.onNodeWithText("3 days left").getBoundsInRoot()
+                enterWidths += (bounds.right - bounds.left).value
+            }
+        }
+        assertTrue("ForecastTile must appear under reduced motion", enterWidths.isNotEmpty())
+        val fullWidth = enterWidths.last()
+        assertTrue("ForecastTile must snap without intermediate expand widths, saw $enterWidths", enterWidths.all { it >= fullWidth - 0.5f })
+        rule.onNodeWithText("Data usage is estimated").assertIsDisplayed()
+
+        state = state.copy(forecast = null, isEstimated = false)
+        val exitWidths = mutableListOf<Float>()
+        repeat(10) {
+            rule.mainClock.advanceTimeBy(16)
+            if (rule.onAllNodes(hasText("3 days left")).fetchSemanticsNodes().isNotEmpty()) {
+                val bounds = rule.onNodeWithText("3 days left").getBoundsInRoot()
+                exitWidths += (bounds.right - bounds.left).value
+            }
+        }
+        assertTrue("ForecastTile must snap exit without intermediate shrink widths, saw $exitWidths", exitWidths.all { it >= fullWidth - 0.5f })
+        rule.onNodeWithText("3 days left").assertDoesNotExist()
+        rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
     }
 }

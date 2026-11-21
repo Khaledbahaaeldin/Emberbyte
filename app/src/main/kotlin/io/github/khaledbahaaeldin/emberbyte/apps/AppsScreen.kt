@@ -401,6 +401,14 @@ internal fun AppsContent(
                     // Apps list or empty state
                     if (state.loaded && state.apps.isEmpty()) {
                         item(key = "empty_state") {
+                            val lastQuery = remember {
+                                object {
+                                    var value: String = state.query
+                                }
+                            }
+                            if (state.query.isNotBlank()) {
+                                lastQuery.value = state.query
+                            }
                             EmberbyteCrossfade(
                                 targetState = state.query.isNotBlank(),
                                 modifier = Modifier
@@ -412,10 +420,11 @@ internal fun AppsContent(
                                     ),
                             ) { isSearching ->
                                 if (isSearching) {
+                                    val displayQuery = state.query.ifBlank { lastQuery.value }.trim()
                                     EmptyState(
                                         icon = Icons.Rounded.Search,
                                         title = "No apps match",
-                                        body = "No apps match \"${state.query.trim()}\".",
+                                        body = "No apps match \"$displayQuery\".",
                                         action = {
                                             TextButton(
                                                 onClick = { onEvent(AppsEvent.SetQuery("")) },
