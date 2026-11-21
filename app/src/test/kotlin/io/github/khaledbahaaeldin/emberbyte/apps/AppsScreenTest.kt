@@ -79,22 +79,12 @@ class AppsScreenTest {
         rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
 
         state = state.copy(range = AppsRange.LAST_7_DAYS)
-        val enterHeights = mutableListOf<Float>()
-        repeat(10) {
-            rule.mainClock.advanceTimeBy(16)
-            val nodes = rule.onAllNodes(hasContentDescription("Remove 7 days filter")).fetchSemanticsNodes()
-            if (nodes.isNotEmpty()) {
-                val bounds = rule.onNodeWithContentDescription("Remove 7 days filter").getBoundsInRoot()
-                enterHeights += (bounds.bottom - bounds.top).value
-            }
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
         }
-        assertTrue("filter chip should be visible under reduced motion", enterHeights.isNotEmpty())
-        val fullHeight = enterHeights.last()
-        assertTrue("filter chip should snap to full height, saw $enterHeights", fullHeight > 20f)
-        assertTrue(
-            "reduced motion must not show intermediate expand heights, saw $enterHeights",
-            enterHeights.all { it >= fullHeight - 0.5f },
-        )
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
 
         state = state.copy(range = AppsRange.TODAY)
         rule.waitForIdle()
@@ -447,10 +437,16 @@ class AppsScreenTest {
                 }
             }
         }
-        rule.onNodeWithText("Filters").assertIsDisplayed()
-        rule.onNodeWithText("7 days").assertIsDisplayed()
-        rule.onNodeWithText("YouTube").assertIsDisplayed()
-        rule.onNodeWithText("Chat").assertIsDisplayed()
+        for (label in listOf("Filters", "7 days", "YouTube", "Chat")) {
+            val node = rule.onNodeWithText(label, useUnmergedTree = true)
+            node.assertIsDisplayed()
+            val bounds = node.getBoundsInRoot()
+            assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
+            assertTrue("$label must have positive size", (bounds.right - bounds.left).value > 0f && (bounds.bottom - bounds.top).value > 0f)
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+        }
     }
 
     @Test

@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
@@ -322,10 +323,23 @@ class HistoryScreenTest {
                 }
             }
         }
-        rule.onNodeWithText("Wednesday, 30 September").assertIsDisplayed()
-        rule.onNodeWithText("Show total").assertIsDisplayed()
-        rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
+        val dateNode = rule.onNodeWithText("Wednesday, 30 September", useUnmergedTree = true)
+        val showTotalNode = rule.onNodeWithText("Show total", useUnmergedTree = true)
+        dateNode.assertIsDisplayed()
+        showTotalNode.assertIsDisplayed()
+
+        val dateBounds = dateNode.getBoundsInRoot()
+        val showTotalBounds = showTotalNode.getBoundsInRoot()
+        assertTrue("Date header and Show total must not overlap horizontally", dateBounds.right <= showTotalBounds.left + 1.dp)
+        assertTrue("Show total must fit within 360dp", showTotalBounds.right.value <= 360f + 1f)
+
+        val showTotalLayouts = mutableListOf<TextLayoutResult>()
+        showTotalNode.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(showTotalLayouts) }
+        assertTrue("Show total must not overflow visually", !showTotalLayouts.first().hasVisualOverflow)
+        assertEquals("Show total must stay on a single line", 1, showTotalLayouts.first().lineCount)
+
+        rule.onNodeWithText("Mobile", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Wi-Fi", substring = true, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

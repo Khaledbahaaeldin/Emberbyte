@@ -254,7 +254,7 @@ internal fun HomeContent(
                                         placementSpec = motion.spatial(),
                                         fadeOutSpec = motion.effects(),
                                     ),
-                                container = TileContainer.Tertiary,
+                                container = TileContainer.Accent,
                                 onClick = { onOpenApp(spike.packageName) },
                             ) {
                                 Text(spike.title, style = MaterialTheme.typography.titleMedium)

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
@@ -494,6 +495,7 @@ fun HistoryContent(
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     Row(
+                                        modifier = Modifier.semantics(mergeDescendants = true) {},
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
@@ -506,13 +508,16 @@ fun HistoryContent(
                                                 )
                                         )
                                         val mobileFormatted = formatBytes(point.mobileBytes, state.units)
-                                        Text(
-                                            text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = palette.muted,
-                                        )
+                                        ForceLtr {
+                                            Text(
+                                                text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = palette.muted,
+                                            )
+                                        }
                                     }
                                     Row(
+                                        modifier = Modifier.semantics(mergeDescendants = true) {},
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
@@ -525,11 +530,13 @@ fun HistoryContent(
                                                 )
                                         )
                                         val wifiFormatted = formatBytes(point.wifiBytes, state.units)
-                                        Text(
-                                            text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = palette.muted,
-                                        )
+                                        ForceLtr {
+                                            Text(
+                                                text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = palette.muted,
+                                            )
+                                        }
                                     }
                                 }
                             }

@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -449,7 +450,7 @@ fun AppDetailContent(
                         )
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             val mobileFmt = formatBytes(state.mobileBytes, state.units)
@@ -500,43 +501,29 @@ fun AppDetailContent(
                 // this way by the app yet, so both values stay 0 and the tiles are hidden instead of showing "0 B".
                 if (state.foregroundBytes + state.backgroundBytes > 0L) {
                     item(key = "foreground_background") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .animateItem(
-                                    fadeInSpec = motion.effects(),
-                                    placementSpec = motion.spatial(),
-                                    fadeOutSpec = motion.effects(),
-                                ),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            val fgFmt = formatBytes(state.foregroundBytes, state.units)
-                            val bgFmt = formatBytes(state.backgroundBytes, state.units)
-                            BentoTile(
-                                title = "Foreground",
-                                modifier = Modifier.weight(1f),
-                                container = TileContainer.Standard,
+                        val fontScale = LocalDensity.current.fontScale
+                        val fgFmt = formatBytes(state.foregroundBytes, state.units)
+                        val bgFmt = formatBytes(state.backgroundBytes, state.units)
+                        val itemAnim = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        )
+                        if (fontScale >= 1.5f) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().then(itemAnim),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                ForceLtr {
-                                    Text(
-                                        text = "${fgFmt.value} ${fgFmt.unit}",
-                                        style = EmberbyteType.value(20.sp),
-                                        color = palette.text,
-                                    )
-                                }
+                                SplitMetricTile("Foreground", "${fgFmt.value} ${fgFmt.unit}", Modifier.fillMaxWidth())
+                                SplitMetricTile("Background", "${bgFmt.value} ${bgFmt.unit}", Modifier.fillMaxWidth())
                             }
-                            BentoTile(
-                                title = "Background",
-                                modifier = Modifier.weight(1f),
-                                container = TileContainer.Standard,
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().then(itemAnim),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                ForceLtr {
-                                    Text(
-                                        text = "${bgFmt.value} ${bgFmt.unit}",
-                                        style = EmberbyteType.value(20.sp),
-                                        color = palette.text,
-                                    )
-                                }
+                                SplitMetricTile("Foreground", "${fgFmt.value} ${fgFmt.unit}", Modifier.weight(1f))
+                                SplitMetricTile("Background", "${bgFmt.value} ${bgFmt.unit}", Modifier.weight(1f))
                             }
                         }
                     }
@@ -612,7 +599,7 @@ fun AppDetailContent(
                                             ForceLtr {
                                                 Text(spike.whenText, style = MaterialTheme.typography.bodyMedium, color = palette.onWarn)
                                             }
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 ForceLtr {
                                                     Text(
                                                         spike.bytesText,
@@ -716,7 +703,10 @@ fun AppDetailContent(
                                                 color = palette.muted,
                                             )
                                         }
-                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        ) {
                                             TextButton(
                                                 onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
                                                 modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
@@ -768,6 +758,28 @@ fun AppDetailContent(
                     onEvent = onEvent,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SplitMetricTile(
+    title: String,
+    valueText: String,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalEmberbytePalette.current
+    BentoTile(
+        title = title,
+        modifier = modifier,
+        container = TileContainer.Standard,
+    ) {
+        ForceLtr {
+            Text(
+                text = valueText,
+                style = EmberbyteType.value(20.sp),
+                color = palette.text,
+            )
         }
     }
 }

@@ -415,8 +415,10 @@ class AppDetailAccessibilityTest {
     @Test
     @Config(qualifiers = "w360dp-h3000dp")
     fun font_scale_2_no_clip_on_narrow_screen() {
+        var maxWidthPx = 0f
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                maxWidthPx = with(LocalDensity.current) { 360.dp.toPx() }
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     AppDetailContent(
                         state = sampleAppDetailState.copy(budget = null),
@@ -427,10 +429,71 @@ class AppDetailAccessibilityTest {
                 }
             }
         }
-        rule.onNodeWithText("No budget set").assertIsDisplayed()
-        rule.onNodeWithText("Set a budget").assertIsDisplayed()
-        rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
+        for (label in listOf("No budget set", "Set a budget")) {
+            val node = rule.onNodeWithText(label, useUnmergedTree = true)
+            node.assertIsDisplayed()
+            val bounds = node.getBoundsInRoot()
+            assertTrue("$label must have positive size", (bounds.right - bounds.left).value > 0f && (bounds.bottom - bounds.top).value > 0f)
+            assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+        }
+        val noBudgetBounds = rule.onNodeWithText("No budget set", useUnmergedTree = true).getBoundsInRoot()
+        val setBudgetBounds = rule.onNodeWithText("Set a budget", useUnmergedTree = true).getBoundsInRoot()
+        assertTrue(
+            "No budget set and Set a budget must not overlap horizontally",
+            noBudgetBounds.right <= setBudgetBounds.left + 1.dp,
+        )
+        assertTrue(maxWidthPx > 0f)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun font_scale_2_active_budget_and_split_tiles_no_clip_on_narrow_screen() {
+        val activeBudget = BudgetUi(
+            id = 1L,
+            fraction = 0.5f,
+            ringState = BudgetStateUi.Ok,
+            percentText = "50%",
+            usedText = "500 MB of 1 GB",
+            periodText = "Cycle",
+            enabled = true,
+        )
+        val spike = SpikeRowUi(
+            id = 1L,
+            whenText = "Yesterday 14:00",
+            bytesText = "350 MB",
+            multipleText = "4.2x normal",
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    AppDetailContent(
+                        state = sampleAppDetailState.copy(
+                            foregroundBytes = 700_000_000L,
+                            backgroundBytes = 300_000_000L,
+                            budget = activeBudget,
+                            spikes = listOf(spike),
+                        ),
+                        onEvent = {},
+                        onBack = {},
+                        onOpenSettings = {},
+                    )
+                }
+            }
+        }
+        for (label in listOf("Foreground", "Background", "Edit", "Remove", "Dismiss")) {
+            val node = rule.onNodeWithText(label, useUnmergedTree = true)
+            node.assertIsDisplayed()
+            val bounds = node.getBoundsInRoot()
+            assertTrue("$label must have positive size", (bounds.right - bounds.left).value > 0f && (bounds.bottom - bounds.top).value > 0f)
+            assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+            assertEquals("$label must not wrap mid-word on narrow screen", 1, layouts.first().lineCount)
+        }
     }
 
     @Test

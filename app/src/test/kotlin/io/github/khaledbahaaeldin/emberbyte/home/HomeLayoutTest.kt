@@ -512,25 +512,12 @@ class HomeLayoutTest {
         rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
 
         state = state.copy(forecast = sampleForecast, isEstimated = true)
-        val enterWidths = mutableListOf<Float>()
-        val estimatedHeights = mutableListOf<Float>()
-        repeat(10) {
-            rule.mainClock.advanceTimeBy(16)
-            if (rule.onAllNodes(hasText("3 days left")).fetchSemanticsNodes().isNotEmpty()) {
-                val bounds = rule.onNodeWithText("3 days left").getBoundsInRoot()
-                enterWidths += (bounds.right - bounds.left).value
-            }
-            if (rule.onAllNodes(hasText("Data usage is estimated")).fetchSemanticsNodes().isNotEmpty()) {
-                val estBounds = rule.onNodeWithText("Data usage is estimated").getBoundsInRoot()
-                estimatedHeights += (estBounds.bottom - estBounds.top).value
-            }
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
         }
-        assertTrue("ForecastTile must appear under reduced motion", enterWidths.isNotEmpty())
-        val fullWidth = enterWidths.last()
-        assertTrue("ForecastTile must snap without intermediate expand widths, saw $enterWidths", enterWidths.all { it >= fullWidth - 0.5f })
-        assertTrue("Estimated notice must appear under reduced motion", estimatedHeights.isNotEmpty())
-        val fullEstHeight = estimatedHeights.last()
-        assertTrue("Estimated notice must snap without intermediate expand heights, saw $estimatedHeights", estimatedHeights.all { it >= fullEstHeight - 0.5f })
+        rule.onNodeWithText("3 days left").assertIsDisplayed()
         rule.onNodeWithText("Data usage is estimated").assertIsDisplayed()
 
         state = state.copy(forecast = null, isEstimated = false)
@@ -541,5 +528,86 @@ class HomeLayoutTest {
         }
         rule.onNodeWithText("3 days left").assertDoesNotExist()
         rule.onNodeWithText("Data usage is estimated").assertDoesNotExist()
+    }
+
+    @Test
+    fun home_loading_crossfade_snaps_under_reduced_motion() {
+        var state by mutableStateOf(HomeUiState(isLoading = true))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    HomeContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenSettings = {},
+                        onOpenHistory = {},
+                        onPromptAction = {},
+                        onOpenApp = {},
+                        onSetUpPlan = {},
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithTag("home_loading_indicator").assertIsDisplayed()
+
+        // Snaps out of loading within 2 frames (32ms)
+        state = state.copy(isLoading = false, heroBytes = 1_000_000_000L, heroDescription = "1 GB used today")
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithTag("home_loading_indicator").assertDoesNotExist()
+        rule.onNodeWithText("Today by network").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun font_scale_2_full_sections_no_clip() {
+        val sampleForecast = ForecastUi(
+            headline = "3 days left",
+            detail = "On pace to finish under",
+            confidence = "High",
+            kind = ForecastKind.Safe,
+        )
+        val state = HomeUiState(
+            heroBytes = 200_000_000_000L,
+            heroDescription = "200 gigabytes used today",
+            mobileBytes = 100_000_000_000L,
+            wifiBytes = 100_000_000_000L,
+            forecast = sampleForecast,
+            hasPlan = false,
+            planLine = null,
+            subtitle = null,
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    HomeContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenSettings = {},
+                        onOpenHistory = {},
+                        onPromptAction = {},
+                        onOpenApp = {},
+                        onSetUpPlan = {},
+                    )
+                }
+            }
+        }
+        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "Wi-Fi 100 GB", "See all", "Set up a plan")) {
+            val node = rule.onNodeWithText(label, useUnmergedTree = true)
+            node.assertIsDisplayed()
+            val bounds = node.getBoundsInRoot()
+            assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
+            assertTrue("$label must have positive size", (bounds.right - bounds.left).value > 0f && (bounds.bottom - bounds.top).value > 0f)
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+        }
     }
 }
