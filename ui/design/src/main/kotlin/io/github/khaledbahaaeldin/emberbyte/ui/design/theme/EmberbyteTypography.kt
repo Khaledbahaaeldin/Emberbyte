@@ -54,4 +54,7 @@ object BentoType {
     val BigMax: TextUnit = 60.sp
     val BigMin: TextUnit = 36.sp
     val BigStep: TextUnit = 1.sp
+    val SetupTitle: TextUnit = 21.sp
+    val SetupBody: TextUnit = 14.sp
+    val SetupButton: TextUnit = 17.sp
 }

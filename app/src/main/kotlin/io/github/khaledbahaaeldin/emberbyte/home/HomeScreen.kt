@@ -17,6 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.rememberPlayHomeEntrance
+import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanSetupCard
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.LiveDirection
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -237,6 +239,17 @@ internal fun HomeContent(
                         )
                     }
 
+                    // One merged setup card while there is no plan (replaces the old link and the old "Data plan" card).
+                    if (!state.hasPlan) {
+                        item(key = "plan_setup") {
+                            PlanSetupCard(
+                                onSetUp = onSetUpPlan,
+                                playEntrance = rememberPlayHomeEntrance(),
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
+
                     // Forecast on its own full-width row (plan state), then Live and Today by network side by side.
                     item(key = "forecast_row") {
                         HomeForecastRow(state = state, modifier = emberbyteAnimateItem(motion))
@@ -277,27 +290,6 @@ internal fun HomeContent(
                                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                 ) {
                                     Text("Dismiss")
-                                }
-                            }
-                        }
-                    }
-
-                    if (!state.hasPlan) {
-                        item(key = "data_plan") {
-                            BentoTile(
-                                title = "Data plan",
-                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
-                                onClick = onSetUpPlan,
-                            ) {
-                                Text(
-                                    "Set up your data plan to see what is left and when it runs out.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                TextButton(
-                                    onClick = onSetUpPlan,
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Set up your data plan", color = palette.linkText)
                                 }
                             }
                         }
