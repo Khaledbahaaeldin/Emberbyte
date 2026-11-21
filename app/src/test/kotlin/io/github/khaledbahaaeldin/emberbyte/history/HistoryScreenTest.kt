@@ -28,6 +28,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -115,8 +116,9 @@ class HistoryScreenTest {
         }
         rule.onAllNodes(hasScrollAction())[0]
             .performScrollToNode(hasText("Mobile", substring = true))
-        rule.onNodeWithText("Mobile", substring = true).assertExists()
-        rule.onNodeWithText("Wi-Fi", substring = true).assertExists()
+        rule.onNodeWithTag("history_selected_split", useUnmergedTree = true).assertExists()
+        rule.onAllNodesWithText("Mobile", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty().let { assertTrue(it) }
+        rule.onAllNodesWithText("Wi-Fi", substring = true, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty().let { assertTrue(it) }
     }
 
     @Test
@@ -324,74 +326,10 @@ class HistoryScreenTest {
             }
         }
         val dateNode = rule.onNodeWithText("Wednesday, 30 September", useUnmergedTree = true)
-        val showTotalNode = rule.onNodeWithText("Show total", useUnmergedTree = true)
         dateNode.assertIsDisplayed()
-        showTotalNode.assertIsDisplayed()
-
         val dateBounds = dateNode.getBoundsInRoot()
-        val showTotalBounds = showTotalNode.getBoundsInRoot()
-        assertTrue("Date header and Show total must not overlap horizontally", dateBounds.right <= showTotalBounds.left + 1.dp)
-        assertTrue("Show total must fit within 360dp", showTotalBounds.right.value <= 360f + 1f)
-
-        val showTotalLayouts = mutableListOf<TextLayoutResult>()
-        showTotalNode.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(showTotalLayouts) }
-        assertEquals("Show total must stay on a single line", 1, showTotalLayouts.first().lineCount)
-
-        rule.onNodeWithText("Mobile", substring = true, useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("Wi-Fi", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        assertTrue("Date header must fit within 360dp", dateBounds.right.value <= 360f + 1f)
+        rule.onNodeWithTag("history_selected_total", useUnmergedTree = true).assertIsDisplayed()
     }
 
-    @Test
-    @Config(qualifiers = "w411dp-h3000dp")
-    fun show_total_uses_link_text_and_meets_aa_contrast_across_all_palettes() {
-        val state = buildHistoryUiState(
-            Granularity.DAY,
-            dayPoints,
-            ByteUnits.DECIMAL,
-            zone,
-            locale,
-            selectedIndex = 0,
-        )
-        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
-        var expectedLinkColor = Color.Unspecified
-        var expectedBackground = Color.Unspecified
-        rule.setContent {
-            EmberbyteTheme(currentSpec) {
-                val palette = LocalEmberbytePalette.current
-                SideEffect {
-                    expectedLinkColor = palette.linkText
-                    expectedBackground = palette.background
-                }
-                HistoryContent(
-                    state = state,
-                    onEvent = {},
-                    onBack = {},
-                )
-            }
-        }
-        val variants = listOf(false to false, true to false, true to true)
-        for (preset in ThemePresets) {
-            for ((dark, amoled) in variants) {
-                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
-                rule.waitForIdle()
-                val results = mutableListOf<TextLayoutResult>()
-                rule.onNodeWithText("Show total", useUnmergedTree = true)
-                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-                val actualColor = results.first().layoutInput.style.color
-                assertEquals(
-                    "Show total must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
-                    expectedLinkColor,
-                    actualColor,
-                )
-                val fg = actualColor.compositeOver(expectedBackground)
-                val l1 = fg.luminance() + 0.05
-                val l2 = expectedBackground.luminance() + 0.05
-                val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                assertTrue(
-                    "Show total on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on background, was $ratio",
-                    ratio >= 4.5,
-                )
-            }
-        }
-    }
 }

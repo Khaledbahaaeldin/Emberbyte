@@ -321,7 +321,11 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                         LaunchedEffect(day) { if (day >= 0) viewModel.showHomeDay(day) }
                         // Back plays the reveal backwards (about 380 ms) before leaving.
                         androidx.activity.compose.BackHandler(enabled = origin != null && !closing) { closing = true }
-                        HistoryScreen(viewModel, onBack = { closing = true })
+                        HistoryScreen(
+                            viewModel,
+                            onBack = { closing = true },
+                            onOpenApp = { navController.navigate(Routes.appDetail(it)) },
+                        )
                     }
                 }
             }

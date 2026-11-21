@@ -119,3 +119,14 @@ object DetailType {
     val PartPercent: TextUnit = 17.sp
     val Button: TextUnit = 15.sp
 }
+
+/** Text sizes of the History screen sections (Space Grotesk). Tokens live here so the screen carries no raw sizes. */
+object HistoryType {
+    val CardTitle: TextUnit = 16.sp
+    val Sentence: TextUnit = 16.sp
+    val Label: TextUnit = 14.sp
+    val Small: TextUnit = 12.sp
+    val TileValue: TextUnit = 26.sp
+    val SelectedTotal: TextUnit = 40.sp
+    val Record: TextUnit = 20.sp
+}

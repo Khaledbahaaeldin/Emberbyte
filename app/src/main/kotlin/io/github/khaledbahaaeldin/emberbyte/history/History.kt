@@ -82,6 +82,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onStart
+import androidx.compose.ui.platform.testTag
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.HistoryType
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.HourPattern
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.DayUsage
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.stateIn
 
@@ -112,11 +120,30 @@ data class HistoryUiState(
     val heroDescription: String? = null,
     val rangeLabel: String? = null,
     val heroLabel: String? = null,
+    /** The last 91 days, oldest first, for the calendar, the weekday pattern and the records. */
+    val rows: List<DayUsage> = emptyList(),
+    /** The fair like-for-like comparison shown under the total (null without previous data). */
+    val comparison: PeriodComparison? = null,
+    val selection: HistorySelection = HistorySelection.Default,
+    /** The heaviest apps of the whole window, with their change against the window before. */
+    val topApps: List<AppShare> = emptyList(),
+    /** The top apps of the selected bucket or day (the latest bucket by default). */
+    val selectedApps: List<AppShare> = emptyList(),
+    /** Total per local hour of the day over the last 12 weeks, for all apps. */
+    val hourTotals: LongArray = LongArray(24),
 )
+
+/** What the selected card shows: the latest bucket, a chart bar, or a calendar day. */
+sealed interface HistorySelection {
+    data object Default : HistorySelection
+    data class Bucket(val index: Int) : HistorySelection
+    data class Day(val date: LocalDate) : HistorySelection
+}
 
 sealed interface HistoryEvent {
     data class SetGranularity(val granularity: Granularity) : HistoryEvent
     data class SelectBar(val index: Int) : HistoryEvent
+    data class SelectDay(val date: LocalDate) : HistoryEvent
 }
 
 /** Day: last 14 days. Week: last 12 weeks (Monday start). Month: last 12 months. Ends at the end of [today]. */
@@ -209,11 +236,18 @@ internal fun buildHistoryUiState(
     locale: Locale,
     needsUsageAccess: Boolean = false,
     selectedIndex: Int? = null,
+    today: LocalDate? = null,
+    rows: List<DayUsage> = emptyList(),
+    selection: HistorySelection? = null,
+    topApps: List<AppShare> = emptyList(),
+    selectedApps: List<AppShare> = emptyList(),
+    hourTotals: LongArray = LongArray(24),
 ): HistoryUiState {
     val total = points.sumOf { it.totalBytes }
     val activeBuckets = points.count { it.totalBytes > 0 }
     val average = if (activeBuckets == 0) 0L else total / activeBuckets
     val comparison = computePeriodComparison(granularity, points)
+    val fair = if (today != null) fairComparison(granularity, points, today, zone) else null
     val spokenTotal = spokenBytes(total, units)
     val rangeLbl = computeRangeLabel(points, granularity, zone, locale)
     val heroLbl = computeHeroLabel(granularity, selectedIndex, points, zone, locale)
@@ -237,8 +271,14 @@ internal fun buildHistoryUiState(
         needsUsageAccess = needsUsageAccess,
         loaded = true,
         selectedIndex = selectedIndex,
-        comparisonText = comparison?.text,
-        trendDirection = comparison?.direction ?: TrendDirection.NONE,
+        comparisonText = fair?.text ?: comparison?.text,
+        trendDirection = fair?.direction ?: comparison?.direction ?: TrendDirection.NONE,
+        comparison = fair,
+        rows = rows,
+        selection = selection ?: if (selectedIndex != null) HistorySelection.Bucket(selectedIndex) else HistorySelection.Default,
+        topApps = topApps,
+        selectedApps = selectedApps,
+        hourTotals = hourTotals,
         heroDescription = heroDesc,
         rangeLabel = rangeLbl,
         heroLabel = heroLbl,
@@ -293,25 +333,93 @@ class HistoryViewModel(
 ) : ViewModel() {
     private val granularity = MutableStateFlow(Granularity.DAY)
     private val selectedBar = MutableStateFlow<Int?>(null)
+    private val selectedDate = MutableStateFlow<LocalDate?>(null)
 
     init {
         dates.drop(1)
-            .onEach { selectedBar.value = null }
+            .onEach {
+                selectedBar.value = null
+                selectedDate.value = null
+            }
             .launchIn(viewModelScope)
     }
+
+    private data class Extras(
+        val rows: List<DayUsage>,
+        val hours: LongArray,
+        val topApps: List<AppShare>,
+    )
 
     val uiState: StateFlow<HistoryUiState> = combine(dates, granularity) { date, g -> date to g }
         .flatMapLatest { (date, g) ->
             val zone = clock.zone
-            val pointsFlow = usage.observeSeries(rangeForHistory(g, date, zone), g)
+            val range = rangeForHistory(g, date, zone)
+            val pointsFlow = usage.observeSeries(range, g)
+            val rowsRange = DateRange(
+                date.minusDays(90).atStartOfDay(zone).toInstant(),
+                date.plusDays(1).atStartOfDay(zone).toInstant(),
+            )
+            val hoursRange = DateRange(
+                date.minusDays(83).atStartOfDay(zone).toInstant(),
+                date.plusDays(1).atStartOfDay(zone).toInstant(),
+            )
+            val before = DateRange(
+                range.from.minusSeconds(range.to.epochSecond - range.from.epochSecond),
+                range.from,
+            )
+            // Each supporting query starts with "nothing yet" so a slow or empty source never blocks the screen.
+            val extras = combine(
+                usage.observeSeries(rowsRange, Granularity.DAY).onStart { emit(emptyList()) },
+                usage.observeSeries(hoursRange, Granularity.HOUR).onStart { emit(emptyList()) },
+                usage.observeApps(range).onStart { emit(emptyList()) },
+                usage.observeApps(before).onStart { emit(emptyList()) },
+            ) { dayPoints, hourPoints, apps, previous ->
+                Extras(
+                    rows = dayPoints.map {
+                        DayUsage(it.start.atZone(zone).toLocalDate(), it.totalBytes, it.mobileBytes, it.wifiBytes)
+                    },
+                    hours = hourTotalsOf(hourPoints, zone),
+                    topApps = topAppsWithChange(apps, previous),
+                )
+            }
+            val selection = combine(selectedBar, selectedDate) { bar, day -> bar to day }
+            // The apps of the selected bucket or day (the latest bucket by default).
+            val selectedApps = combine(pointsFlow, selection) { points, sel -> points to sel }
+                .flatMapLatest { (points, sel) ->
+                    val (bar, day) = sel
+                    val bucketRange = when {
+                        day != null -> DateRange(day.atStartOfDay(zone).toInstant(), day.plusDays(1).atStartOfDay(zone).toInstant())
+                        else -> {
+                            val index = (bar?.takeIf { it in points.indices }) ?: points.lastIndex
+                            if (index < 0) null else DateRange(
+                                points[index].start,
+                                points.getOrNull(index + 1)?.start ?: range.to,
+                            )
+                        }
+                    }
+                    if (bucketRange == null) flowOf(emptyList()) else usage.observeApps(bucketRange).onStart { emit(emptyList()) }.map { topAppsWithChange(it, emptyList(), 3) }
+                }
             combine(
                 pointsFlow,
                 settings.observe(),
                 permissions.observe(),
-                selectedBar,
-            ) { points, s, perm, sel ->
-                val validSel = if (sel != null && sel in points.indices) sel else null
-                buildHistoryUiState(g, points, s.unitSystem.toByteUnits(), zone, locale, needsUsageAccess = !perm.usageAccess, selectedIndex = validSel)
+                selection,
+                combine(extras, selectedApps) { e, a -> e to a },
+            ) { points, s, perm, sel, extraAndApps ->
+                val (bar, day) = sel
+                val (e, apps) = extraAndApps
+                val validSel = if (day == null && bar != null && bar in points.indices) bar else null
+                val selection = when {
+                    day != null -> HistorySelection.Day(day)
+                    validSel != null -> HistorySelection.Bucket(validSel)
+                    else -> HistorySelection.Default
+                }
+                buildHistoryUiState(
+                    g, points, s.unitSystem.toByteUnits(), zone, locale,
+                    needsUsageAccess = !perm.usageAccess, selectedIndex = validSel,
+                    today = date, rows = e.rows, selection = selection,
+                    topApps = e.topApps, selectedApps = apps, hourTotals = e.hours,
+                )
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
@@ -339,23 +447,30 @@ class HistoryViewModel(
                 if (granularity.value != event.granularity) {
                     granularity.value = event.granularity
                     selectedBar.value = null
+                    selectedDate.value = null
                 }
             }
             is HistoryEvent.SelectBar -> {
+                selectedDate.value = null
                 selectedBar.value = if (selectedBar.value == event.index) null else event.index
+            }
+            is HistoryEvent.SelectDay -> {
+                selectedBar.value = null
+                selectedDate.value = if (selectedDate.value == event.date) null else event.date
             }
         }
     }
 }
 
 @Composable
-fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, onOpenApp: (String) -> Unit = {}) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     HistoryContent(
         state = state,
         onEvent = viewModel::onEvent,
         onBack = onBack,
         modifier = modifier,
+        onOpenApp = onOpenApp,
     )
 }
 
@@ -365,6 +480,7 @@ fun HistoryContent(
     onEvent: (HistoryEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenApp: (String) -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val motion = rememberEmberbyteMotion()
@@ -440,159 +556,53 @@ fun HistoryContent(
                     )
                 }
 
-                // Detail slot below chart: reserved height so selecting a bar does not jump the chart or tiles
-                val selectedIndex = state.selectedIndex
-                val isSelected = selectedIndex != null && selectedIndex in state.bars.indices
-                val bar = if (isSelected) state.bars[selectedIndex] else null
-                val point = if (isSelected) state.points.getOrNull(selectedIndex) else null
+                item(key = "selected_card") { SelectedCard(state, emberbyteAnimateItem(motion)) }
 
-                item(key = "chart_detail_slot") {
-                    Box(
-                        modifier = emberbyteAnimateItem(
-                            motion,
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 88.dp),
-                        ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (isSelected && bar != null && point != null) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = bar.title ?: bar.label,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = palette.text,
-                                        modifier = Modifier.weight(1f).padding(end = 8.dp),
-                                    )
-                                    TextButton(
-                                        onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
-                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                    ) {
-                                        Text(
-                                            "Show total",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = palette.linkText,
-                                        )
-                                    }
-                                }
-
-                                NetworkBar(
-                                    mobileBytes = point.mobileBytes,
-                                    wifiBytes = point.wifiBytes,
-                                    mobileColor = palette.primary,
-                                    wifiColor = palette.accent,
-                                    units = state.units,
-                                    modifier = Modifier.fillMaxWidth().height(10.dp),
-                                )
-
-                                // Legend row with Mobile and Wi-Fi dots
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    val mobileFormatted = formatBytes(point.mobileBytes, state.units)
-                                    val wifiFormatted = formatBytes(point.wifiBytes, state.units)
-                                    NetworkLegendItem(
-                                        label = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
-                                        dotColor = palette.primary,
-                                        textColor = palette.muted,
-                                        textStyle = MaterialTheme.typography.labelSmall,
-                                    )
-                                    NetworkLegendItem(
-                                        label = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
-                                        dotColor = palette.accent,
-                                        textColor = palette.muted,
-                                        textStyle = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            }
-                        } else {
-                            Text(
-                                text = "Tap a bar for mobile and Wi-Fi breakdown",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = palette.muted,
-                            )
-                        }
+                item(key = "sentence") {
+                    val total = state.rows.sumOf { it.totalBytes }
+                    val mobileShare = if (total <= 0L) 0f else state.rows.sumOf { it.mobileBytes }.toFloat() / total
+                    historySentence(state.rows, state.hourTotals, mobileShare)?.let {
+                        Text(
+                            it,
+                            style = EmberbyteType.grotesk(HistoryType.Sentence, 500),
+                            color = palette.text,
+                            modifier = emberbyteAnimateItem(motion).testTag("history_sentence"),
+                        )
                     }
                 }
 
-                // Bento tiles: Total/Active days and Average
-                item(key = "bento_tiles") {
-                    val fontScale = LocalDensity.current.fontScale
-                    val isDay = state.granularity == Granularity.DAY
-                    val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else stringResource(R.string.history_total)
-                    val firstTileValue = if (isDay) {
-                        "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
-                    } else {
-                        plainBytes(state.totalBytes, state.units)
-                    }
-                    val formattedTotal = formatBytes(state.totalBytes, state.units)
-                    val formattedAvg = formatBytes(state.averageBytes, state.units)
-                    val avgTitle = "Avg / active $unit"
+                item(key = "tiles") { HistoryTiles(state, emberbyteAnimateItem(motion)) }
 
-                    val primaryTile: @Composable (Modifier) -> Unit = { tileModifier ->
-                        BentoTile(
-                            title = firstTileTitle,
-                            modifier = tileModifier,
-                            container = TileContainer.Primary,
-                        ) {
-                            if (isDay) {
-                                ForceLtr {
-                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                }
-                            } else {
-                                MorphingNumber(
-                                    value = formattedTotal.value,
-                                    unit = formattedTotal.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = spokenBytes(state.totalBytes, state.units),
-                                )
-                            }
-                        }
+                if (state.rows.isNotEmpty()) {
+                    item(key = "calendar") {
+                        ActivityCalendar(
+                            rows = state.rows,
+                            today = state.rows.last().date,
+                            selected = (state.selection as? HistorySelection.Day)?.date,
+                            units = state.units,
+                            onSelect = { onEvent(HistoryEvent.SelectDay(it)) },
+                            modifier = emberbyteAnimateItem(motion),
+                        )
                     }
-                    val avgTile: @Composable (Modifier) -> Unit = { tileModifier ->
-                        BentoTile(title = avgTitle, modifier = tileModifier) {
-                            MorphingNumber(
-                                value = formattedAvg.value,
-                                unit = formattedAvg.unit,
-                                style = MaterialTheme.typography.headlineSmall,
-                                contentDescription = spokenBytes(state.averageBytes, state.units),
-                            )
-                        }
-                    }
+                    item(key = "weekday") { WeekdayPattern(state.rows, state.units, emberbyteAnimateItem(motion)) }
+                }
 
-                    if (fontScale >= 1.5f) {
-                        Column(
-                            emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            primaryTile(Modifier.fillMaxWidth())
-                            avgTile(Modifier.fillMaxWidth())
-                        }
-                    } else {
-                        Row(
-                            emberbyteAnimateItem(
-                                motion,
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Max),
-                            ),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            primaryTile(Modifier.weight(1f).fillMaxHeight())
-                            avgTile(Modifier.weight(1f).fillMaxHeight())
-                        }
+                if (!state.needsUsageAccess && state.hourTotals.any { it > 0L }) {
+                    item(key = "hours") {
+                        HourPattern(state.hourTotals, state.units, emberbyteAnimateItem(motion), title = "When you use data, by hour", perDay = 84)
                     }
+                }
+
+                item(key = "mobile_share") {
+                    MobileShareChart(mobileShareSeries(state.points), emberbyteAnimateItem(motion))
+                }
+
+                if (state.rows.isNotEmpty()) {
+                    item(key = "records") { HistoryRecords(state.rows, state.hourTotals, state.units, emberbyteAnimateItem(motion)) }
+                }
+
+                if (!state.needsUsageAccess && state.topApps.isNotEmpty()) {
+                    item(key = "top_apps") { HistoryTopApps(state.topApps, state.units, onOpenApp, emberbyteAnimateItem(motion)) }
                 }
             }
 

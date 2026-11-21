@@ -162,7 +162,7 @@ class HistoryContentTest {
     }
 
     @Test
-    fun week_granularity_displays_total_and_daily_average_morphing_tiles() {
+    fun week_granularity_shows_the_selected_card_and_the_four_tiles() {
         val state = HistoryUiState(
             granularity = Granularity.WEEK,
             totalBytes = 1_480_000_000L,
@@ -170,27 +170,15 @@ class HistoryContentTest {
             units = io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits.DECIMAL,
             rangeLabel = "28 Sep to 5 Oct 2026",
         )
-
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                HistoryContent(
-                    state = state,
-                    onEvent = {},
-                    onBack = {},
-                )
+                HistoryContent(state = state, onEvent = {}, onBack = {})
             }
         }
-
-        // Scroll to BentoTile content
-        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("1.48 gigabytes"))
-
-        // BentoTile titles
-        rule.onNodeWithText("Total").assertExists()
-        rule.onNodeWithText("Avg / active week").assertExists()
-
-        // MorphingNumber accessibility content descriptions
-        rule.onNodeWithContentDescription("1.48 gigabytes").assertIsDisplayed()
-        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("210 megabytes"))
-        rule.onNodeWithContentDescription("210 megabytes").assertIsDisplayed()
+        rule.onNode(hasScrollAction()).performScrollToNode(androidx.compose.ui.test.hasTestTag("history_tile_average"))
+        rule.onNodeWithText("Daily average").assertExists()
+        rule.onNodeWithText("Wi-Fi share").assertExists()
+        rule.onNodeWithText("Heaviest app").assertExists()
+        rule.onNodeWithText("Active days").assertExists()
     }
 }
