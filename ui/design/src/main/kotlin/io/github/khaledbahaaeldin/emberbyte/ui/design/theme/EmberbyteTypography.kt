@@ -58,3 +58,21 @@ object BentoType {
     val SetupBody: TextUnit = 14.sp
     val SetupButton: TextUnit = 17.sp
 }
+
+/** Text sizes of the Home usage card (Space Grotesk). Tokens live here so the card carries no raw sizes. */
+object UsageType {
+    val Title: TextUnit = 22.sp
+    val Pill: TextUnit = 13.sp
+    val Summary: TextUnit = 15.sp
+    val StripValue: TextUnit = 11.sp
+    val StripValueSelected: TextUnit = 12.sp
+    val DiscLetter: TextUnit = 12.sp
+    val FeaturedName: TextUnit = 21.sp
+    val FeaturedAmount: TextUnit = 30.sp
+    val FeaturedSub: TextUnit = 13.sp
+    val RowName: TextUnit = 17.sp
+    val RowAmount: TextUnit = 21.sp
+    val RowSub: TextUnit = 12.sp
+    val Button: TextUnit = 15.sp
+    val Chip: TextUnit = 13.sp
+}
