@@ -377,11 +377,7 @@ fun HistoryContent(
                 HistoryHeader(
                     state = state,
                     onEvent = onEvent,
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = motion.effects(),
-                        placementSpec = motion.spatial(),
-                        fadeOutSpec = motion.effects(),
-                    ),
+                    modifier = emberbyteAnimateItem(motion),
                 )
             }
 
@@ -527,33 +523,44 @@ fun HistoryContent(
                     val formattedAvg = formatBytes(state.averageBytes, state.units)
                     val avgTitle = "Avg / active $unit"
 
+                    val primaryTile: @Composable (Modifier) -> Unit = { tileModifier ->
+                        BentoTile(
+                            title = firstTileTitle,
+                            modifier = tileModifier,
+                            container = TileContainer.Primary,
+                        ) {
+                            if (isDay) {
+                                ForceLtr {
+                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                }
+                            } else {
+                                MorphingNumber(
+                                    value = formattedTotal.value,
+                                    unit = formattedTotal.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = spokenBytes(state.totalBytes, state.units),
+                                )
+                            }
+                        }
+                    }
+                    val avgTile: @Composable (Modifier) -> Unit = { tileModifier ->
+                        BentoTile(title = avgTitle, modifier = tileModifier) {
+                            MorphingNumber(
+                                value = formattedAvg.value,
+                                unit = formattedAvg.unit,
+                                style = MaterialTheme.typography.headlineSmall,
+                                contentDescription = spokenBytes(state.averageBytes, state.units),
+                            )
+                        }
+                    }
+
                     if (fontScale >= 1.5f) {
                         Column(
                             emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
-                                if (isDay) {
-                                    ForceLtr {
-                                        Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                    }
-                                } else {
-                                    MorphingNumber(
-                                        value = formattedTotal.value,
-                                        unit = formattedTotal.unit,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        contentDescription = spokenBytes(state.totalBytes, state.units),
-                                    )
-                                }
-                            }
-                            BentoTile(title = avgTitle, modifier = Modifier.fillMaxWidth()) {
-                                MorphingNumber(
-                                    value = formattedAvg.value,
-                                    unit = formattedAvg.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = spokenBytes(state.averageBytes, state.units),
-                                )
-                            }
+                            primaryTile(Modifier.fillMaxWidth())
+                            avgTile(Modifier.fillMaxWidth())
                         }
                     } else {
                         Row(
@@ -565,35 +572,8 @@ fun HistoryContent(
                             ),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            BentoTile(
-                                title = firstTileTitle,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                container = TileContainer.Primary,
-                            ) {
-                                if (isDay) {
-                                    ForceLtr {
-                                        Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                    }
-                                } else {
-                                    MorphingNumber(
-                                        value = formattedTotal.value,
-                                        unit = formattedTotal.unit,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        contentDescription = spokenBytes(state.totalBytes, state.units),
-                                    )
-                                }
-                            }
-                            BentoTile(
-                                title = avgTitle,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                            ) {
-                                MorphingNumber(
-                                    value = formattedAvg.value,
-                                    unit = formattedAvg.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = spokenBytes(state.averageBytes, state.units),
-                                )
-                            }
+                            primaryTile(Modifier.weight(1f).fillMaxHeight())
+                            avgTile(Modifier.weight(1f).fillMaxHeight())
                         }
                     }
                 }
