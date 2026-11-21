@@ -82,6 +82,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onStart
+import androidx.compose.ui.platform.testTag
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.HistoryType
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.HourPattern
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.DayUsage
@@ -362,11 +367,12 @@ class HistoryViewModel(
                 range.from.minusSeconds(range.to.epochSecond - range.from.epochSecond),
                 range.from,
             )
+            // Each supporting query starts with "nothing yet" so a slow or empty source never blocks the screen.
             val extras = combine(
-                usage.observeSeries(rowsRange, Granularity.DAY),
-                usage.observeSeries(hoursRange, Granularity.HOUR),
-                usage.observeApps(range),
-                usage.observeApps(before),
+                usage.observeSeries(rowsRange, Granularity.DAY).onStart { emit(emptyList()) },
+                usage.observeSeries(hoursRange, Granularity.HOUR).onStart { emit(emptyList()) },
+                usage.observeApps(range).onStart { emit(emptyList()) },
+                usage.observeApps(before).onStart { emit(emptyList()) },
             ) { dayPoints, hourPoints, apps, previous ->
                 Extras(
                     rows = dayPoints.map {
@@ -391,7 +397,7 @@ class HistoryViewModel(
                             )
                         }
                     }
-                    if (bucketRange == null) flowOf(emptyList()) else usage.observeApps(bucketRange).map { topAppsWithChange(it, emptyList(), 3) }
+                    if (bucketRange == null) flowOf(emptyList()) else usage.observeApps(bucketRange).onStart { emit(emptyList()) }.map { topAppsWithChange(it, emptyList(), 3) }
                 }
             combine(
                 pointsFlow,
@@ -457,13 +463,14 @@ class HistoryViewModel(
 }
 
 @Composable
-fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun HistoryScreen(viewModel: HistoryViewModel, onBack: () -> Unit, modifier: Modifier = Modifier, onOpenApp: (String) -> Unit = {}) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     HistoryContent(
         state = state,
         onEvent = viewModel::onEvent,
         onBack = onBack,
         modifier = modifier,
+        onOpenApp = onOpenApp,
     )
 }
 
@@ -473,6 +480,7 @@ fun HistoryContent(
     onEvent: (HistoryEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenApp: (String) -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val motion = rememberEmberbyteMotion()
@@ -548,159 +556,53 @@ fun HistoryContent(
                     )
                 }
 
-                // Detail slot below chart: reserved height so selecting a bar does not jump the chart or tiles
-                val selectedIndex = state.selectedIndex
-                val isSelected = selectedIndex != null && selectedIndex in state.bars.indices
-                val bar = if (isSelected) state.bars[selectedIndex] else null
-                val point = if (isSelected) state.points.getOrNull(selectedIndex) else null
+                item(key = "selected_card") { SelectedCard(state, emberbyteAnimateItem(motion)) }
 
-                item(key = "chart_detail_slot") {
-                    Box(
-                        modifier = emberbyteAnimateItem(
-                            motion,
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 88.dp),
-                        ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (isSelected && bar != null && point != null) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = bar.title ?: bar.label,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = palette.text,
-                                        modifier = Modifier.weight(1f).padding(end = 8.dp),
-                                    )
-                                    TextButton(
-                                        onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
-                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                    ) {
-                                        Text(
-                                            "Show total",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = palette.linkText,
-                                        )
-                                    }
-                                }
-
-                                NetworkBar(
-                                    mobileBytes = point.mobileBytes,
-                                    wifiBytes = point.wifiBytes,
-                                    mobileColor = palette.primary,
-                                    wifiColor = palette.accent,
-                                    units = state.units,
-                                    modifier = Modifier.fillMaxWidth().height(10.dp),
-                                )
-
-                                // Legend row with Mobile and Wi-Fi dots
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    val mobileFormatted = formatBytes(point.mobileBytes, state.units)
-                                    val wifiFormatted = formatBytes(point.wifiBytes, state.units)
-                                    NetworkLegendItem(
-                                        label = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
-                                        dotColor = palette.primary,
-                                        textColor = palette.muted,
-                                        textStyle = MaterialTheme.typography.labelSmall,
-                                    )
-                                    NetworkLegendItem(
-                                        label = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
-                                        dotColor = palette.accent,
-                                        textColor = palette.muted,
-                                        textStyle = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            }
-                        } else {
-                            Text(
-                                text = "Tap a bar for mobile and Wi-Fi breakdown",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = palette.muted,
-                            )
-                        }
+                item(key = "sentence") {
+                    val total = state.rows.sumOf { it.totalBytes }
+                    val mobileShare = if (total <= 0L) 0f else state.rows.sumOf { it.mobileBytes }.toFloat() / total
+                    historySentence(state.rows, state.hourTotals, mobileShare)?.let {
+                        Text(
+                            it,
+                            style = EmberbyteType.grotesk(HistoryType.Sentence, 500),
+                            color = palette.text,
+                            modifier = emberbyteAnimateItem(motion).testTag("history_sentence"),
+                        )
                     }
                 }
 
-                // Bento tiles: Total/Active days and Average
-                item(key = "bento_tiles") {
-                    val fontScale = LocalDensity.current.fontScale
-                    val isDay = state.granularity == Granularity.DAY
-                    val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else stringResource(R.string.history_total)
-                    val firstTileValue = if (isDay) {
-                        "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
-                    } else {
-                        plainBytes(state.totalBytes, state.units)
-                    }
-                    val formattedTotal = formatBytes(state.totalBytes, state.units)
-                    val formattedAvg = formatBytes(state.averageBytes, state.units)
-                    val avgTitle = "Avg / active $unit"
+                item(key = "tiles") { HistoryTiles(state, emberbyteAnimateItem(motion)) }
 
-                    val primaryTile: @Composable (Modifier) -> Unit = { tileModifier ->
-                        BentoTile(
-                            title = firstTileTitle,
-                            modifier = tileModifier,
-                            container = TileContainer.Primary,
-                        ) {
-                            if (isDay) {
-                                ForceLtr {
-                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                }
-                            } else {
-                                MorphingNumber(
-                                    value = formattedTotal.value,
-                                    unit = formattedTotal.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = spokenBytes(state.totalBytes, state.units),
-                                )
-                            }
-                        }
+                if (state.rows.isNotEmpty()) {
+                    item(key = "calendar") {
+                        ActivityCalendar(
+                            rows = state.rows,
+                            today = state.rows.last().date,
+                            selected = (state.selection as? HistorySelection.Day)?.date,
+                            units = state.units,
+                            onSelect = { onEvent(HistoryEvent.SelectDay(it)) },
+                            modifier = emberbyteAnimateItem(motion),
+                        )
                     }
-                    val avgTile: @Composable (Modifier) -> Unit = { tileModifier ->
-                        BentoTile(title = avgTitle, modifier = tileModifier) {
-                            MorphingNumber(
-                                value = formattedAvg.value,
-                                unit = formattedAvg.unit,
-                                style = MaterialTheme.typography.headlineSmall,
-                                contentDescription = spokenBytes(state.averageBytes, state.units),
-                            )
-                        }
-                    }
+                    item(key = "weekday") { WeekdayPattern(state.rows, state.units, emberbyteAnimateItem(motion)) }
+                }
 
-                    if (fontScale >= 1.5f) {
-                        Column(
-                            emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            primaryTile(Modifier.fillMaxWidth())
-                            avgTile(Modifier.fillMaxWidth())
-                        }
-                    } else {
-                        Row(
-                            emberbyteAnimateItem(
-                                motion,
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Max),
-                            ),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            primaryTile(Modifier.weight(1f).fillMaxHeight())
-                            avgTile(Modifier.weight(1f).fillMaxHeight())
-                        }
+                if (!state.needsUsageAccess && state.hourTotals.any { it > 0L }) {
+                    item(key = "hours") {
+                        HourPattern(state.hourTotals, state.units, emberbyteAnimateItem(motion), title = "When you use data, by hour", perDay = 84)
                     }
+                }
+
+                item(key = "mobile_share") {
+                    MobileShareChart(mobileShareSeries(state.points), emberbyteAnimateItem(motion))
+                }
+
+                if (state.rows.isNotEmpty()) {
+                    item(key = "records") { HistoryRecords(state.rows, state.hourTotals, state.units, emberbyteAnimateItem(motion)) }
+                }
+
+                if (!state.needsUsageAccess && state.topApps.isNotEmpty()) {
+                    item(key = "top_apps") { HistoryTopApps(state.topApps, state.units, onOpenApp, emberbyteAnimateItem(motion)) }
                 }
             }
 

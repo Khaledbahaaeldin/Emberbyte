@@ -194,7 +194,7 @@ internal fun DetailRangeButtons(
 
 /** A card with the shared interlocking corners. */
 @Composable
-internal fun DetailCard(
+fun DetailCard(
     modifier: Modifier = Modifier,
     corner: Corner = Corner.BottomStart,
     container: androidx.compose.ui.graphics.Color = LocalEmberbytePalette.current.surface2,
@@ -382,10 +382,12 @@ private fun LegendDot(label: String, colour: androidx.compose.ui.graphics.Color)
 
 /** The 24-hour strip, the four parts of the day and the busiest window. Tap an hour for its numbers. */
 @Composable
-internal fun HourPattern(
+fun HourPattern(
     hours: LongArray,
     units: ByteUnits,
     modifier: Modifier = Modifier,
+    title: String = "When you use it, by hour",
+    perDay: Int = 1,
 ) {
     val palette = LocalEmberbytePalette.current
     var selected by remember { mutableStateOf<Int?>(null) }
@@ -396,7 +398,7 @@ internal fun HourPattern(
     val largest = parts.maxByOrNull { it.percent }
 
     DetailCard(modifier = modifier.testTag("detail_hours_card"), corner = Corner.TopEnd) {
-        Text("When you use it, by hour", style = EmberbyteType.grotesk(DetailType.CardTitle, 700), color = palette.text)
+        Text(title, style = EmberbyteType.grotesk(DetailType.CardTitle, 700), color = palette.text)
         ForceLtr {
             Box(
                 Modifier
@@ -436,9 +438,10 @@ internal fun HourPattern(
             }
         }
         val caption = selected?.let {
-            val amount = formatBytes(hours[it], units)
+            val amount = formatBytes(hours[it] / perDay.coerceAtLeast(1), units)
             val percent = if (total == 0L) 0 else Math.round(hours[it] * 100.0 / total).toInt()
-            "${hourLabel(it)} · ${amount.value} ${amount.unit} · $percent% of its data"
+            val unitSuffix = if (perDay > 1) " a day" else ""
+            "${hourLabel(it)} · ${amount.value} ${amount.unit}$unitSuffix · $percent% of ${if (perDay > 1) "your data" else "its data"}"
         } ?: if (total > 0L) {
             "Busiest: ${hourLabel(window.startHour)} to ${hourLabel(window.startHour + window.width)}, ${window.percentOfTotal}% of its data"
         } else {
