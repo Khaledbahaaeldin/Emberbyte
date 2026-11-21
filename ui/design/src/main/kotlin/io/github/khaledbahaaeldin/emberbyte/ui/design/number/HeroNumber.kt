@@ -154,15 +154,17 @@ fun HeroNumber(
             val badgeWidthPx = with(density) { HERO_NUMBER_BADGE_SIZE.toPx() }
             val spacingPx = with(density) { HERO_NUMBER_SPACING.toPx() }
 
-            val chosenSize = calculateHeroNumberSize(
-                value = value,
-                targetSize = size,
-                availableWidthPx = availableWidthPx,
-                density = density,
-                textMeasurer = textMeasurer,
-                badgeWidthPx = badgeWidthPx,
-                spacingPx = spacingPx,
-            )
+            val chosenSize = remember(value, size, availableWidthPx, density) {
+                calculateHeroNumberSize(
+                    value = value,
+                    targetSize = size,
+                    availableWidthPx = availableWidthPx,
+                    density = density,
+                    textMeasurer = textMeasurer,
+                    badgeWidthPx = badgeWidthPx,
+                    spacingPx = spacingPx,
+                )
+            }
 
             if (onSizeResolved != null) {
                 SideEffect {

@@ -14,9 +14,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -52,6 +54,7 @@ fun WavyBar(
     height: Dp = 12.dp,
     delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
+    onAnimatedFractionChanged: ((Float) -> Unit)? = null,
 ) {
     val clamped = clampBarFraction(fraction)
     val motion = rememberEmberbyteMotion()
@@ -62,6 +65,11 @@ fun WavyBar(
 
     val reduceMotion = LocalReduceMotion.current
     val anim = remember(reduceMotion) { Animatable(if (reduceMotion) clamped else 0f) }
+    if (onAnimatedFractionChanged != null) {
+        LaunchedEffect(anim) {
+            snapshotFlow { anim.value }.collect { onAnimatedFractionChanged(it) }
+        }
+    }
     var hasEntered by remember(reduceMotion) { mutableStateOf(reduceMotion) }
     LaunchedEffect(clamped, reduceMotion) {
         if (reduceMotion) {
@@ -77,7 +85,6 @@ fun WavyBar(
 
     val palette = LocalEmberbytePalette.current
     val trackColor = palette.track
-    val liveFraction = if (reduceMotion) clamped else anim.value
 
     Box(
         modifier = modifier
@@ -85,56 +92,65 @@ fun WavyBar(
             .height(height)
             .semantics {
                 progressBarRangeInfo = ProgressBarRangeInfo(
-                    current = liveFraction,
+                    current = clamped,
                     range = 0f..1f,
                     steps = 0,
                 )
             },
         contentAlignment = Alignment.CenterStart,
     ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val animatedFraction = liveFraction
-            val strokeWidth = 4.dp.toPx()
-            val cy = size.height / 2f
-            val startX = strokeWidth / 2f
-            val endX = size.width - strokeWidth / 2f
-            val availableWidth = endX - startX
+        Canvas(
+            Modifier
+                .fillMaxSize()
+                .drawWithCache {
+                    val strokeWidth = 4.dp.toPx()
+                    val cy = size.height / 2f
+                    val startX = strokeWidth / 2f
+                    val endX = size.width - strokeWidth / 2f
+                    val availableWidth = endX - startX
+                    val stroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    val fillPath = Path()
+                    val wavelengthPx = 16.dp.toPx()
+                    val amplitude = (size.height / 2f - strokeWidth / 2f).coerceAtLeast(1f)
 
-            // 1. Flat dim remainder with round caps
-            drawLine(
-                color = trackColor,
-                start = Offset(startX, cy),
-                end = Offset(endX, cy),
-                strokeWidth = strokeWidth,
-                cap = StrokeCap.Round,
-            )
+                    onDrawBehind {
+                        val animatedFraction = if (reduceMotion) clamped else anim.value
 
-            // 2. Wavy filled part with round caps
-            if (animatedFraction > 0f && availableWidth > 0f) {
-                val fillEndX = startX + availableWidth * animatedFraction
-                val fillPath = Path()
-                val wavelengthPx = 16.dp.toPx()
-                val amplitude = (size.height / 2f - strokeWidth / 2f).coerceAtLeast(1f)
-                val fillWidth = fillEndX - startX
-                val steps = maxOf(4, (fillWidth / 2.dp.toPx()).toInt())
-                val dx = fillWidth / steps
+                        // 1. Flat dim remainder with round caps
+                        drawLine(
+                            color = trackColor,
+                            start = Offset(startX, cy),
+                            end = Offset(endX, cy),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round,
+                        )
 
-                for (i in 0..steps) {
-                    val x = startX + i * dx
-                    val wavePhase = (x - startX) / wavelengthPx * 2f * Math.PI.toFloat()
-                    val y = cy + amplitude * kotlin.math.sin(wavePhase)
-                    if (i == 0) {
-                        fillPath.moveTo(x, y)
-                    } else {
-                        fillPath.lineTo(x, y)
+                        // 2. Wavy filled part with round caps
+                        if (animatedFraction > 0f && availableWidth > 0f) {
+                            val fillEndX = startX + availableWidth * animatedFraction
+                            val fillWidth = fillEndX - startX
+                            val steps = maxOf(4, (fillWidth / 2.dp.toPx()).toInt())
+                            val dx = fillWidth / steps
+
+                            fillPath.reset()
+                            for (i in 0..steps) {
+                                val x = startX + i * dx
+                                val wavePhase = (x - startX) / wavelengthPx * 2f * Math.PI.toFloat()
+                                val y = cy + amplitude * kotlin.math.sin(wavePhase)
+                                if (i == 0) {
+                                    fillPath.moveTo(x, y)
+                                } else {
+                                    fillPath.lineTo(x, y)
+                                }
+                            }
+                            drawPath(
+                                path = fillPath,
+                                color = color,
+                                style = stroke,
+                            )
+                        }
                     }
                 }
-                drawPath(
-                    path = fillPath,
-                    color = color,
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                )
-            }
-        }
+        ) { }
     }
 }

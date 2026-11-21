@@ -5,6 +5,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
@@ -118,13 +119,21 @@ class MorphingNumberTest {
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        rule.onNodeWithContentDescription("Usage 1.4 GB").assertIsDisplayed()
+        rule.onAllNodesWithTag("morphing_digit_1", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("morphing_digit_2", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("morphing_digit_4", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("morphing_digit_8", useUnmergedTree = true).assertCountEquals(0)
 
         rule.runOnUiThread {
             value = "2.8"
             androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
         }
         rule.mainClock.advanceTimeByFrame()
-        rule.onNodeWithContentDescription("Usage 2.8 GB").assertIsDisplayed()
+
+        // Reduced motion snaps immediately on frame 1 without animation/mixed states
+        rule.onAllNodesWithTag("morphing_digit_1", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("morphing_digit_2", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("morphing_digit_4", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("morphing_digit_8", useUnmergedTree = true).assertCountEquals(1)
     }
 }

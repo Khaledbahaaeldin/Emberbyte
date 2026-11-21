@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -390,18 +391,22 @@ private fun UsageBarColumn(
                         placeable.place(0, 0)
                     }
                 }
-                .drawBehind {
-                    val cornerRadius = CornerRadius(if (isSelected) size.minDimension / 2f else 8.dp.toPx())
-                    drawRoundRect(
-                        color = animatedColor.value,
-                        cornerRadius = cornerRadius,
-                    )
-                    if (borderColor != null) {
+                .drawWithCache {
+                    val stroke = Stroke(width = borderWidth.toPx())
+                    val defaultRadius = 8.dp.toPx()
+                    onDrawBehind {
+                        val cornerRadius = CornerRadius(if (isSelected) size.minDimension / 2f else defaultRadius)
                         drawRoundRect(
-                            color = borderColor,
+                            color = animatedColor.value,
                             cornerRadius = cornerRadius,
-                            style = Stroke(width = borderWidth.toPx()),
                         )
+                        if (borderColor != null) {
+                            drawRoundRect(
+                                color = borderColor,
+                                cornerRadius = cornerRadius,
+                                style = stroke,
+                            )
+                        }
                     }
                 },
         )

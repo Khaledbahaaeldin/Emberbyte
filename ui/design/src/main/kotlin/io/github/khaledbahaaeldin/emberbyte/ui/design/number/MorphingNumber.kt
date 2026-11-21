@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -111,7 +113,11 @@ fun MorphingNumber(
     val motion = rememberEmberbyteMotion()
 
     val intensitySpec: androidx.compose.animation.core.AnimationSpec<Float> = motion.fastEffects()
-    onMotionResolved?.invoke(live, intensitySpec)
+    if (onMotionResolved != null) {
+        SideEffect {
+            onMotionResolved(live, intensitySpec)
+        }
+    }
 
     val intensity by animateFloatAsState(
         targetValue = if (live) throughputIntensity(throughputBps) else 0f,
@@ -122,6 +128,12 @@ fun MorphingNumber(
     val family = remember(step) { robotoFlexFamily(axesFor(step / MorphingNumberPhysics.AXIS_STEPS.toFloat())) }
     val rollSpatial = motion.spatial<IntOffset>()
     val rollEffects = motion.effects<Float>()
+    val heroStyle = remember(family) {
+        EmberbyteType.hero(72.sp).copy(
+            fontFamily = family,
+            lineHeight = 72.sp,
+        )
+    }
 
     ForceLtr {
         Column(modifier.clearAndSetSemantics { this.contentDescription = contentDescription }) {
@@ -129,26 +141,28 @@ fun MorphingNumber(
                 val text = formatted.value
                 text.forEachIndexed { index, char ->
                     key(digitSlotKey(text, index)) {
-                        AnimatedContent(
-                            targetState = char,
-                            transitionSpec = {
-                                if (live) {
+                        if (live) {
+                            AnimatedContent(
+                                targetState = char,
+                                transitionSpec = {
                                     (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
                                         (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
-                                } else {
-                                    EnterTransition.None togetherWith ExitTransition.None
-                                }
-                            },
-                            label = "digit",
-                        ) { digit ->
+                                },
+                                label = "digit",
+                            ) { digit ->
+                                Text(
+                                    text = digit.toString(),
+                                    modifier = Modifier.clearAndSetSemantics { },
+                                    color = palette.primary,
+                                    style = heroStyle,
+                                )
+                            }
+                        } else {
                             Text(
-                                text = digit.toString(),
+                                text = char.toString(),
                                 modifier = Modifier.clearAndSetSemantics { },
                                 color = palette.primary,
-                                style = EmberbyteType.hero(72.sp).copy(
-                                    fontFamily = family,
-                                    lineHeight = 72.sp,
-                                ),
+                                style = heroStyle,
                             )
                         }
                     }
@@ -183,10 +197,9 @@ fun MorphingNumber(
     ForceLtr {
         Row(
             modifier = modifier.clearAndSetSemantics {
+                this.text = AnnotatedString(fullText)
                 if (contentDescription != null) {
                     this.contentDescription = contentDescription
-                } else {
-                    this.text = AnnotatedString(fullText)
                 }
             },
             verticalAlignment = Alignment.CenterVertically,
@@ -204,21 +217,32 @@ fun MorphingNumber(
             ) {
                 value.forEachIndexed { index, char ->
                     key(digitSlotKey(value, index)) {
-                        AnimatedContent(
-                            targetState = char,
-                            transitionSpec = {
-                                if (live) {
+                        if (live) {
+                            AnimatedContent(
+                                targetState = char,
+                                transitionSpec = {
                                     (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
                                         (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
-                                } else {
-                                    EnterTransition.None togetherWith ExitTransition.None
-                                }
-                            },
-                            label = "morphingDigit",
-                        ) { digit ->
+                                },
+                                label = "morphingDigit",
+                            ) { digit ->
+                                Text(
+                                    text = digit.toString(),
+                                    modifier = Modifier
+                                        .testTag("morphing_digit_$digit")
+                                        .clearAndSetSemantics { },
+                                    color = color,
+                                    style = style,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                        } else {
                             Text(
-                                text = digit.toString(),
-                                modifier = Modifier.clearAndSetSemantics { },
+                                text = char.toString(),
+                                modifier = Modifier
+                                    .testTag("morphing_digit_$char")
+                                    .clearAndSetSemantics { },
                                 color = color,
                                 style = style,
                                 maxLines = 1,

@@ -120,6 +120,7 @@ class WavyRingTest {
     @Test
     fun wavy_ring_grows_from_zero() {
         rule.mainClock.autoAdvance = false
+        var animatedSweep = 1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyRing(
@@ -128,17 +129,18 @@ class WavyRingTest {
                     size = 72.dp,
                     label = "80%",
                     modifier = androidx.compose.ui.Modifier.testTag("ring"),
+                    onAnimatedSweepChanged = { animatedSweep = it },
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        val info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertTrue("Wavy ring should start from 0 on first show: ${info.current}", info.current < 0.8f)
+        assertTrue("Wavy ring should start from 0 on first show: $animatedSweep", animatedSweep < 0.8f)
     }
 
     @Test
     fun wavy_ring_respects_delay_millis() {
         rule.mainClock.autoAdvance = false
+        var animatedSweep = 1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyRing(
@@ -148,18 +150,16 @@ class WavyRingTest {
                     label = "80%",
                     delayMillis = 40,
                     modifier = androidx.compose.ui.Modifier.testTag("ring"),
+                    onAnimatedSweepChanged = { animatedSweep = it },
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        var info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertEquals(0f, info.current, 0.0001f)
+        assertEquals(0f, animatedSweep, 0.0001f)
         rule.mainClock.advanceTimeBy(30)
-        info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertEquals(0f, info.current, 0.0001f)
+        assertEquals(0f, animatedSweep, 0.0001f)
         rule.mainClock.advanceTimeBy(30)
-        info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertTrue("Animated sweep should advance after delay: ${info.current}", info.current > 0f)
+        assertTrue("Animated sweep should advance after delay: $animatedSweep", animatedSweep > 0f)
     }
 
     @Test

@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -126,6 +127,7 @@ fun WavyRing(
     labelSize: TextUnit = 17.sp,
     delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
+    onAnimatedSweepChanged: ((Float) -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val (arcColor, trackColor) = ringColors(state, palette)
@@ -140,6 +142,11 @@ fun WavyRing(
     val targetSweep = effectiveSweep(fraction)
     val reduceMotion = LocalReduceMotion.current
     val anim = remember(reduceMotion) { Animatable(if (reduceMotion) targetSweep else 0f) }
+    if (onAnimatedSweepChanged != null) {
+        LaunchedEffect(anim) {
+            snapshotFlow { anim.value }.collect { onAnimatedSweepChanged(it) }
+        }
+    }
     var hasEntered by remember(reduceMotion) { mutableStateOf(reduceMotion) }
     LaunchedEffect(targetSweep, reduceMotion) {
         if (reduceMotion) {
@@ -153,14 +160,12 @@ fun WavyRing(
         }
     }
 
-    val liveSweep = if (reduceMotion) targetSweep else anim.value
-
     Box(
         modifier = modifier
             .size(size)
             .semantics {
                 progressBarRangeInfo = ProgressBarRangeInfo(
-                    current = liveSweep,
+                    current = targetSweep,
                     range = 0f..1f,
                     steps = 0,
                 )
@@ -178,6 +183,10 @@ fun WavyRing(
                     val cy = this.size.height / 2f
                     val waves = 12
                     val startAngle = -Math.PI.toFloat() / 2f
+
+                    // Precompute Stroke instances once per cache pass
+                    val trackStroke = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    val outlineStroke = Stroke(width = 1.5.dp.toPx())
 
                     // 1. Wavy 360-degree track precomputed once per size
                     val trackPath = buildWavyCirclePath(
@@ -198,7 +207,7 @@ fun WavyRing(
                         drawPath(
                             path = trackPath,
                             color = trackColor,
-                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                            style = trackStroke,
                         )
 
                         // 2. At 0 percent: thin muted outline ring
@@ -206,7 +215,7 @@ fun WavyRing(
                             drawCircle(
                                 color = outlineColor,
                                 radius = baseRadius,
-                                style = Stroke(width = 1.5.dp.toPx()),
+                                style = outlineStroke,
                             )
                         }
 
@@ -226,7 +235,7 @@ fun WavyRing(
                             drawPath(
                                 path = arcPath,
                                 color = arcColor,
-                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                                style = trackStroke,
                             )
                         }
                     }

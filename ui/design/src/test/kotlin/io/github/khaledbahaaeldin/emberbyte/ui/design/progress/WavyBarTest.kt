@@ -55,24 +55,25 @@ class WavyBarTest {
     @Test
     fun wavy_bar_grows_from_zero_on_first_show() {
         rule.mainClock.autoAdvance = false
+        var animatedProgress = 1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyBar(
                     fraction = 0.8f,
                     color = Color.Green,
                     modifier = Modifier.testTag("bar"),
+                    onAnimatedFractionChanged = { animatedProgress = it },
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        val node = rule.onNodeWithTag("bar").fetchSemanticsNode()
-        val info = node.config[SemanticsProperties.ProgressBarRangeInfo]
-        assertTrue("Wavy bar should start from 0 on first show: ${info.current}", info.current < 0.8f)
+        assertTrue("Wavy bar should start from 0 on first show: $animatedProgress", animatedProgress < 0.8f)
     }
 
     @Test
     fun wavy_bar_respects_delay_millis() {
         rule.mainClock.autoAdvance = false
+        var animatedProgress = 1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyBar(
@@ -80,18 +81,16 @@ class WavyBarTest {
                     color = Color.Green,
                     modifier = Modifier.testTag("bar"),
                     delayMillis = 40,
+                    onAnimatedFractionChanged = { animatedProgress = it },
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        var info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertEquals(0f, info.current, 0.0001f)
+        assertEquals(0f, animatedProgress, 0.0001f)
         rule.mainClock.advanceTimeBy(30)
-        info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertEquals(0f, info.current, 0.0001f)
+        assertEquals(0f, animatedProgress, 0.0001f)
         rule.mainClock.advanceTimeBy(30)
-        info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertTrue("Animated progress should advance after delay: ${info.current}", info.current > 0f)
+        assertTrue("Animated progress should advance after delay: $animatedProgress", animatedProgress > 0f)
     }
 
     @Test
