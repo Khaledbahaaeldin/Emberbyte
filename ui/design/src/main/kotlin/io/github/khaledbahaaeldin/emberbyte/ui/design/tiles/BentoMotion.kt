@@ -22,6 +22,9 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMo
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroEntranceGate
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 
+/** The ambient loops (rings, tile waves, badge spin) update at most this often: ~30 fps, minus a frame of slack. */
+internal const val AMBIENT_FRAME_NANOS = 30_000_000L
+
 /** First tile enters this long after the screen's first composition, and each next one this much later. */
 internal const val BENTO_ENTRANCE_FIRST_MS = 140
 internal const val BENTO_ENTRANCE_STEP_MS = 110
@@ -57,8 +60,13 @@ internal fun rememberAmbientSeconds(enabled: Boolean): State<Float> {
                 var last = 0L
                 while (true) {
                     val now = withInfiniteAnimationFrameNanos { it }
-                    if (last != 0L && running) seconds.floatValue += (now - last) / 1_000_000_000f
-                    last = now
+                    if (last == 0L) {
+                        last = now
+                    } else if (now - last >= AMBIENT_FRAME_NANOS) {
+                        // Decorative loops run at about 30 fps: half the redraws, indistinguishable at their speeds.
+                        if (running) seconds.floatValue += (now - last) / 1_000_000_000f
+                        last = now
+                    }
                 }
             }
         }

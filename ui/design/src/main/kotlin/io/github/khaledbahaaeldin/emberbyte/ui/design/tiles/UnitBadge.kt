@@ -72,10 +72,12 @@ fun UnitBadge(
                 var last = 0L
                 while (true) {
                     val now = withInfiniteAnimationFrameNanos { it }
-                    if (last != 0L) {
+                    if (last == 0L) {
+                        last = now
+                    } else if (now - last >= AMBIENT_FRAME_NANOS) {
                         angle = (angle + speed * (now - last) / 1_000_000_000f) % 360f
+                        last = now
                     }
-                    last = now
                 }
             }
         }

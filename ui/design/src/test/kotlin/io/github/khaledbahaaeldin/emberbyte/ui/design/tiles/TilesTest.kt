@@ -66,7 +66,7 @@ class TilesTest {
         }
         rule.onNodeWithText("Thu").assertIsDisplayed()
         rule.onNodeWithText("runs out (±1 day)").assertIsDisplayed()
-        rule.onNodeWithText("Medium confidence").assertIsDisplayed()
+        rule.onNodeWithText("Medium confidence").assertDoesNotExist() // the confidence line was removed from the tile
     }
 
     @Test fun forecastTile_renders_texts_in_one_node_matching_model_text_under_rtl() {
@@ -79,7 +79,7 @@ class TilesTest {
         }
         rule.onNodeWithText("Mon").assertIsDisplayed()
         rule.onNodeWithText("runs out Mon (±1 day)").assertIsDisplayed()
-        rule.onNodeWithText("Medium confidence").assertIsDisplayed()
+        rule.onNodeWithText("Medium confidence").assertDoesNotExist() // the confidence line was removed from the tile
     }
 
     @Test fun usageBarRow_reports_the_tapped_bar() {
