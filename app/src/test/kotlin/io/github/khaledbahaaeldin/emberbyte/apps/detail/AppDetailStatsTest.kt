@@ -190,4 +190,18 @@ class AppDetailStatsTest {
         assertEquals(150L, totals[1])
         assertEquals(150L, totals.sum())
     }
+
+    @Test
+    fun projection_says_under_or_pass() {
+        // Noon (720 minutes), 200 MB of a 400 MB limit: on course for 400 MB, exactly at the limit.
+        val under = dailyBudgetProjection(100_000_000L, 400_000_000L, 720)!!
+        assertEquals(false, under.willPass)
+        assertEquals(200_000_000L, under.bytesDelta)
+        val pass = dailyBudgetProjection(300_000_000L, 400_000_000L, 720)!!
+        assertEquals(true, pass.willPass)
+        assertEquals(200_000_000L, pass.bytesDelta)
+        assertEquals(16, pass.passAtHour)
+        assertNull(dailyBudgetProjection(1L, 100L, 30))
+        assertNull(dailyBudgetProjection(1L, 0L, 600))
+    }
 }

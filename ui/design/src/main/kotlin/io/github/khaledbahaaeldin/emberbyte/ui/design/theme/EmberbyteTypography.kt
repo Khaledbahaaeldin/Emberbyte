@@ -101,3 +101,21 @@ object AppsType {
     val SheetLabel: TextUnit = 14.sp
     val SheetButton: TextUnit = 15.sp
 }
+
+/** Text sizes of the App detail screen (Space Grotesk). Tokens live here so the screen carries no raw sizes. */
+object DetailType {
+    val Title: TextUnit = 28.sp
+    val Package: TextUnit = 13.sp
+    val Pill: TextUnit = 13.sp
+    val Label: TextUnit = 14.sp
+    val Total: TextUnit = 64.sp
+    val TotalUnit: TextUnit = 24.sp
+    val Change: TextUnit = 14.sp
+    val Sentence: TextUnit = 16.sp
+    val CardTitle: TextUnit = 16.sp
+    val Small: TextUnit = 12.sp
+    val TileValue: TextUnit = 26.sp
+    val TileSub: TextUnit = 12.sp
+    val PartPercent: TextUnit = 17.sp
+    val Button: TextUnit = 15.sp
+}

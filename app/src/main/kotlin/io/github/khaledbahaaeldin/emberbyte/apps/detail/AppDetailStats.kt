@@ -169,3 +169,15 @@ internal fun hourTotals(series: List<UsagePoint>, zone: ZoneId): LongArray {
 
 /** True for Saturday and Sunday (used for the "a weekend" note on the busiest day). */
 internal fun isWeekend(day: DayOfWeek): Boolean = day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY
+
+/** What a daily budget is on course for: staying under (by [bytesDelta]) or passing the limit around [passAtHour]. */
+data class BudgetProjection(val willPass: Boolean, val bytesDelta: Long, val passAtHour: Int?)
+
+/** Projects today's usage linearly from the minutes elapsed; null in the first hour, when a pace says nothing. */
+internal fun dailyBudgetProjection(usedBytes: Long, limitBytes: Long, minutesIntoDay: Int): BudgetProjection? {
+    if (limitBytes <= 0L || minutesIntoDay < 60) return null
+    val projected = usedBytes * 1440L / minutesIntoDay
+    if (projected <= limitBytes) return BudgetProjection(false, limitBytes - projected, null)
+    val minutesToLimit = if (usedBytes <= 0L) 1440L else limitBytes * minutesIntoDay / usedBytes
+    return BudgetProjection(true, projected - limitBytes, (minutesToLimit / 60L).toInt().coerceIn(0, 23))
+}

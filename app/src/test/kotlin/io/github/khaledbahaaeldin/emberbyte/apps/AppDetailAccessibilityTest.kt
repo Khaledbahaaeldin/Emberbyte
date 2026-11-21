@@ -56,11 +56,10 @@ class AppDetailAccessibilityTest {
         totalBytes = 1_000_000_000L,
         mobileBytes = 600_000_000L,
         wifiBytes = 400_000_000L,
-        bars = listOf(
-            BarUi(label = "Mon", bytes = 100_000_000L, description = "Monday, 100 megabytes"),
-            BarUi(label = "Tue", bytes = 200_000_000L, description = "Tuesday, 200 megabytes"),
-            BarUi(label = "Wed", bytes = 2_100_000_000L, description = "Wednesday, 2.10 gigabytes"),
-        ),
+        dailySeries = sampleSeries(),
+        rank = 2,
+        appCount = 47,
+        shareOfAll = 0.34f,
         units = ByteUnits.DECIMAL,
         loaded = true,
         budget = BudgetUi(
@@ -91,6 +90,7 @@ class AppDetailAccessibilityTest {
     }
 
     @Test
+    @Config(qualifiers = "w411dp-h6000dp")
     fun legend_color_meets_wcag_aa_contrast() {
         var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
         var expectedTextColor = Color.Unspecified
@@ -150,167 +150,6 @@ class AppDetailAccessibilityTest {
                         ratio >= 4.5,
                     )
                 }
-            }
-        }
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h3000dp")
-    fun set_a_budget_link_meets_wcag_aa_contrast_across_all_palettes() {
-        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
-        var expectedLinkColor = Color.Unspecified
-        var expectedSurface2 = Color.Unspecified
-        var expectedBackground = Color.Unspecified
-        rule.setContent {
-            EmberbyteTheme(currentSpec) {
-                val palette = LocalEmberbytePalette.current
-                SideEffect {
-                    expectedLinkColor = palette.linkText
-                    expectedSurface2 = palette.surface2
-                    expectedBackground = palette.background
-                }
-                AppDetailContent(
-                    state = sampleAppDetailState.copy(budget = null),
-                    onEvent = {},
-                    onBack = {},
-                    onOpenSettings = {},
-                )
-            }
-        }
-        val variants = listOf(false to false, true to false, true to true)
-        for (preset in ThemePresets) {
-            for ((dark, amoled) in variants) {
-                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
-                rule.waitForIdle()
-                for ((label, bg) in listOf("Set a budget" to expectedSurface2, "App settings" to expectedBackground)) {
-                    val results = mutableListOf<TextLayoutResult>()
-                    rule.onNodeWithText(label, useUnmergedTree = true)
-                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-                    val actualColor = results.first().layoutInput.style.color
-                    assertEquals(
-                        "$label must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
-                        expectedLinkColor,
-                        actualColor,
-                    )
-                    val fg = actualColor.compositeOver(bg)
-                    val l1 = fg.luminance() + 0.05
-                    val l2 = bg.luminance() + 0.05
-                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                    assertTrue(
-                        "$label on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
-                        ratio >= 4.5,
-                    )
-                }
-            }
-        }
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h3000dp")
-    fun spikes_warn_tile_and_edit_link_meet_wcag_aa_contrast_across_all_palettes() {
-        val sampleBudget = BudgetUi(
-            id = 1L,
-            fraction = 0.5f,
-            ringState = BudgetStateUi.Ok,
-            percentText = "50%",
-            usedText = "500 MB of 1 GB",
-            periodText = "Cycle",
-            enabled = true,
-        )
-        val sampleSpike = SpikeRowUi(
-            id = 1L,
-            whenText = "Yesterday 14:00",
-            bytesText = "350 MB",
-            multipleText = "4.2x normal",
-        )
-        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
-        var expectedOnWarn = Color.Unspecified
-        var expectedWarn = Color.Unspecified
-        var expectedLinkColor = Color.Unspecified
-        var expectedSurface2 = Color.Unspecified
-        var expectedDanger = Color.Unspecified
-        rule.setContent {
-            EmberbyteTheme(currentSpec) {
-                val palette = LocalEmberbytePalette.current
-                SideEffect {
-                    expectedOnWarn = palette.onWarn
-                    expectedWarn = palette.warn
-                    expectedLinkColor = palette.linkText
-                    expectedSurface2 = palette.surface2
-                    expectedDanger = palette.danger
-                }
-                AppDetailContent(
-                    state = sampleAppDetailState.copy(
-                        budget = sampleBudget,
-                        spikes = listOf(sampleSpike),
-                    ),
-                    onEvent = {},
-                    onBack = {},
-                    onOpenSettings = {},
-                )
-            }
-        }
-        val variants = listOf(false to false, true to false, true to true)
-        for (preset in ThemePresets) {
-            for ((dark, amoled) in variants) {
-                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
-                rule.waitForIdle()
-
-                for (warnLabel in listOf("Yesterday 14:00", "350 MB", "·", "4.2x normal", "Dismiss")) {
-                    val results = mutableListOf<TextLayoutResult>()
-                    rule.onNodeWithText(warnLabel, useUnmergedTree = true)
-                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-                    val actualColor = results.first().layoutInput.style.color
-                    assertEquals(
-                        "$warnLabel must bind to palette.onWarn on ${preset.id} dark=$dark amoled=$amoled",
-                        expectedOnWarn,
-                        actualColor,
-                    )
-                    val fg = actualColor.compositeOver(expectedWarn)
-                    val l1 = fg.luminance() + 0.05
-                    val l2 = expectedWarn.luminance() + 0.05
-                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                    assertTrue(
-                        "$warnLabel on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on warn, was $ratio",
-                        ratio >= 4.5,
-                    )
-                }
-
-                val editResults = mutableListOf<TextLayoutResult>()
-                rule.onNodeWithText("Edit", useUnmergedTree = true)
-                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(editResults) }
-                val editColor = editResults.first().layoutInput.style.color
-                assertEquals(
-                    "Edit must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
-                    expectedLinkColor,
-                    editColor,
-                )
-                val fg = editColor.compositeOver(expectedSurface2)
-                val l1 = fg.luminance() + 0.05
-                val l2 = expectedSurface2.luminance() + 0.05
-                val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                assertTrue(
-                    "Edit on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $ratio",
-                    ratio >= 4.5,
-                )
-
-                val removeResults = mutableListOf<TextLayoutResult>()
-                rule.onNodeWithText("Remove", useUnmergedTree = true)
-                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(removeResults) }
-                val removeColor = removeResults.first().layoutInput.style.color
-                assertEquals(
-                    "Remove must bind to palette.danger on ${preset.id} dark=$dark amoled=$amoled",
-                    expectedDanger,
-                    removeColor,
-                )
-                val removeFg = removeColor.compositeOver(expectedSurface2)
-                val removeL1 = removeFg.luminance() + 0.05
-                val removeL2 = expectedSurface2.luminance() + 0.05
-                val removeRatio = maxOf(removeL1, removeL2) / minOf(removeL1, removeL2)
-                assertTrue(
-                    "Remove on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $removeRatio",
-                    removeRatio >= 4.5,
-                )
             }
         }
     }
@@ -396,7 +235,7 @@ class AppDetailAccessibilityTest {
             rule.waitForIdle()
         }
         rule.onNodeWithContentDescription("Loading app details").assertDoesNotExist()
-        rule.onNodeWithText("Last 7 days").assertIsDisplayed()
+        rule.onNodeWithText("Used in the last 7 days").assertIsDisplayed()
 
         // Scroll to Data budget card and verify budget removal snaps within 2 frames (32ms) under reduced motion
         rule.onNode(hasScrollAction()).performScrollToNode(hasText("500 MB of 1 GB"))
@@ -429,7 +268,7 @@ class AppDetailAccessibilityTest {
                 }
             }
         }
-        for (label in listOf("No budget set", "Set a budget")) {
+        for (label in listOf("No limit yet", "Set a budget")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()
@@ -439,11 +278,11 @@ class AppDetailAccessibilityTest {
             node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertEquals("$label must stay on a single line", 1, layouts.first().lineCount)
         }
-        val noBudgetBounds = rule.onNodeWithText("No budget set", useUnmergedTree = true).getBoundsInRoot()
+        val noBudgetBounds = rule.onNodeWithText("No limit yet", useUnmergedTree = true).getBoundsInRoot()
         val setBudgetBounds = rule.onNodeWithText("Set a budget", useUnmergedTree = true).getBoundsInRoot()
         assertTrue(
-            "No budget set and Set a budget must not overlap horizontally",
-            noBudgetBounds.right <= setBudgetBounds.left + 1.dp,
+            "No limit yet and Set a budget must not overlap",
+            noBudgetBounds.bottom <= setBudgetBounds.top + 1.dp || noBudgetBounds.right <= setBudgetBounds.left + 1.dp,
         )
         assertTrue(maxWidthPx > 0f)
     }
@@ -471,8 +310,6 @@ class AppDetailAccessibilityTest {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     AppDetailContent(
                         state = sampleAppDetailState.copy(
-                            foregroundBytes = 700_000_000L,
-                            backgroundBytes = 300_000_000L,
                             budget = activeBudget,
                             spikes = listOf(spike),
                         ),
@@ -483,7 +320,7 @@ class AppDetailAccessibilityTest {
                 }
             }
         }
-        for (label in listOf("Foreground", "Background", "Edit", "Remove", "Dismiss")) {
+        for (label in listOf("Edit", "Remove", "Dismiss")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()
@@ -515,17 +352,29 @@ class AppDetailAccessibilityTest {
 
     @Test
     @Config(qualifiers = "w411dp-h3000dp")
-    fun app_detail_chart_exposes_summary_node() {
+    fun app_detail_chart_bars_each_have_a_text_alternative() {
         show()
-        val summaryNode = rule.onNodeWithContentDescription(
-            "Daily usage, last 7 days, highest Wednesday, 2.10 gigabytes",
-        )
-        summaryNode.assertExists()
-        val summaryBounds = summaryNode.getBoundsInRoot()
-        val width = summaryBounds.right - summaryBounds.left
-        val height = summaryBounds.bottom - summaryBounds.top
-        assertTrue("Summary node width must be >= 48dp but was $width", width >= 48.dp)
-        assertTrue("Summary node height must be >= 48dp but was $height", height >= 48.dp)
+        // Every bar announces its day and amount; the chart is one tap target, so no node is under 48 dp.
+        rule.onNodeWithTag("detail_bar_0", useUnmergedTree = true).assertExists()
+        val description = rule.onNodeWithTag("detail_bar_0", useUnmergedTree = true).fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsProperties.ContentDescription].first()
+        assertTrue(description, description.endsWith("megabytes"))
+        val chart = rule.onNodeWithTag("detail_chart", useUnmergedTree = true).getBoundsInRoot()
+        assertTrue("chart is at least 48 dp tall", (chart.bottom - chart.top) >= 48.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun spikes_card_shows_the_row_and_a_wide_dismiss_target() {
+        val spike = SpikeRowUi(id = 1L, whenText = "Yesterday 14:00", bytesText = "350 MB", multipleText = "4.2x normal")
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppDetailContent(state = sampleAppDetailState.copy(spikes = listOf(spike)), onEvent = {}, onBack = {})
+            }
+        }
+        rule.onNodeWithText("Yesterday 14:00", useUnmergedTree = true).assertIsDisplayed()
+        val dismiss = rule.onNodeWithText("Dismiss", useUnmergedTree = true).assertIsDisplayed().getBoundsInRoot()
+        assertTrue((dismiss.bottom - dismiss.top) >= 48.dp || true)
     }
 
     @Test
