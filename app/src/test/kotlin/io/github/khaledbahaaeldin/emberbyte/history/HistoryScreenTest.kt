@@ -3,6 +3,8 @@ package io.github.khaledbahaaeldin.emberbyte.history
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
@@ -55,6 +57,8 @@ class HistoryScreenTest {
             }
         }
         rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
+        rule.onNode(hasText("History") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
     }
 
     @Test

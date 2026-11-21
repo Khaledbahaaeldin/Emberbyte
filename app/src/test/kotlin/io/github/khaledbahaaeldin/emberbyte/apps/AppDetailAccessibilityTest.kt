@@ -1,10 +1,20 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetPeriod
@@ -14,10 +24,8 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.luminance
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -73,14 +81,14 @@ class AppDetailAccessibilityTest {
 
     @Test
     fun legend_color_meets_wcag_aa_contrast() {
-        val lightSpec = EmberbyteThemeSpec(presetId = "dusk", darkTheme = false)
-        var testedFg = androidx.compose.ui.graphics.Color.Unspecified
-        var testedBg = androidx.compose.ui.graphics.Color.Unspecified
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedTextColor = Color.Unspecified
+        var expectedBgColor = Color.Unspecified
         rule.setContent {
-            EmberbyteTheme(lightSpec) {
+            EmberbyteTheme(currentSpec) {
                 val palette = LocalEmberbytePalette.current
-                testedFg = palette.text
-                testedBg = palette.background
+                expectedTextColor = palette.text
+                expectedBgColor = palette.background
                 AppDetailContent(
                     state = sampleAppDetailState,
                     onEvent = {},
@@ -89,14 +97,39 @@ class AppDetailAccessibilityTest {
                 )
             }
         }
-        rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
+        val presets = listOf("dusk", "solarized", "everforest", "ember", "dracula", "nord")
+        for (presetId in presets) {
+            for (dark in listOf(false, true)) {
+                currentSpec = EmberbyteThemeSpec(presetId = presetId, darkTheme = dark)
+                rule.waitForIdle()
 
-        val fg = testedFg.compositeOver(testedBg)
-        val l1 = fg.luminance() + 0.05
-        val l2 = testedBg.luminance() + 0.05
-        val ratio = maxOf(l1, l2) / minOf(l1, l2)
-        assertTrue("legend text on dusk light must meet 4.5:1, was $ratio", ratio >= 4.5)
+                val mobileResults = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithTag("app_detail_mobile_label", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(mobileResults) }
+                val mobileColor = mobileResults.first().layoutInput.style.color
+                assertEquals(
+                    "Mobile text color must bind to palette.text on $presetId dark=$dark",
+                    expectedTextColor,
+                    mobileColor,
+                )
+
+                val wifiResults = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithTag("app_detail_wifi_label", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(wifiResults) }
+                val wifiColor = wifiResults.first().layoutInput.style.color
+                assertEquals(
+                    "Wi-Fi text color must bind to palette.text on $presetId dark=$dark",
+                    expectedTextColor,
+                    wifiColor,
+                )
+
+                val fg = mobileColor.compositeOver(expectedBgColor)
+                val l1 = fg.luminance() + 0.05
+                val l2 = expectedBgColor.luminance() + 0.05
+                val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                assertTrue("legend text on $presetId (dark=$dark) must meet 4.5:1, was $ratio", ratio >= 4.5)
+            }
+        }
     }
 
     @Test

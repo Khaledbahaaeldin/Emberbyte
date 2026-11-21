@@ -20,7 +20,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.R
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
 import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Granularity
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup

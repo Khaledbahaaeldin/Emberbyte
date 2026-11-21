@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -49,6 +50,7 @@ class AppsScreenTest {
     @Test
     fun active_filters_visibility_snaps_under_reduced_motion() {
         var state by mutableStateOf(AppsUiState(loaded = true))
+        rule.mainClock.autoAdvance = false
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(LocalReduceMotion provides true) {
@@ -61,11 +63,42 @@ class AppsScreenTest {
                 }
             }
         }
+        rule.mainClock.advanceTimeByFrame()
         rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
 
         state = state.copy(range = AppsRange.LAST_7_DAYS)
-        rule.waitForIdle()
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
+        val enterHeights = mutableListOf<Float>()
+        repeat(10) {
+            rule.mainClock.advanceTimeBy(16)
+            val nodes = rule.onAllNodes(hasContentDescription("Remove 7 days filter")).fetchSemanticsNodes()
+            if (nodes.isNotEmpty()) {
+                val bounds = rule.onNodeWithContentDescription("Remove 7 days filter").getBoundsInRoot()
+                enterHeights += (bounds.bottom - bounds.top).value
+            }
+        }
+        assertTrue("filter chip should be visible under reduced motion", enterHeights.isNotEmpty())
+        val fullHeight = enterHeights.last()
+        assertTrue("filter chip should snap to full height, saw $enterHeights", fullHeight > 20f)
+        assertTrue(
+            "reduced motion must not show intermediate expand heights, saw $enterHeights",
+            enterHeights.all { it >= fullHeight - 0.5f },
+        )
+
+        state = state.copy(range = AppsRange.CYCLE)
+        val exitHeights = mutableListOf<Float>()
+        repeat(10) {
+            rule.mainClock.advanceTimeBy(16)
+            val nodes = rule.onAllNodes(hasContentDescription("Remove 7 days filter")).fetchSemanticsNodes()
+            if (nodes.isNotEmpty()) {
+                val bounds = rule.onNodeWithContentDescription("Remove 7 days filter").getBoundsInRoot()
+                exitHeights += (bounds.bottom - bounds.top).value
+            }
+        }
+        assertTrue(
+            "reduced motion must not show intermediate shrink heights on exit, saw $exitHeights",
+            exitHeights.all { it >= fullHeight - 0.5f },
+        )
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
     }
 
     @Test
@@ -81,6 +114,8 @@ class AppsScreenTest {
             }
         }
         rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
+        rule.onNode(hasText("Apps") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
     }
 
     @Test

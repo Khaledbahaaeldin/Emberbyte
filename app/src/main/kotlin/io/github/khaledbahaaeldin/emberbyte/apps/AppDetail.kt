@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
 import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.common.weekdayBars
 import io.github.khaledbahaaeldin.emberbyte.data.BudgetRepository
@@ -451,6 +450,7 @@ fun AppDetailContent(
                                 text = "Mobile ${mobileFmt.value} ${mobileFmt.unit}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = palette.text,
+                                modifier = Modifier.testTag("app_detail_mobile_label"),
                             )
                         }
                     }
@@ -469,6 +469,7 @@ fun AppDetailContent(
                                 text = "Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = palette.text,
+                                modifier = Modifier.testTag("app_detail_wifi_label"),
                             )
                         }
                     }

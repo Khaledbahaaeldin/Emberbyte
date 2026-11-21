@@ -99,7 +99,7 @@ internal fun HomeContent(
 ) {
     val palette = LocalEmberbytePalette.current
     EmberbyteScreenScaffold(
-        title = "Today",
+        title = if (state.isToday || state.heroLabel.isEmpty()) "Today" else state.heroLabel,
         actions = {
             IconButton(
                 onClick = onOpenSettings,
