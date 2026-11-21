@@ -10,7 +10,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,8 +50,8 @@ fun WavyBar(
     color: Color,
     modifier: Modifier = Modifier,
     height: Dp = 12.dp,
+    delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
-    onAnimatedFractionChanged: ((Float) -> Unit)? = null,
 ) {
     val clamped = clampBarFraction(fraction)
     val motion = rememberEmberbyteMotion()
@@ -58,20 +62,22 @@ fun WavyBar(
 
     val reduceMotion = LocalReduceMotion.current
     val anim = remember(reduceMotion) { Animatable(if (reduceMotion) clamped else 0f) }
+    var hasEntered by remember(reduceMotion) { mutableStateOf(reduceMotion) }
     LaunchedEffect(clamped, reduceMotion) {
         if (reduceMotion) {
             anim.snapTo(clamped)
         } else {
+            if (!hasEntered && delayMillis > 0) {
+                delay(delayMillis.toLong())
+            }
+            hasEntered = true
             anim.animateTo(clamped, animSpec)
         }
-    }
-    if (onAnimatedFractionChanged != null) {
-        val animatedFraction = anim.value
-        SideEffect { onAnimatedFractionChanged(animatedFraction) }
     }
 
     val palette = LocalEmberbytePalette.current
     val trackColor = palette.track
+    val liveFraction = if (reduceMotion) clamped else anim.value
 
     Box(
         modifier = modifier
@@ -79,7 +85,7 @@ fun WavyBar(
             .height(height)
             .semantics {
                 progressBarRangeInfo = ProgressBarRangeInfo(
-                    current = clamped,
+                    current = liveFraction,
                     range = 0f..1f,
                     steps = 0,
                 )
@@ -87,7 +93,7 @@ fun WavyBar(
         contentAlignment = Alignment.CenterStart,
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            val animatedFraction = anim.value
+            val animatedFraction = liveFraction
             val strokeWidth = 4.dp.toPx()
             val cy = size.height / 2f
             val startX = strokeWidth / 2f

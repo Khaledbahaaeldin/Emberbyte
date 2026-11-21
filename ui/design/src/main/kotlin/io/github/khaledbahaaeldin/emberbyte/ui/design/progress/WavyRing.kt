@@ -21,12 +21,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -56,7 +59,8 @@ internal fun effectiveSweep(fraction: Float): Float {
     return if (fraction.isNaN() || fraction < 0f) 0f else minOf(fraction, 1f)
 }
 
-private fun buildWavyCirclePath(
+private fun buildWavyCirclePathTo(
+    path: Path,
     cx: Float,
     cy: Float,
     baseRadius: Float,
@@ -64,8 +68,7 @@ private fun buildWavyCirclePath(
     waves: Int,
     startAngleRad: Float,
     sweepAngleRad: Float,
-): Path {
-    val path = Path()
+) {
     val steps = maxOf(4, (16 * waves * (sweepAngleRad / (2f * Math.PI.toFloat()))).toInt())
     val dTheta = sweepAngleRad / steps
     for (i in 0..steps) {
@@ -80,6 +83,19 @@ private fun buildWavyCirclePath(
             path.lineTo(x, y)
         }
     }
+}
+
+private fun buildWavyCirclePath(
+    cx: Float,
+    cy: Float,
+    baseRadius: Float,
+    amplitude: Float,
+    waves: Int,
+    startAngleRad: Float,
+    sweepAngleRad: Float,
+): Path {
+    val path = Path()
+    buildWavyCirclePathTo(path, cx, cy, baseRadius, amplitude, waves, startAngleRad, sweepAngleRad)
     return path
 }
 
@@ -110,7 +126,6 @@ fun WavyRing(
     labelSize: TextUnit = 17.sp,
     delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
-    onAnimatedSweepChanged: ((Float) -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val (arcColor, trackColor) = ringColors(state, palette)
@@ -137,68 +152,86 @@ fun WavyRing(
             anim.animateTo(targetSweep, animSpec)
         }
     }
-    if (onAnimatedSweepChanged != null) {
-        val sweep = anim.value
-        SideEffect { onAnimatedSweepChanged(sweep) }
-    }
+
+    val liveSweep = if (reduceMotion) targetSweep else anim.value
 
     Box(
-        modifier = modifier.size(size),
+        modifier = modifier
+            .size(size)
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = liveSweep,
+                    range = 0f..1f,
+                    steps = 0,
+                )
+            },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val sweep = anim.value
-            val strokeWidth = this.size.minDimension * 0.12f
-            val amplitude = strokeWidth * 0.25f
-            val baseRadius = (this.size.minDimension - strokeWidth) / 2f - amplitude
-            val cx = this.size.width / 2f
-            val cy = this.size.height / 2f
-            val waves = 12
-            val startAngle = -Math.PI.toFloat() / 2f
+        Canvas(
+            Modifier
+                .fillMaxSize()
+                .drawWithCache {
+                    val strokeWidth = this.size.minDimension * 0.12f
+                    val amplitude = strokeWidth * 0.25f
+                    val baseRadius = (this.size.minDimension - strokeWidth) / 2f - amplitude
+                    val cx = this.size.width / 2f
+                    val cy = this.size.height / 2f
+                    val waves = 12
+                    val startAngle = -Math.PI.toFloat() / 2f
 
-            // 1. Wavy 360-degree track
-            val trackPath = buildWavyCirclePath(
-                cx = cx,
-                cy = cy,
-                baseRadius = baseRadius,
-                amplitude = amplitude,
-                waves = waves,
-                startAngleRad = startAngle,
-                sweepAngleRad = 2f * Math.PI.toFloat(),
-            )
-            drawPath(
-                path = trackPath,
-                color = trackColor,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-            )
+                    // 1. Wavy 360-degree track precomputed once per size
+                    val trackPath = buildWavyCirclePath(
+                        cx = cx,
+                        cy = cy,
+                        baseRadius = baseRadius,
+                        amplitude = amplitude,
+                        waves = waves,
+                        startAngleRad = startAngle,
+                        sweepAngleRad = 2f * Math.PI.toFloat(),
+                    )
+                    val arcPath = Path()
 
-            // 2. At 0 percent: thin muted outline ring
-            if (sweep == 0f) {
-                drawCircle(
-                    color = outlineColor,
-                    radius = baseRadius,
-                    style = Stroke(width = 1.5.dp.toPx()),
-                )
-            }
+                    onDrawBehind {
+                        val sweep = if (reduceMotion) targetSweep else anim.value
 
-            // 3. Progress arc in state color
-            if (sweep > 0f) {
-                val arcPath = buildWavyCirclePath(
-                    cx = cx,
-                    cy = cy,
-                    baseRadius = baseRadius,
-                    amplitude = amplitude,
-                    waves = waves,
-                    startAngleRad = startAngle,
-                    sweepAngleRad = sweep * 2f * Math.PI.toFloat(),
-                )
-                drawPath(
-                    path = arcPath,
-                    color = arcColor,
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                )
-            }
-        }
+                        // 1. Wavy 360-degree track
+                        drawPath(
+                            path = trackPath,
+                            color = trackColor,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                        )
+
+                        // 2. At 0 percent: thin muted outline ring
+                        if (sweep == 0f) {
+                            drawCircle(
+                                color = outlineColor,
+                                radius = baseRadius,
+                                style = Stroke(width = 1.5.dp.toPx()),
+                            )
+                        }
+
+                        // 3. Progress arc in state color
+                        if (sweep > 0f) {
+                            arcPath.reset()
+                            buildWavyCirclePathTo(
+                                path = arcPath,
+                                cx = cx,
+                                cy = cy,
+                                baseRadius = baseRadius,
+                                amplitude = amplitude,
+                                waves = waves,
+                                startAngleRad = startAngle,
+                                sweepAngleRad = sweep * 2f * Math.PI.toFloat(),
+                            )
+                            drawPath(
+                                path = arcPath,
+                                color = arcColor,
+                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                            )
+                        }
+                    }
+                }
+        ) { }
 
         // Center label: EmberbyteType.value, ForceLtr, capped at font scale > 1.3
         val fontScale = LocalDensity.current.fontScale

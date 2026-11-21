@@ -13,9 +13,11 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
@@ -297,7 +299,6 @@ class UsageBarRowTest {
     fun bars_animate_height_when_data_changes() {
         rule.mainClock.autoAdvance = false
         var points by mutableStateOf(listOf(BarUi(bytes = 100L, label = "Mon", description = "Monday")))
-        var capturedHeight: androidx.compose.ui.unit.Dp? = null
 
         rule.setContent {
             Box(Modifier.size(360.dp, 200.dp)) {
@@ -305,13 +306,13 @@ class UsageBarRowTest {
                     points = points,
                     selectedIndex = null,
                     onSelect = {},
-                    onBarHeightChanged = { index, h -> if (index == 0) capturedHeight = h },
                 )
             }
         }
         rule.mainClock.autoAdvance = true
         rule.waitForIdle()
-        val initialHeight = capturedHeight
+        val initialBounds = rule.onNodeWithTag("usage_bar_0", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val initialHeight = initialBounds.bottom - initialBounds.top
         assertEquals((8 + 56 * 1f).dp, initialHeight)
 
         rule.mainClock.autoAdvance = false
@@ -326,26 +327,29 @@ class UsageBarRowTest {
         var sawInBetween = false
         repeat(15) {
             rule.mainClock.advanceTimeBy(16)
-            if (capturedHeight != null && capturedHeight != initialHeight && capturedHeight != targetHeight) {
+            val currentBounds = rule.onNodeWithTag("usage_bar_0", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val currentHeight = currentBounds.bottom - currentBounds.top
+            if (currentHeight != initialHeight && currentHeight != targetHeight) {
                 sawInBetween = true
             }
         }
 
         assertTrue(
-            "Height should animate between initial ($initialHeight) and target ($targetHeight), sawInBetween=$sawInBetween, last=$capturedHeight",
+            "Height should animate between initial ($initialHeight) and target ($targetHeight), sawInBetween=$sawInBetween",
             sawInBetween,
         )
 
         rule.mainClock.autoAdvance = true
         rule.waitForIdle()
-        assertEquals(targetHeight, capturedHeight)
+        val finalBounds = rule.onNodeWithTag("usage_bar_0", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val finalHeight = finalBounds.bottom - finalBounds.top
+        assertEquals(targetHeight, finalHeight)
     }
 
     @Test
     fun bars_snap_height_when_reduced_motion() {
         rule.mainClock.autoAdvance = false
         val points = listOf(BarUi(bytes = 100L, label = "Mon", description = "Monday"))
-        var capturedHeight: androidx.compose.ui.unit.Dp? = null
 
         rule.setContent {
             androidx.compose.runtime.CompositionLocalProvider(
@@ -356,21 +360,21 @@ class UsageBarRowTest {
                         points = points,
                         selectedIndex = null,
                         onSelect = {},
-                        onBarHeightChanged = { index, h -> if (index == 0) capturedHeight = h },
                     )
                 }
             }
         }
         rule.mainClock.advanceTimeByFrame()
         // Reduced motion must snap immediately to target height (8 + 56 = 64.dp)
-        assertEquals((8 + 56 * 1f).dp, capturedHeight)
+        val bounds = rule.onNodeWithTag("usage_bar_0", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val height = bounds.bottom - bounds.top
+        assertEquals((8 + 56 * 1f).dp, height)
     }
 
     @Test
     fun bars_grow_in_from_base_on_first_show() {
         rule.mainClock.autoAdvance = false
         val points = listOf(BarUi(bytes = 100L, label = "Mon", description = "Monday"))
-        val recordedHeights = mutableListOf<androidx.compose.ui.unit.Dp>()
 
         rule.setContent {
             Box(Modifier.size(360.dp, 200.dp)) {
@@ -378,13 +382,16 @@ class UsageBarRowTest {
                     points = points,
                     selectedIndex = null,
                     onSelect = {},
-                    onBarHeightChanged = { index, h -> if (index == 0) recordedHeights.add(h) },
                 )
             }
         }
-        assertTrue("Initial height must start at 8.dp: $recordedHeights", recordedHeights.contains(8.dp))
+        val initialBounds = rule.onNodeWithTag("usage_bar_0", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val initialHeight = initialBounds.bottom - initialBounds.top
+        assertEquals(8.dp, initialHeight)
         rule.mainClock.advanceTimeBy(1000)
-        assertEquals((8 + 56 * 1f).dp, recordedHeights.last())
+        val finalBounds = rule.onNodeWithTag("usage_bar_0", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val finalHeight = finalBounds.bottom - finalBounds.top
+        assertEquals((8 + 56 * 1f).dp, finalHeight)
     }
 }
 

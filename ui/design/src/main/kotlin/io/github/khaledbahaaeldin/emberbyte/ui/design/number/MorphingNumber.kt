@@ -44,6 +44,16 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import kotlin.math.ln
 import kotlin.math.roundToInt
 
+internal fun digitSlotKey(text: String, index: Int): Int {
+    val dotIndex = text.indexOf('.')
+    val char = text[index]
+    return when {
+        char == '.' -> 0
+        dotIndex >= 0 -> if (index < dotIndex) -(dotIndex - index) else (index - dotIndex)
+        else -> -(text.length - index)
+    }
+}
+
 internal object MorphingNumberPhysics {
     const val REST_BPS = 10_000L
     const val MAX_BPS = 20_000_000L
@@ -118,8 +128,7 @@ fun MorphingNumber(
             Row {
                 val text = formatted.value
                 text.forEachIndexed { index, char ->
-                    // Keyed from the right so existing digits keep their identity when the length changes.
-                    key(text.length - index) {
+                    key(digitSlotKey(text, index)) {
                         AnimatedContent(
                             targetState = char,
                             transitionSpec = {
@@ -174,9 +183,10 @@ fun MorphingNumber(
     ForceLtr {
         Row(
             modifier = modifier.clearAndSetSemantics {
-                this.text = AnnotatedString(fullText)
                 if (contentDescription != null) {
                     this.contentDescription = contentDescription
+                } else {
+                    this.text = AnnotatedString(fullText)
                 }
             },
             verticalAlignment = Alignment.CenterVertically,
@@ -184,6 +194,7 @@ fun MorphingNumber(
             if (prefix.isNotEmpty()) {
                 Text(
                     text = prefix,
+                    modifier = Modifier.clearAndSetSemantics { },
                     style = style,
                     color = color,
                 )
@@ -192,7 +203,7 @@ fun MorphingNumber(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 value.forEachIndexed { index, char ->
-                    key(value.length - index) {
+                    key(digitSlotKey(value, index)) {
                         AnimatedContent(
                             targetState = char,
                             transitionSpec = {
@@ -207,6 +218,7 @@ fun MorphingNumber(
                         ) { digit ->
                             Text(
                                 text = digit.toString(),
+                                modifier = Modifier.clearAndSetSemantics { },
                                 color = color,
                                 style = style,
                                 maxLines = 1,
@@ -219,6 +231,7 @@ fun MorphingNumber(
             if (unit.isNotEmpty()) {
                 Text(
                     text = if (unit.startsWith(" ") || unit.startsWith("/")) unit else " $unit",
+                    modifier = Modifier.clearAndSetSemantics { },
                     style = style,
                     color = color,
                 )

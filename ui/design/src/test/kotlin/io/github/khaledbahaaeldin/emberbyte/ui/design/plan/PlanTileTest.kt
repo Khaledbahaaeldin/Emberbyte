@@ -1,8 +1,12 @@
 package io.github.khaledbahaaeldin.emberbyte.ui.design.plan
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -133,11 +137,27 @@ class PlanTileTest {
 
     @Test
     fun plan_tile_accepts_delay_millis() {
+        rule.mainClock.autoAdvance = false
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 PlanTile(model = baseModel, onClick = {}, delayMillis = 80)
             }
         }
+        rule.mainClock.advanceTimeByFrame()
+        val node = rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo), useUnmergedTree = true)
+        val info = node.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, info.current, 0.0001f)
+
+        // Advance 50ms (within 80ms delay)
+        rule.mainClock.advanceTimeBy(50)
+        val infoMid = node.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, infoMid.current, 0.0001f)
+
+        // Advance past 80ms delay
+        rule.mainClock.advanceTimeBy(50)
+        val infoAfter = node.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertTrue("Ring progress should advance after delay: ${infoAfter.current}", infoAfter.current > 0f)
+
         rule.onNodeWithText("Unlimited Plus", useUnmergedTree = true).assertIsDisplayed()
     }
 }

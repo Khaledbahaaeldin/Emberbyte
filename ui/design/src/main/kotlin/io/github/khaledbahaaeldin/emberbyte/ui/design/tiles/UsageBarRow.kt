@@ -40,8 +40,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -63,6 +67,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMo
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
 
 @Composable
 fun UsageBarRow(
@@ -77,7 +82,6 @@ fun UsageBarRow(
     barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
     showValues: Boolean = true,
     todayIndex: Int? = null,
-    onBarHeightChanged: ((Int, Dp) -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -159,7 +163,7 @@ fun UsageBarRow(
                         )
                     }
 
-                    Column(
+                    UsageBarColumn(
                         modifier = if (scrollable) {
                             Modifier
                                 .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
@@ -178,111 +182,20 @@ fun UsageBarRow(
                                     selected = isSelected
                                 }
                         },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
-                    ) {
-                        // Value label above bar
-                        Box(
-                            modifier = Modifier
-                                .height(18.dp)
-                                .clearAndSetSemantics {},
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (shouldShowValue) {
-                                ForceLtr {
-                                    Text(
-                                        text = bar.valueText,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) palette.text else palette.muted,
-                                        maxLines = 1,
-                                    )
-                                }
-                            }
-                        }
-
-                        // Bar fill & styling
-                        val resolvedColor = barColor?.invoke(index, isSelected)
-                            ?: when {
-                                isSelected -> palette.primary
-                                hasSelection -> palette.surface.copy(alpha = 0.38f)
-                                else -> palette.surface
-                            }
-                        val barShape = if (isSelected) CircleShape else MaterialTheme.shapes.small
-                        val targetHeight = (8 + 56 * (bar.bytes.toFloat() / max)).dp
-                        val animatedHeight by animateDpAsState(
-                            targetValue = if (shown || reduceMotion) targetHeight else 8.dp,
-                            animationSpec = motion.spatial(),
-                            label = "bar_height_$index",
-                        )
-                        val animatedColor by animateColorAsState(
-                            targetValue = resolvedColor,
-                            animationSpec = motion.effects(),
-                            label = "bar_color_$index",
-                        )
-                        if (onBarHeightChanged != null) {
-                            SideEffect {
-                                onBarHeightChanged(index, animatedHeight)
-                            }
-                        }
-                        Box(
-                            Modifier
-                                .widthIn(max = 24.dp)
-                                .fillMaxWidth()
-                                .height(animatedHeight)
-                                .background(
-                                    color = animatedColor,
-                                    shape = barShape,
-                                )
-                                .then(
-                                    when {
-                                        isToday && isSelected -> Modifier.border(1.5.dp, palette.accent, barShape)
-                                        isToday && !isSelected -> Modifier.border(1.5.dp, palette.primary, barShape)
-                                        !isSelected && barColor == null -> Modifier.border(1.dp, palette.surface2, barShape)
-                                        else -> Modifier
-                                    }
-                                ),
-                        )
-
-                        // Label with tonal pill for selection
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 4.dp)
-                                .then(
-                                    if (isSelected) {
-                                        Modifier
-                                            .background(palette.surface2, shape = CircleShape)
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    } else {
-                                        Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            ForceLtr {
-                                val labelText = if (isCrowded && bar.shortLabel != null) bar.shortLabel else bar.label
-                                Text(
-                                    labelText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) palette.text else palette.muted,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
-                        }
-
-                        // Marker dot under selected label (fixed height so layout never shifts)
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = 2.dp)
-                                    .size(4.dp)
-                                    .background(palette.primary, CircleShape),
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.height(6.dp))
-                        }
-                    }
+                        bar = bar,
+                        index = index,
+                        isSelected = isSelected,
+                        shouldShowValue = shouldShowValue,
+                        isToday = isToday,
+                        hasSelection = hasSelection,
+                        isCrowded = isCrowded,
+                        shown = shown,
+                        reduceMotion = reduceMotion,
+                        max = max,
+                        barColor = barColor,
+                        palette = palette,
+                        motion = motion,
+                    )
                 }
             }
 
@@ -393,5 +306,146 @@ fun UsageBarRow(
         }
     }
 }
+
+@Composable
+private fun UsageBarColumn(
+    modifier: Modifier,
+    bar: BarUi,
+    index: Int,
+    isSelected: Boolean,
+    shouldShowValue: Boolean,
+    isToday: Boolean,
+    hasSelection: Boolean,
+    isCrowded: Boolean,
+    shown: Boolean,
+    reduceMotion: Boolean,
+    max: Long,
+    barColor: ((index: Int, isSelected: Boolean) -> Color)?,
+    palette: EmberbytePalette,
+    motion: io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteMotion,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        // Value label above bar
+        Box(
+            modifier = Modifier
+                .height(18.dp)
+                .clearAndSetSemantics {},
+            contentAlignment = Alignment.Center,
+        ) {
+            if (shouldShowValue) {
+                ForceLtr {
+                    Text(
+                        text = bar.valueText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) palette.text else palette.muted,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        // Bar fill & styling
+        val resolvedColor = barColor?.invoke(index, isSelected)
+            ?: when {
+                isSelected -> palette.primary
+                hasSelection -> palette.surface.copy(alpha = 0.38f)
+                else -> palette.surface
+            }
+        val targetHeight = (8 + 56 * (bar.bytes.toFloat() / max)).dp
+        val animatedHeight = animateDpAsState(
+            targetValue = if (shown || reduceMotion) targetHeight else 8.dp,
+            animationSpec = motion.spatial(),
+            label = "bar_height_$index",
+        )
+        val animatedColor = animateColorAsState(
+            targetValue = resolvedColor,
+            animationSpec = motion.effects(),
+            label = "bar_color_$index",
+        )
+
+        val borderColor = when {
+            isToday && isSelected -> palette.accent
+            isToday && !isSelected -> palette.primary
+            !isSelected && barColor == null -> palette.surface2
+            else -> null
+        }
+        val borderWidth = if (isToday) 1.5.dp else 1.dp
+
+        Box(
+            Modifier
+                .testTag("usage_bar_$index")
+                .widthIn(max = 24.dp)
+                .fillMaxWidth()
+                .layout { measurable, constraints ->
+                    val h = animatedHeight.value.roundToPx()
+                    val placeable = measurable.measure(
+                        constraints.copy(minHeight = h, maxHeight = h)
+                    )
+                    layout(placeable.width, placeable.height) {
+                        placeable.place(0, 0)
+                    }
+                }
+                .drawBehind {
+                    val cornerRadius = CornerRadius(if (isSelected) size.minDimension / 2f else 8.dp.toPx())
+                    drawRoundRect(
+                        color = animatedColor.value,
+                        cornerRadius = cornerRadius,
+                    )
+                    if (borderColor != null) {
+                        drawRoundRect(
+                            color = borderColor,
+                            cornerRadius = cornerRadius,
+                            style = Stroke(width = borderWidth.toPx()),
+                        )
+                    }
+                },
+        )
+
+        // Label with tonal pill for selection
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .then(
+                    if (isSelected) {
+                        Modifier
+                            .background(palette.surface2, shape = CircleShape)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    } else {
+                        Modifier.padding(horizontal = 2.dp, vertical = 2.dp)
+                    }
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            ForceLtr {
+                val labelText = if (isCrowded && bar.shortLabel != null) bar.shortLabel else bar.label
+                Text(
+                    labelText,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected) palette.text else palette.muted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+
+        // Marker dot under selected label (fixed height so layout never shifts)
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(4.dp)
+                    .background(palette.primary, CircleShape),
+            )
+        } else {
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+}
+
 
 

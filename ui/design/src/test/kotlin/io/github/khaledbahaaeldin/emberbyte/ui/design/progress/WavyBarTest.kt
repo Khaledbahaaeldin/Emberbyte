@@ -55,25 +55,48 @@ class WavyBarTest {
     @Test
     fun wavy_bar_grows_from_zero_on_first_show() {
         rule.mainClock.autoAdvance = false
-        var animatedProgress = 1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyBar(
                     fraction = 0.8f,
                     color = Color.Green,
                     modifier = Modifier.testTag("bar"),
-                    onAnimatedFractionChanged = { animatedProgress = it },
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        assertTrue("Wavy bar should start from 0 on first show: $animatedProgress", animatedProgress < 0.8f)
+        val node = rule.onNodeWithTag("bar").fetchSemanticsNode()
+        val info = node.config[SemanticsProperties.ProgressBarRangeInfo]
+        assertTrue("Wavy bar should start from 0 on first show: ${info.current}", info.current < 0.8f)
+    }
+
+    @Test
+    fun wavy_bar_respects_delay_millis() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                WavyBar(
+                    fraction = 0.8f,
+                    color = Color.Green,
+                    modifier = Modifier.testTag("bar"),
+                    delayMillis = 40,
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        var info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, info.current, 0.0001f)
+        rule.mainClock.advanceTimeBy(30)
+        info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, info.current, 0.0001f)
+        rule.mainClock.advanceTimeBy(30)
+        info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertTrue("Animated progress should advance after delay: ${info.current}", info.current > 0f)
     }
 
     @Test
     fun wavy_bar_snaps_when_reduced() {
         rule.mainClock.autoAdvance = false
-        var animatedProgress = 0f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 androidx.compose.runtime.CompositionLocalProvider(
@@ -83,12 +106,12 @@ class WavyBarTest {
                         fraction = 0.8f,
                         color = Color.Green,
                         modifier = Modifier.testTag("bar"),
-                        onAnimatedFractionChanged = { animatedProgress = it },
                     )
                 }
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        assertEquals(0.8f, animatedProgress, 0.001f)
+        val info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0.8f, info.current, 0.001f)
     }
 }

@@ -5,9 +5,12 @@ import androidx.compose.animation.core.SnapSpec
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -117,7 +120,6 @@ class WavyRingTest {
     @Test
     fun wavy_ring_grows_from_zero() {
         rule.mainClock.autoAdvance = false
-        var animatedSweep = 1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyRing(
@@ -125,18 +127,18 @@ class WavyRingTest {
                     state = BudgetStateUi.Ok,
                     size = 72.dp,
                     label = "80%",
-                    onAnimatedSweepChanged = { animatedSweep = it },
+                    modifier = androidx.compose.ui.Modifier.testTag("ring"),
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        assertTrue("Wavy ring should start from 0 on first show: $animatedSweep", animatedSweep < 0.8f)
+        val info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertTrue("Wavy ring should start from 0 on first show: ${info.current}", info.current < 0.8f)
     }
 
     @Test
     fun wavy_ring_respects_delay_millis() {
         rule.mainClock.autoAdvance = false
-        var animatedSweep = -1f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 WavyRing(
@@ -145,22 +147,24 @@ class WavyRingTest {
                     size = 72.dp,
                     label = "80%",
                     delayMillis = 40,
-                    onAnimatedSweepChanged = { animatedSweep = it },
+                    modifier = androidx.compose.ui.Modifier.testTag("ring"),
                 )
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        assertEquals(0f, animatedSweep, 0.0001f)
+        var info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, info.current, 0.0001f)
         rule.mainClock.advanceTimeBy(30)
-        assertEquals(0f, animatedSweep, 0.0001f)
+        info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0f, info.current, 0.0001f)
         rule.mainClock.advanceTimeBy(30)
-        assertTrue("Animated sweep should advance after delay: $animatedSweep", animatedSweep > 0f)
+        info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertTrue("Animated sweep should advance after delay: ${info.current}", info.current > 0f)
     }
 
     @Test
     fun rings_snap_when_reduced() {
         rule.mainClock.autoAdvance = false
-        var animatedSweep = 0f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(LocalReduceMotion provides true) {
@@ -169,12 +173,13 @@ class WavyRingTest {
                         state = BudgetStateUi.Ok,
                         size = 72.dp,
                         label = "80%",
-                        onAnimatedSweepChanged = { animatedSweep = it },
+                        modifier = androidx.compose.ui.Modifier.testTag("ring"),
                     )
                 }
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        assertEquals(0.8f, animatedSweep, 0.001f)
+        val info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(0.8f, info.current, 0.001f)
     }
 }

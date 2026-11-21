@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextMeasurer
@@ -136,7 +137,6 @@ fun HeroNumber(
     size: TextUnit = 96.sp,
     color: Color = LocalEmberbytePalette.current.primary,
     onSizeResolved: ((TextUnit) -> Unit)? = null,
-    onDigitsComposed: ((List<Char>) -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
@@ -174,9 +174,6 @@ fun HeroNumber(
             val live = !LocalReduceMotion.current
             val rollSpatial = motion.spatial<IntOffset>()
             val rollEffects = motion.effects<Float>()
-            val activeMap = remember(onDigitsComposed != null) {
-                if (onDigitsComposed != null) mutableMapOf<Int, MutableList<Char>>() else null
-            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -188,36 +185,24 @@ fun HeroNumber(
                 ) {
                     val text = value
                     text.forEachIndexed { index, char ->
-                        val slotKey = text.length - index
+                        val slotKey = digitSlotKey(text, index)
                         key(slotKey) {
                             if (live) {
                                 AnimatedContent(
                                     targetState = char,
+                                    modifier = Modifier.testTag("hero_digit_slot_$slotKey"),
                                     transitionSpec = {
                                         (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
                                             (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
                                     },
                                     label = "heroDigit",
                                 ) { digit ->
-                                    if (onDigitsComposed != null && activeMap != null) {
-                                        DisposableEffect(digit, slotKey) {
-                                            val list = activeMap.getOrPut(slotKey) { mutableListOf() }
-                                            list.add(digit)
-                                            val currentDigits = text.indices.map { text.length - it }
-                                                .flatMap { activeMap[it] ?: emptyList() }
-                                            onDigitsComposed(currentDigits)
-                                            onDispose {
-                                                list.remove(digit)
-                                                val remainingDigits = text.indices.map { text.length - it }
-                                                    .flatMap { activeMap[it] ?: emptyList() }
-                                                onDigitsComposed(remainingDigits)
-                                            }
-                                        }
-                                    }
                                     val letterSpacing = if (digit == '.') 0.08.em else 0.04.em
                                     Text(
                                         text = digit.toString(),
-                                        modifier = Modifier.clearAndSetSemantics { },
+                                        modifier = Modifier
+                                            .testTag("hero_digit_$digit")
+                                            .clearAndSetSemantics { },
                                         color = color,
                                         style = EmberbyteType.hero(chosenSize).copy(letterSpacing = letterSpacing),
                                         maxLines = 1,
@@ -225,23 +210,12 @@ fun HeroNumber(
                                     )
                                 }
                             } else {
-                                if (onDigitsComposed != null && activeMap != null) {
-                                    DisposableEffect(char, slotKey) {
-                                        val list = activeMap.getOrPut(slotKey) { mutableListOf() }
-                                        list.clear()
-                                        list.add(char)
-                                        val currentDigits = text.indices.map { text.length - it }
-                                            .flatMap { activeMap[it] ?: emptyList() }
-                                        onDigitsComposed(currentDigits)
-                                        onDispose {
-                                            list.remove(char)
-                                        }
-                                    }
-                                }
                                 val letterSpacing = if (char == '.') 0.08.em else 0.04.em
                                 Text(
                                     text = char.toString(),
-                                    modifier = Modifier.clearAndSetSemantics { },
+                                    modifier = Modifier
+                                        .testTag("hero_digit_$char")
+                                        .clearAndSetSemantics { },
                                     color = color,
                                     style = EmberbyteType.hero(chosenSize).copy(letterSpacing = letterSpacing),
                                     maxLines = 1,
