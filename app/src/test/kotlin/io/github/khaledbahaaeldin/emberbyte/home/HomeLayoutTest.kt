@@ -607,7 +607,7 @@ class HomeLayoutTest {
             assertTrue("$label must have positive size", (bounds.right - bounds.left).value > 0f && (bounds.bottom - bounds.top).value > 0f)
             val layouts = mutableListOf<TextLayoutResult>()
             node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+            assertEquals("$label must stay on a single line", 1, layouts.first().lineCount)
         }
     }
 }

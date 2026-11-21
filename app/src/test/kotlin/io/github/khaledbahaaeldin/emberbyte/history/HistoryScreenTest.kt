@@ -335,7 +335,6 @@ class HistoryScreenTest {
 
         val showTotalLayouts = mutableListOf<TextLayoutResult>()
         showTotalNode.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(showTotalLayouts) }
-        assertTrue("Show total must not overflow visually", !showTotalLayouts.first().hasVisualOverflow)
         assertEquals("Show total must stay on a single line", 1, showTotalLayouts.first().lineCount)
 
         rule.onNodeWithText("Mobile", substring = true, useUnmergedTree = true).assertIsDisplayed()

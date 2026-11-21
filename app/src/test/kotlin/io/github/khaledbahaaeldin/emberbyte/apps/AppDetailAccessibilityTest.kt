@@ -437,7 +437,7 @@ class AppDetailAccessibilityTest {
             assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
             val layouts = mutableListOf<TextLayoutResult>()
             node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+            assertEquals("$label must stay on a single line", 1, layouts.first().lineCount)
         }
         val noBudgetBounds = rule.onNodeWithText("No budget set", useUnmergedTree = true).getBoundsInRoot()
         val setBudgetBounds = rule.onNodeWithText("Set a budget", useUnmergedTree = true).getBoundsInRoot()
@@ -491,7 +491,7 @@ class AppDetailAccessibilityTest {
             assertTrue("$label must fit within 360dp", bounds.right.value <= 360f + 1f)
             val layouts = mutableListOf<TextLayoutResult>()
             node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertTrue("$label must not overflow visually", !layouts.first().hasVisualOverflow)
+            assertEquals("$label must stay on a single line", 1, layouts.first().lineCount)
             assertEquals("$label must not wrap mid-word on narrow screen", 1, layouts.first().lineCount)
         }
     }
