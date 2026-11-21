@@ -22,7 +22,6 @@ internal object TokenAllowLists {
     )
 
     val rawSizes: Map<String, Int> = mapOf(
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/apps/AppDetail.kt" to 2,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/onboarding/OnboardingPages.kt" to 5,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/onboarding/OnboardingScreen.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/LicencesScreen.kt" to 7,

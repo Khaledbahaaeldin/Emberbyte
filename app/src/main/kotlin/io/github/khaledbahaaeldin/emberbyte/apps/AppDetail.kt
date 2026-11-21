@@ -91,6 +91,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.rankOf
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.planImpact
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.hourTotals
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.dailyBudgetProjection
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.PlanImpact
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.DetailRange
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.BudgetProjection
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.BudgetRing
@@ -123,9 +130,19 @@ data class AppDetailUiState(
     val totalBytes: Long = 0L,
     val mobileBytes: Long = 0L,
     val wifiBytes: Long = 0L,
-    val foregroundBytes: Long = 0L,
-    val backgroundBytes: Long = 0L,
-    val bars: List<BarUi> = emptyList(),
+    /** Local-time points of the chosen range (oldest first), one per day. */
+    val dailySeries: List<UsagePoint> = emptyList(),
+    val range: DetailRange = DetailRange.Week,
+    /** Total of the equal-length range right before [range]; 0 when there is no data there. */
+    val previousTotalBytes: Long = 0L,
+    /** The app's place among all apps (0 when it is not in the list), how many apps there are, and its share. */
+    val rank: Int = 0,
+    val appCount: Int = 0,
+    val shareOfAll: Float = 0f,
+    /** Total per local hour of the day over the range (24 entries). */
+    val hourTotals: LongArray = LongArray(24),
+    val planMobileImpact: PlanImpact? = null,
+    val budgetProjection: BudgetProjection? = null,
     val units: ByteUnits = ByteUnits.DECIMAL,
     val loaded: Boolean = false,
     val budget: BudgetUi? = null,
@@ -143,15 +160,25 @@ internal fun buildAppDetailUiState(
     units: ByteUnits,
     zone: ZoneId,
     locale: Locale,
+    range: DetailRange = DetailRange.Week,
+    previousTotal: Long = 0L,
+    hours: List<UsagePoint> = emptyList(),
 ): AppDetailUiState {
     val app = apps.firstOrNull { it.packageName == packageName }
+    val rank = rankOf(packageName, apps)
     return AppDetailUiState(
         packageName = packageName,
         label = app?.label ?: packageName,
         totalBytes = app?.totalBytes ?: series.sumOf { it.totalBytes },
         mobileBytes = app?.mobileBytes ?: series.sumOf { it.mobileBytes },
         wifiBytes = app?.wifiBytes ?: series.sumOf { it.wifiBytes },
-        bars = weekdayBars(series, units, zone, locale),
+        dailySeries = series,
+        range = range,
+        previousTotalBytes = previousTotal,
+        rank = rank.rank,
+        appCount = rank.appCount,
+        shareOfAll = rank.shareOfAll,
+        hourTotals = hourTotals(hours, zone),
         units = units,
         loaded = true,
     )
@@ -179,22 +206,33 @@ class AppDetailViewModel(
     dates: Flow<LocalDate> = DayClock(clock).dates(),
 ) : ViewModel() {
     private val _editor = MutableStateFlow<BudgetEditorUi?>(null)
+    private val _range = MutableStateFlow(DetailRange.Week)
     @Volatile private var currentBudgetStatus: BudgetStatus? = null
     @Volatile private var currentSettings: Settings = Settings()
 
-    val uiState: StateFlow<AppDetailUiState> = dates.flatMapLatest { date ->
+    val uiState: StateFlow<AppDetailUiState> = combine(dates, _range) { date, detailRange -> date to detailRange }
+        .flatMapLatest { (date, detailRange) ->
         val zone = clock.zone
+        val days = detailRange.days
         val range = DateRange(
-            date.minusDays(6).atStartOfDay(zone).toInstant(),
+            date.minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant(),
+            date.plusDays(1).atStartOfDay(zone).toInstant(),
+        )
+        // One daily query for twice the range: the second half is the range, the first half the period before it.
+        val doubled = DateRange(
+            date.minusDays((2 * days - 1).toLong()).atStartOfDay(zone).toInstant(),
             date.plusDays(1).atStartOfDay(zone).toInstant(),
         )
         val usageAndSettings = combine(
             usage.observeApps(range),
-            usage.observeAppSeries(packageName, range, Granularity.DAY),
+            usage.observeAppSeries(packageName, doubled, Granularity.DAY),
+            usage.observeAppSeries(packageName, range, Granularity.HOUR),
             settings.observe(),
-        ) { apps, series, s ->
+        ) { apps, both, hours, s ->
             currentSettings = s
-            Triple(apps, series, s)
+            val series = both.takeLast(days)
+            val previous = both.dropLast(days).takeLast(days)
+            Triple(apps, series to previous.sumOf { it.totalBytes }, hours to s)
         }
         val budgetAndSpikes = combine(
             budgets.observeStatuses(),
@@ -204,9 +242,14 @@ class AppDetailViewModel(
         ) { statuses, spikeList, planList, editorState ->
             BudgetAndSpikesState(statuses, spikeList, planList, editorState)
         }
-        combine(usageAndSettings, budgetAndSpikes) { (apps, series, s), bState ->
+        combine(usageAndSettings, budgetAndSpikes) { (apps, seriesAndPrevious, hoursAndSettings), bState ->
+            val (series, previousTotal) = seriesAndPrevious
+            val (hours, s) = hoursAndSettings
             val units = s.unitSystem.toByteUnits()
-            val baseState = buildAppDetailUiState(packageName, apps, series, units, zone, locale)
+            val baseState = buildAppDetailUiState(
+                packageName, apps, series, units, zone, locale,
+                range = detailRange, previousTotal = previousTotal, hours = hours,
+            )
             val matchedStatus = bState.statuses.firstOrNull { it.budget.packageName == packageName }
             currentBudgetStatus = matchedStatus
             val planName = matchedStatus?.budget?.planId?.let { pid -> bState.plans.firstOrNull { it.id == pid }?.name }
@@ -214,7 +257,14 @@ class AppDetailViewModel(
             val appSpikes = bState.spikes.filter { it.packageName == packageName && !it.dismissed }
                 .map { spikeRowUi(it, units, zone, locale, is24Hour()) }
             val planOptionList = bState.plans.map { PlanOptionUi(it.id, it.name) }
+            val mobileImpact = planImpact(baseState.mobileBytes, days, bState.plans.firstOrNull())
+            val projection = matchedStatus?.takeIf { it.budget.period == BudgetPeriod.DAILY }?.let {
+                val now = clock.instant().atZone(zone)
+                dailyBudgetProjection(it.usedBytes, it.budget.limitBytes, now.hour * 60 + now.minute)
+            }
             baseState.copy(
+                planMobileImpact = mobileImpact,
+                budgetProjection = projection,
                 budget = budgetUiModel,
                 spikes = appSpikes,
                 planOptions = planOptionList,
@@ -225,6 +275,7 @@ class AppDetailViewModel(
 
     fun onEvent(event: AppDetailEvent) {
         when (event) {
+            is AppDetailEvent.SetRange -> _range.value = event.range
             AppDetailEvent.OpenBudgetEditor -> {
                 val current = currentBudgetStatus?.budget
                 if (current != null) {
@@ -326,7 +377,7 @@ class AppDetailViewModel(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+/** The App detail screen content; the redesigned sections live in the `detail` package. */
 @Composable
 fun AppDetailContent(
     state: AppDetailUiState,
@@ -335,395 +386,14 @@ fun AppDetailContent(
     modifier: Modifier = Modifier,
     onOpenSettings: (() -> Unit)? = null,
     icon: ImageBitmap? = null,
-) {
-    EmberbyteCrossfade(
-        targetState = state.isLoading,
-        modifier = modifier.fillMaxSize(),
-    ) { loading ->
-        if (loading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                LoadingState(label = "Loading app details")
-            }
-        } else {
-            val palette = LocalEmberbytePalette.current
-            val motion = rememberEmberbyteMotion()
-            var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // Header with Back button, AppIcon, Title & Package
-                item(key = "app_header") {
-                    Row(
-                        modifier = emberbyteAnimateItem(
-                            motion,
-                            Modifier
-                                .fillMaxWidth()
-                                .statusBarsPadding(),
-                        ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        IconButton(
-                            onClick = onBack,
-                            shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = "Back",
-                            )
-                        }
-                        AppIcon(
-                            label = state.label.ifEmpty { state.packageName },
-                            icon = icon,
-                            shape = shapeFor(state.packageName),
-                            size = 56.dp,
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = state.label.ifEmpty { state.packageName },
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                color = palette.text,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (state.label.isNotEmpty() && state.label != state.packageName) {
-                                Text(
-                                    text = state.packageName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = palette.muted,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Hero Number section
-                item(key = "hero_number") {
-                    Column(
-                        modifier = emberbyteAnimateItem(motion),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = "Last 7 days",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = palette.muted,
-                        )
-                        val totalFmt = formatBytes(state.totalBytes, state.units)
-                        HeroNumber(
-                            value = totalFmt.value,
-                            unit = totalFmt.unit,
-                            contentDescription = "${spokenBytes(state.totalBytes, state.units)} used in the last 7 days",
-                            size = 64.sp,
-                            color = palette.primary,
-                        )
-                    }
-                }
-
-                // Network split bar & legend
-                item(key = "network_summary") {
-                    Column(
-                        modifier = emberbyteAnimateItem(motion),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        NetworkBar(
-                            mobileBytes = state.mobileBytes,
-                            wifiBytes = state.wifiBytes,
-                            mobileColor = palette.warn,
-                            wifiColor = palette.primary,
-                            units = state.units,
-                        )
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            val mobileFmt = formatBytes(state.mobileBytes, state.units)
-                            val wifiFmt = formatBytes(state.wifiBytes, state.units)
-                            NetworkLegendItem(
-                                label = "Mobile ${mobileFmt.value} ${mobileFmt.unit}",
-                                dotColor = palette.warn,
-                                textColor = palette.text,
-                                textModifier = Modifier.testTag("app_detail_mobile_label"),
-                            )
-                            NetworkLegendItem(
-                                label = "Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
-                                dotColor = palette.primary,
-                                textColor = palette.text,
-                                textModifier = Modifier.testTag("app_detail_wifi_label"),
-                            )
-                        }
-                    }
-                }
-
-                // Foreground vs Background split as two BentoTiles. Android's per-app statistics are not split
-                // this way by the app yet, so both values stay 0 and the tiles are hidden instead of showing "0 B".
-                if (state.foregroundBytes + state.backgroundBytes > 0L) {
-                    item(key = "foreground_background") {
-                        val fontScale = LocalDensity.current.fontScale
-                        val fgFmt = formatBytes(state.foregroundBytes, state.units)
-                        val bgFmt = formatBytes(state.backgroundBytes, state.units)
-                        val itemAnim = emberbyteAnimateItem(motion)
-                        if (fontScale >= 1.5f) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().then(itemAnim),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                SplitMetricTile("Foreground", "${fgFmt.value} ${fgFmt.unit}", Modifier.fillMaxWidth())
-                                SplitMetricTile("Background", "${bgFmt.value} ${bgFmt.unit}", Modifier.fillMaxWidth())
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().then(itemAnim),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                SplitMetricTile("Foreground", "${fgFmt.value} ${fgFmt.unit}", Modifier.weight(1f))
-                                SplitMetricTile("Background", "${bgFmt.value} ${bgFmt.unit}", Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-
-                // Daily chart (7 bars weighted to fit card, today's bar uses primary, others surface2)
-                item(key = "daily_usage") {
-                    val weekSummary = run {
-                        val highest = state.bars.maxByOrNull { it.bytes }
-                        if (highest != null) "Daily usage, last 7 days, highest ${highest.description}"
-                        else "Daily usage, last 7 days"
-                    }
-                    BentoTile(
-                        title = "Daily usage",
-                        modifier = emberbyteAnimateItem(
-                            motion,
-                            Modifier
-                                .fillMaxWidth()
-                                .testTag("DAILY_USAGE_CARD"),
-                        ),
-                        container = TileContainer.Standard,
-                    ) {
-                        EmberbyteCrossfade(
-                            targetState = state.bars.isEmpty(),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { isEmpty ->
-                            if (isEmpty) {
-                                EmptyState(
-                                    icon = Icons.Rounded.HistoryToggleOff,
-                                    title = "No daily usage",
-                                    body = "Daily breakdown will show here once usage is recorded.",
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                )
-                            } else {
-                                AppDetailDailyChart(
-                                    bars = state.bars,
-                                    selectedIndex = selectedBarIndex,
-                                    onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
-                                    summaryDescription = weekSummary,
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Spikes if present
-                if (state.spikes.isNotEmpty()) {
-                    item(key = "spikes") {
-                        BentoTile(
-                            title = "Spikes",
-                            modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
-                            container = TileContainer.Warn,
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                state.spikes.forEach { spike ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            ForceLtr {
-                                                Text(spike.whenText, style = MaterialTheme.typography.bodyMedium, color = palette.onWarn)
-                                            }
-                                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                ForceLtr {
-                                                    Text(
-                                                        spike.bytesText,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = palette.onWarn,
-                                                    )
-                                                }
-                                                Text(
-                                                    "·",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = palette.onWarn,
-                                                )
-                                                ForceLtr {
-                                                    Text(
-                                                        spike.multipleText,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = palette.onWarn,
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        TextButton(
-                                            onClick = { onEvent(AppDetailEvent.DismissSpike(spike.id)) },
-                                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                        ) {
-                                            Text("Dismiss", color = palette.onWarn)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Data budget
-                item(key = "data_budget") {
-                    BentoTile(
-                        title = "Data budget",
-                        modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
-                    ) {
-                        val lastBudget = rememberRetainedWhen(state.budget) { it != null }
-                        EmberbyteCrossfade(
-                            targetState = state.budget != null,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { hasBudget ->
-                            if (!hasBudget) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        "No budget set",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = palette.muted,
-                                        modifier = Modifier.weight(1f).padding(end = 8.dp),
-                                    )
-                                    TextButton(
-                                        onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
-                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                    ) {
-                                        Text("Set a budget", color = palette.linkText)
-                                    }
-                                }
-                            } else {
-                                val budget = state.budget ?: lastBudget ?: return@EmberbyteCrossfade
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    BudgetRing(
-                                        fraction = budget.fraction,
-                                        state = budget.ringState,
-                                        percentText = budget.percentText,
-                                    )
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        ForceLtr {
-                                            Text(budget.usedText, style = MaterialTheme.typography.titleMedium, color = palette.text)
-                                        }
-                                        ForceLtr {
-                                            Text(
-                                                budget.periodText,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = palette.muted,
-                                            )
-                                        }
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        ) {
-                                            TextButton(
-                                                onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
-                                                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                            ) {
-                                                Text("Edit", color = palette.linkText)
-                                            }
-                                            TextButton(
-                                                onClick = { onEvent(AppDetailEvent.RemoveBudget) },
-                                                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                            ) {
-                                                Text("Remove", color = palette.danger)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // App settings
-                if (!state.packageName.startsWith("uid:") && onOpenSettings != null) {
-                    item(key = "app_settings") {
-                        Row(
-                            emberbyteAnimateItem(
-                                motion,
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                            ),
-                        ) {
-                            TextButton(
-                                onClick = onOpenSettings,
-                                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                            ) {
-                                Text("App settings", color = palette.linkText)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (state.editor != null) {
-                BudgetEditorDialog(
-                    editor = state.editor,
-                    planOptions = state.planOptions,
-                    onEvent = onEvent,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SplitMetricTile(
-    title: String,
-    valueText: String,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalEmberbytePalette.current
-    BentoTile(
-        title = title,
-        modifier = modifier,
-        container = TileContainer.Standard,
-    ) {
-        ForceLtr {
-            Text(
-                text = valueText,
-                style = EmberbyteType.value(20.sp),
-                color = palette.text,
-            )
-        }
-    }
-}
+) = io.github.khaledbahaaeldin.emberbyte.apps.detail.AppDetailContent(
+    state = state,
+    onEvent = onEvent,
+    onBack = onBack,
+    modifier = modifier,
+    onOpenSettings = onOpenSettings,
+    icon = icon,
+)
 
 @Composable
 fun AppDetailScreen(
@@ -754,64 +424,6 @@ private fun openAppSettings(context: Context, packageName: String) {
         context.startActivity(intent)
     } catch (_: ActivityNotFoundException) {
         // No settings screen to open; nothing to do.
-    }
-}
-
-@Composable
-private fun AppDetailDailyChart(
-    bars: List<BarUi>,
-    selectedIndex: Int?,
-    onSelect: (Int) -> Unit,
-    summaryDescription: String,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalEmberbytePalette.current
-    val maxBytes = (bars.maxOfOrNull { it.bytes } ?: 0L).coerceAtLeast(1L)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = summaryDescription },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        bars.forEachIndexed { index, bar ->
-            val isToday = index == bars.lastIndex
-            val isSelected = index == selectedIndex
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .sizeIn(minWidth = 32.dp, minHeight = 48.dp)
-                    .clickable { onSelect(index) }
-                    .semantics {
-                        contentDescription = bar.description
-                        selected = isSelected
-                    },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom,
-            ) {
-                val barColor = when {
-                    isSelected -> palette.primary
-                    isToday -> palette.primary
-                    else -> palette.surface2
-                }
-                Box(
-                    modifier = Modifier
-                        .widthIn(max = 24.dp)
-                        .fillMaxWidth()
-                        .height((8 + 56 * (bar.bytes.toFloat() / maxBytes)).dp)
-                        .background(
-                            color = barColor,
-                            shape = MaterialTheme.shapes.small,
-                        ),
-                )
-                Text(
-                    text = bar.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected || isToday) palette.text else palette.muted,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
     }
 }
 
