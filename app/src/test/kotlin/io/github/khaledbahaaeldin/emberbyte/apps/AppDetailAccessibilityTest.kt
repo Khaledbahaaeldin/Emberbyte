@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -25,6 +26,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -87,8 +89,10 @@ class AppDetailAccessibilityTest {
         rule.setContent {
             EmberbyteTheme(currentSpec) {
                 val palette = LocalEmberbytePalette.current
-                expectedTextColor = palette.text
-                expectedBgColor = palette.background
+                SideEffect {
+                    expectedTextColor = palette.text
+                    expectedBgColor = palette.background
+                }
                 AppDetailContent(
                     state = sampleAppDetailState,
                     onEvent = {},
@@ -97,10 +101,14 @@ class AppDetailAccessibilityTest {
                 )
             }
         }
-        val presets = listOf("dusk", "solarized", "everforest", "ember", "dracula", "nord")
-        for (presetId in presets) {
-            for (dark in listOf(false, true)) {
-                currentSpec = EmberbyteThemeSpec(presetId = presetId, darkTheme = dark)
+        val variants = listOf(
+            false to false,
+            true to false,
+            true to true,
+        )
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
                 rule.waitForIdle()
 
                 val mobileResults = mutableListOf<TextLayoutResult>()
@@ -108,7 +116,7 @@ class AppDetailAccessibilityTest {
                     .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(mobileResults) }
                 val mobileColor = mobileResults.first().layoutInput.style.color
                 assertEquals(
-                    "Mobile text color must bind to palette.text on $presetId dark=$dark",
+                    "Mobile text color must bind to palette.text on ${preset.id} dark=$dark amoled=$amoled",
                     expectedTextColor,
                     mobileColor,
                 )
@@ -118,16 +126,21 @@ class AppDetailAccessibilityTest {
                     .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(wifiResults) }
                 val wifiColor = wifiResults.first().layoutInput.style.color
                 assertEquals(
-                    "Wi-Fi text color must bind to palette.text on $presetId dark=$dark",
+                    "Wi-Fi text color must bind to palette.text on ${preset.id} dark=$dark amoled=$amoled",
                     expectedTextColor,
                     wifiColor,
                 )
 
-                val fg = mobileColor.compositeOver(expectedBgColor)
-                val l1 = fg.luminance() + 0.05
-                val l2 = expectedBgColor.luminance() + 0.05
-                val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                assertTrue("legend text on $presetId (dark=$dark) must meet 4.5:1, was $ratio", ratio >= 4.5)
+                for ((label, color) in listOf("Mobile" to mobileColor, "Wi-Fi" to wifiColor)) {
+                    val fg = color.compositeOver(expectedBgColor)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = expectedBgColor.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$label legend text on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
             }
         }
     }

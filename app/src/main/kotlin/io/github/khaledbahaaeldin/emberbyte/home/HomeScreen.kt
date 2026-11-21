@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
@@ -27,8 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
@@ -99,7 +100,11 @@ internal fun HomeContent(
 ) {
     val palette = LocalEmberbytePalette.current
     EmberbyteScreenScaffold(
-        title = if (state.isToday || state.heroLabel.isEmpty()) "Today" else state.heroLabel,
+        title = if (state.isToday || state.heroLabel.isEmpty()) {
+            stringResource(R.string.home_hero_label_today)
+        } else {
+            state.heroLabel
+        },
         actions = {
             IconButton(
                 onClick = onOpenSettings,
@@ -140,176 +145,205 @@ internal fun HomeContent(
                         start = 16.dp,
                         end = 16.dp,
                         top = padding.calculateTopPadding(),
-                        bottom = padding.calculateBottomPadding(),
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-        // When usage access permission is missing, show prompt first
-        if (state.topAppsLocked) {
-            val usagePrompt = state.prompts.firstOrNull { it.id == "usage_access" }
-            if (usagePrompt != null) {
-                item(key = "prompt_usage_access") {
-                    PermissionPrompt(
-                        usagePrompt,
-                        onAction = { onPromptAction(usagePrompt.id) },
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
-                    )
-                }
-            }
-        }
+                                    bottom = padding.calculateBottomPadding(),
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                    // When usage access permission is missing, show prompt first
+                    if (state.topAppsLocked) {
+                        val usagePrompt = state.prompts.firstOrNull { it.id == "usage_access" }
+                        if (usagePrompt != null) {
+                            item(key = "prompt_usage_access") {
+                                PermissionPrompt(
+                                    usagePrompt,
+                                    onAction = { onPromptAction(usagePrompt.id) },
+                                    modifier = Modifier.animateItem(
+                                        fadeInSpec = motion.effects(),
+                                        placementSpec = motion.spatial(),
+                                        fadeOutSpec = motion.effects(),
+                                    ),
+                                )
+                            }
+                        }
+                    }
 
-        // Header
-        if (state.planChips.size >= 2) {
-            item(key = "header") {
-                HomeHeader(
-                    state = state,
-                    onSelectPlan = { onEvent(HomeEvent.SelectPlan(it)) },
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = motion.effects(),
-                        placementSpec = motion.spatial(),
-                        fadeOutSpec = motion.effects(),
-                    ),
-                )
-            }
-        }
+                    // Header
+                    if (state.planChips.size >= 2) {
+                        item(key = "header") {
+                            HomeHeader(
+                                state = state,
+                                onSelectPlan = { onEvent(HomeEvent.SelectPlan(it)) },
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = motion.effects(),
+                                    placementSpec = motion.spatial(),
+                                    fadeOutSpec = motion.effects(),
+                                ),
+                            )
+                        }
+                    }
 
-        // Hero Section
-        item(key = "hero") {
-            HomeHeroSection(
-                state = state,
-                onSetUpPlan = onSetUpPlan,
-            )
-        }
-
-        // Gap banner
-        state.gap?.let { gap ->
-            item(key = "gap") {
-                GapBanner(
-                    model = gap,
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = motion.effects(),
-                        placementSpec = motion.spatial(),
-                        fadeOutSpec = motion.effects(),
-                    ),
-                )
-            }
-        }
-
-        // Remaining prompts if not locked (or notification prompts)
-        val remainingPrompts = if (state.topAppsLocked) {
-            state.prompts.filter { it.id != "usage_access" }
-        } else {
-            state.prompts
-        }
-        items(remainingPrompts, key = { it.id }) { prompt ->
-            PermissionPrompt(
-                prompt,
-                onAction = { onPromptAction(prompt.id) },
-                modifier = Modifier.animateItem(
-                    fadeInSpec = motion.effects(),
-                    placementSpec = motion.spatial(),
-                    fadeOutSpec = motion.effects(),
-                ),
-            )
-        }
-
-        // Bento row: Forecast & Speed tiles
-        item(key = "bento_row") {
-            HomeBentoRow(state = state)
-        }
-
-        // Spike tile
-        state.spike?.let { spike ->
-            item(key = "spike") {
-                BentoTile(
-                    title = "Spike detected",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
-                    container = TileContainer.Tertiary,
-                    onClick = { onOpenApp(spike.packageName) },
-                ) {
-                    Text(spike.title, style = MaterialTheme.typography.titleMedium)
-                    ForceLtr {
-                        Text(
-                            spike.detail,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Hero Section
+                    item(key = "hero") {
+                        HomeHeroSection(
+                            state = state,
+                            onSetUpPlan = onSetUpPlan,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
                         )
                     }
-                    TextButton(
-                        onClick = { onEvent(HomeEvent.DismissSpike(spike.id)) },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        ),
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("Dismiss")
+
+                    // Gap banner
+                    state.gap?.let { gap ->
+                        item(key = "gap") {
+                            GapBanner(
+                                model = gap,
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = motion.effects(),
+                                    placementSpec = motion.spatial(),
+                                    fadeOutSpec = motion.effects(),
+                                ),
+                            )
+                        }
+                    }
+
+                    // Remaining prompts if not locked (or notification prompts)
+                    val remainingPrompts = if (state.topAppsLocked) {
+                        state.prompts.filter { it.id != "usage_access" }
+                    } else {
+                        state.prompts
+                    }
+                    items(remainingPrompts, key = { it.id }) { prompt ->
+                        PermissionPrompt(
+                            prompt,
+                            onAction = { onPromptAction(prompt.id) },
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                        )
+                    }
+
+                    // Bento row: Forecast & Speed tiles
+                    item(key = "bento_row") {
+                        HomeBentoRow(
+                            state = state,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                        )
+                    }
+
+                    // Spike tile
+                    state.spike?.let { spike ->
+                        item(key = "spike") {
+                            BentoTile(
+                                title = "Spike detected",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem(
+                                        fadeInSpec = motion.effects(),
+                                        placementSpec = motion.spatial(),
+                                        fadeOutSpec = motion.effects(),
+                                    ),
+                                container = TileContainer.Tertiary,
+                                onClick = { onOpenApp(spike.packageName) },
+                            ) {
+                                Text(spike.title, style = MaterialTheme.typography.titleMedium)
+                                ForceLtr {
+                                    Text(
+                                        spike.detail,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { onEvent(HomeEvent.DismissSpike(spike.id)) },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    ),
+                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                                ) {
+                                    Text("Dismiss")
+                                }
+                            }
+                        }
+                    }
+
+                    // Network tile
+                    item(key = "network") {
+                        HomeNetworkTile(
+                            state = state,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                        )
+                    }
+
+                    if (!state.hasPlan) {
+                        item(key = "data_plan") {
+                            BentoTile(
+                                title = "Data plan",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem(
+                                        fadeInSpec = motion.effects(),
+                                        placementSpec = motion.spatial(),
+                                        fadeOutSpec = motion.effects(),
+                                    ),
+                                onClick = onSetUpPlan,
+                            ) {
+                                Text(
+                                    "Set up your data plan to see what is left and when it runs out.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                TextButton(
+                                    onClick = onSetUpPlan,
+                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                                ) {
+                                    Text("Set up your data plan")
+                                }
+                            }
+                        }
+                    }
+
+                    // Top apps
+                    item(key = "top_apps") {
+                        HomeTopAppsSection(
+                            state = state,
+                            onOpenApp = onOpenApp,
+                            onNavigateToApps = onNavigateToApps,
+                            icons = icons,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                        )
+                    }
+
+                    // History and chart
+                    item(key = "history") {
+                        HomeHistorySection(
+                            state = state,
+                            onSelectDay = { onEvent(HomeEvent.SelectDay(it)) },
+                            onOpenHistory = onOpenHistory,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                        )
                     }
                 }
             }
-        }
-
-        // Network tile
-        item(key = "network") {
-            HomeNetworkTile(state = state)
-        }
-
-        if (!state.hasPlan) {
-            item(key = "data_plan") {
-                BentoTile(
-                    title = "Data plan",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateItem(
-                            fadeInSpec = motion.effects(),
-                            placementSpec = motion.spatial(),
-                            fadeOutSpec = motion.effects(),
-                        ),
-                    onClick = onSetUpPlan,
-                ) {
-                    Text(
-                        "Set up your data plan to see what is left and when it runs out.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    TextButton(
-                        onClick = onSetUpPlan,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("Set up your data plan")
-                    }
-                }
-            }
-        }
-
-        // Top apps
-        item(key = "top_apps") {
-            HomeTopAppsSection(
-                state = state,
-                onOpenApp = onOpenApp,
-                onNavigateToApps = onNavigateToApps,
-                icons = icons,
-            )
-        }
-
-        // History and chart
-        item(key = "history") {
-            HomeHistorySection(
-                state = state,
-                onSelectDay = { onEvent(HomeEvent.SelectDay(it)) },
-                onOpenHistory = onOpenHistory,
-            )
         }
     }
-}
-}
-}
 }

@@ -2,24 +2,23 @@ package io.github.khaledbahaaeldin.emberbyte.home
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
@@ -29,9 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.progress.WavyBar
@@ -98,7 +97,7 @@ internal fun HomeHeroSection(
             color = palette.primary,
         )
 
-        if (state.heroBytes > 0L) {
+        EmberbyteAnimatedVisibility(visible = state.heroBytes > 0L) {
             Text(
                 text = stringResource(R.string.home_includes_system_traffic),
                 style = MaterialTheme.typography.labelSmall,
@@ -116,7 +115,7 @@ internal fun HomeHeroSection(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            if (state.hasPlan) {
+            EmberbyteAnimatedVisibility(visible = state.hasPlan) {
                 WavyBar(
                     fraction = state.planFraction,
                     color = palette.primary,
@@ -136,7 +135,7 @@ internal fun HomeHeroSection(
             }
         }
 
-        if (state.isEstimated) {
+        EmberbyteAnimatedVisibility(visible = state.isEstimated) {
             NoticeLine(
                 text = "Data usage is estimated",
                 modifier = Modifier.padding(top = 4.dp),
@@ -151,7 +150,6 @@ internal fun HomeBentoRow(
     modifier: Modifier = Modifier,
 ) {
     val fontScale = LocalDensity.current.fontScale
-    val hasForecast = state.forecast != null
 
     if (fontScale >= 1.5f) {
         Column(
@@ -165,7 +163,13 @@ internal fun HomeBentoRow(
                 units = state.units,
                 modifier = Modifier.fillMaxWidth(),
             )
-            state.forecast?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+            var lastForecast by remember { mutableStateOf(state.forecast) }
+            if (state.forecast != null) {
+                lastForecast = state.forecast
+            }
+            EmberbyteAnimatedVisibility(visible = state.forecast != null) {
+                lastForecast?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+            }
         }
     } else {
         Row(

@@ -50,6 +50,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
@@ -340,6 +341,7 @@ fun HistoryContent(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
+    val motion = rememberEmberbyteMotion()
     val unit = when (state.granularity) {
         Granularity.WEEK -> "week"
         Granularity.MONTH -> "month"
@@ -361,246 +363,251 @@ fun HistoryContent(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-        // Header with ConnectedButtonGroup period selector, HeroNumber & comparison
-        item(key = "header") {
-            HistoryHeader(
-                state = state,
-                onEvent = onEvent,
-            )
-        }
-
-        // Selected bar detail or chart
-        if (state.loaded && state.bars.isEmpty()) {
-            item(key = "empty_history") {
-                EmptyState(
-                    icon = Icons.Rounded.History,
-                    title = "No history yet",
-                    body = "Usage data will appear here once recorded.",
+            // Header with ConnectedButtonGroup period selector, HeroNumber & comparison
+            item(key = "header") {
+                HistoryHeader(
+                    state = state,
+                    onEvent = onEvent,
                 )
             }
-        } else {
-            // Chart
-            item(key = "chart") {
-                val summary = when (state.granularity) {
-                    Granularity.DAY -> {
-                        val highest = state.bars.maxByOrNull { it.bytes }
-                        if (highest != null) "Daily usage, last 14 days, highest ${highest.description}"
-                        else "Daily usage, last 14 days"
-                    }
-                    Granularity.WEEK -> {
-                        val highest = state.bars.maxByOrNull { it.bytes }
-                        if (highest != null) "Weekly usage, last 12 weeks, highest ${highest.description}"
-                        else "Weekly usage, last 12 weeks"
-                    }
-                    Granularity.MONTH -> {
-                        val highest = state.bars.maxByOrNull { it.bytes }
-                        if (highest != null) "Monthly usage, last 12 months, highest ${highest.description}"
-                        else "Monthly usage, last 12 months"
-                    }
-                    else -> null
+
+            // Selected bar detail or chart
+            if (state.loaded && state.bars.isEmpty()) {
+                item(key = "empty_history") {
+                    EmptyState(
+                        icon = Icons.Rounded.History,
+                        title = "No history yet",
+                        body = "Usage data will appear here once recorded.",
+                    )
                 }
-                UsageBarRow(
-                    points = state.bars,
-                    selectedIndex = state.selectedIndex,
-                    onSelect = { onEvent(HistoryEvent.SelectBar(it)) },
-                    scrollKey = state.granularity,
-                    summaryDescription = summary,
-                    todayIndex = if (state.granularity == Granularity.DAY) state.bars.lastIndex else null,
-                )
-            }
+            } else {
+                // Chart
+                item(key = "chart") {
+                    val summary = when (state.granularity) {
+                        Granularity.DAY -> {
+                            val highest = state.bars.maxByOrNull { it.bytes }
+                            if (highest != null) "Daily usage, last 14 days, highest ${highest.description}"
+                            else "Daily usage, last 14 days"
+                        }
+                        Granularity.WEEK -> {
+                            val highest = state.bars.maxByOrNull { it.bytes }
+                            if (highest != null) "Weekly usage, last 12 weeks, highest ${highest.description}"
+                            else "Weekly usage, last 12 weeks"
+                        }
+                        Granularity.MONTH -> {
+                            val highest = state.bars.maxByOrNull { it.bytes }
+                            if (highest != null) "Monthly usage, last 12 months, highest ${highest.description}"
+                            else "Monthly usage, last 12 months"
+                        }
+                        else -> null
+                    }
+                    UsageBarRow(
+                        points = state.bars,
+                        selectedIndex = state.selectedIndex,
+                        onSelect = { onEvent(HistoryEvent.SelectBar(it)) },
+                        scrollKey = state.granularity,
+                        summaryDescription = summary,
+                        todayIndex = if (state.granularity == Granularity.DAY) state.bars.lastIndex else null,
+                    )
+                }
 
-            // Detail slot below chart: reserved height so selecting a bar does not jump the chart or tiles
-            val selectedIndex = state.selectedIndex
-            val isSelected = selectedIndex != null && selectedIndex in state.bars.indices
-            val bar = if (isSelected) state.bars[selectedIndex] else null
-            val point = if (isSelected) state.points.getOrNull(selectedIndex) else null
+                // Detail slot below chart: reserved height so selecting a bar does not jump the chart or tiles
+                val selectedIndex = state.selectedIndex
+                val isSelected = selectedIndex != null && selectedIndex in state.bars.indices
+                val bar = if (isSelected) state.bars[selectedIndex] else null
+                val point = if (isSelected) state.points.getOrNull(selectedIndex) else null
 
-            item(key = "chart_detail_slot") {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(72.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (isSelected && bar != null && point != null) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Row(
+                item(key = "chart_detail_slot") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (isSelected && bar != null && point != null) {
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Text(
-                                    text = bar.title ?: bar.label,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = palette.text,
-                                )
-                                TextButton(
-                                    onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
-                                    modifier = Modifier.height(32.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text("Show total", style = MaterialTheme.typography.labelMedium)
+                                    Text(
+                                        text = bar.title ?: bar.label,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = palette.text,
+                                    )
+                                    TextButton(
+                                        onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
+                                        modifier = Modifier.height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                    ) {
+                                        Text("Show total", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+
+                                NetworkBar(
+                                    mobileBytes = point.mobileBytes,
+                                    wifiBytes = point.wifiBytes,
+                                    mobileColor = palette.primary,
+                                    wifiColor = palette.accent,
+                                    units = state.units,
+                                    modifier = Modifier.fillMaxWidth().height(10.dp),
+                                )
+
+                                // Legend row with Mobile and Wi-Fi dots
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            Modifier
+                                                .size(8.dp)
+                                                .background(
+                                                    color = palette.primary,
+                                                    shape = CircleShape,
+                                                )
+                                        )
+                                        val mobileFormatted = formatBytes(point.mobileBytes, state.units)
+                                        Text(
+                                            text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = palette.muted,
+                                        )
+                                    }
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            Modifier
+                                                .size(8.dp)
+                                                .background(
+                                                    color = palette.accent,
+                                                    shape = CircleShape,
+                                                )
+                                        )
+                                        val wifiFormatted = formatBytes(point.wifiBytes, state.units)
+                                        Text(
+                                            text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = palette.muted,
+                                        )
+                                    }
                                 }
                             }
-
-                            NetworkBar(
-                                mobileBytes = point.mobileBytes,
-                                wifiBytes = point.wifiBytes,
-                                mobileColor = palette.primary,
-                                wifiColor = palette.accent,
-                                units = state.units,
-                                modifier = Modifier.fillMaxWidth().height(10.dp),
+                        } else {
+                            Text(
+                                text = "Tap a bar for mobile and Wi-Fi breakdown",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.muted,
                             )
+                        }
+                    }
+                }
 
-                            // Legend row with Mobile and Wi-Fi dots
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .size(8.dp)
-                                            .background(
-                                                color = palette.primary,
-                                                shape = CircleShape,
-                                            )
-                                    )
-                                    val mobileFormatted = formatBytes(point.mobileBytes, state.units)
-                                    Text(
-                                        text = "Mobile ${mobileFormatted.value} ${mobileFormatted.unit}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = palette.muted,
-                                    )
-                                }
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .size(8.dp)
-                                            .background(
-                                                color = palette.accent,
-                                                shape = CircleShape,
-                                            )
-                                    )
-                                    val wifiFormatted = formatBytes(point.wifiBytes, state.units)
-                                    Text(
-                                        text = "Wi-Fi ${wifiFormatted.value} ${wifiFormatted.unit}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = palette.muted,
+                // Bento tiles: Total/Active days and Average
+                item(key = "bento_tiles") {
+                    val fontScale = LocalDensity.current.fontScale
+                    val isDay = state.granularity == Granularity.DAY
+                    val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else stringResource(R.string.history_total)
+                    val firstTileValue = if (isDay) {
+                        "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
+                    } else {
+                        plainBytes(state.totalBytes, state.units)
+                    }
+                    val formattedTotal = formatBytes(state.totalBytes, state.units)
+                    val formattedAvg = formatBytes(state.averageBytes, state.units)
+                    val avgTitle = "Avg / active $unit"
+
+                    if (fontScale >= 1.5f) {
+                        Column(
+                            Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
+                                if (isDay) {
+                                    ForceLtr {
+                                        Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                    }
+                                } else {
+                                    MorphingNumber(
+                                        value = formattedTotal.value,
+                                        unit = formattedTotal.unit,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        contentDescription = spokenBytes(state.totalBytes, state.units),
                                     )
                                 }
+                            }
+                            BentoTile(title = avgTitle, modifier = Modifier.fillMaxWidth()) {
+                                MorphingNumber(
+                                    value = formattedAvg.value,
+                                    unit = formattedAvg.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = spokenBytes(state.averageBytes, state.units),
+                                )
                             }
                         }
                     } else {
-                        Text(
-                            text = "Tap a bar for mobile and Wi-Fi breakdown",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.muted,
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            BentoTile(
+                                title = firstTileTitle,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                container = TileContainer.Primary,
+                            ) {
+                                if (isDay) {
+                                    ForceLtr {
+                                        Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
+                                    }
+                                } else {
+                                    MorphingNumber(
+                                        value = formattedTotal.value,
+                                        unit = formattedTotal.unit,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        contentDescription = spokenBytes(state.totalBytes, state.units),
+                                    )
+                                }
+                            }
+                            BentoTile(
+                                title = avgTitle,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                            ) {
+                                MorphingNumber(
+                                    value = formattedAvg.value,
+                                    unit = formattedAvg.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = spokenBytes(state.averageBytes, state.units),
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            // Bento tiles: Total/Active days and Average
-            item(key = "bento_tiles") {
-                val fontScale = LocalDensity.current.fontScale
-                val isDay = state.granularity == Granularity.DAY
-                val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else stringResource(R.string.history_total)
-                val firstTileValue = if (isDay) {
-                    "${state.points.count { it.totalBytes > 0 }} of ${state.points.size}"
-                } else {
-                    plainBytes(state.totalBytes, state.units)
+            if (state.needsUsageAccess) {
+                item(key = "usage_access_notice") {
+                    Text(
+                        "Without usage access only the last 7 days are available; older bars stay empty.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.muted,
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                    )
                 }
-                val formattedTotal = formatBytes(state.totalBytes, state.units)
-                val formattedAvg = formatBytes(state.averageBytes, state.units)
-                val avgTitle = "Avg / active $unit"
-
-                if (fontScale >= 1.5f) {
-                    Column(
-                        Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
-                            if (isDay) {
-                                ForceLtr {
-                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                }
-                            } else {
-                                MorphingNumber(
-                                    value = formattedTotal.value,
-                                    unit = formattedTotal.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = spokenBytes(state.totalBytes, state.units),
-                                )
-                            }
-                        }
-                        BentoTile(title = avgTitle, modifier = Modifier.fillMaxWidth()) {
-                            MorphingNumber(
-                                value = formattedAvg.value,
-                                unit = formattedAvg.unit,
-                                style = MaterialTheme.typography.headlineSmall,
-                                contentDescription = spokenBytes(state.averageBytes, state.units),
-                            )
-                        }
-                    }
-                } else {
-                    Row(
-                        Modifier.fillMaxWidth().height(IntrinsicSize.Max),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        BentoTile(
-                            title = firstTileTitle,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            container = TileContainer.Primary,
-                        ) {
-                            if (isDay) {
-                                ForceLtr {
-                                    Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                }
-                            } else {
-                                MorphingNumber(
-                                    value = formattedTotal.value,
-                                    unit = formattedTotal.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = spokenBytes(state.totalBytes, state.units),
-                                )
-                            }
-                        }
-                        BentoTile(
-                            title = avgTitle,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                        ) {
-                            MorphingNumber(
-                                value = formattedAvg.value,
-                                unit = formattedAvg.unit,
-                                style = MaterialTheme.typography.headlineSmall,
-                                contentDescription = spokenBytes(state.averageBytes, state.units),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        if (state.needsUsageAccess) {
-            item {
-                Text(
-                    "Without usage access only the last 7 days are available; older bars stay empty.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
-}
 }

@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -14,7 +17,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -28,7 +30,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.common.SCREEN_SCAFFOLD_SCRIM
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastKind
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
@@ -36,7 +37,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -73,10 +73,30 @@ class HomeLayoutTest {
 
     @Test
     fun home_screen_renders_inside_screen_scaffold_with_scrim() {
-        show(HomeUiState())
+        var state by mutableStateOf(HomeUiState())
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = state,
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                    onNavigateToApps = {},
+                )
+            }
+        }
         rule.onNodeWithTag(SCREEN_SCAFFOLD_SCRIM).assertIsDisplayed()
         rule.onNode(hasText("Today") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
             .assertIsDisplayed()
+
+        state = state.copy(isToday = false, heroLabel = "Wednesday")
+        rule.waitForIdle()
+        rule.onNode(hasText("Wednesday") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
+        rule.onNodeWithText("Today").assertDoesNotExist()
     }
 
     @Test

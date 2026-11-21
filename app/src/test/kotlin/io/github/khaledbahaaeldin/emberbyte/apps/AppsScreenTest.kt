@@ -84,7 +84,7 @@ class AppsScreenTest {
             enterHeights.all { it >= fullHeight - 0.5f },
         )
 
-        state = state.copy(range = AppsRange.CYCLE)
+        state = state.copy(range = AppsRange.TODAY)
         val exitHeights = mutableListOf<Float>()
         repeat(10) {
             rule.mainClock.advanceTimeBy(16)
@@ -95,7 +95,7 @@ class AppsScreenTest {
             }
         }
         assertTrue(
-            "reduced motion must not show intermediate shrink heights on exit, saw $exitHeights",
+            "reduced motion must snap exit without intermediate shrink heights, saw $exitHeights",
             exitHeights.all { it >= fullHeight - 0.5f },
         )
         rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
