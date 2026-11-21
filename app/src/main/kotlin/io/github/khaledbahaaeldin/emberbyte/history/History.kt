@@ -362,7 +362,7 @@ fun HistoryContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
         // Header with ConnectedButtonGroup period selector, HeroNumber & comparison
-        item {
+        item(key = "header") {
             HistoryHeader(
                 state = state,
                 onEvent = onEvent,
@@ -371,7 +371,7 @@ fun HistoryContent(
 
         // Selected bar detail or chart
         if (state.loaded && state.bars.isEmpty()) {
-            item {
+            item(key = "empty_history") {
                 EmptyState(
                     icon = Icons.Rounded.History,
                     title = "No history yet",
@@ -380,7 +380,7 @@ fun HistoryContent(
             }
         } else {
             // Chart
-            item {
+            item(key = "chart") {
                 val summary = when (state.granularity) {
                     Granularity.DAY -> {
                         val highest = state.bars.maxByOrNull { it.bytes }
@@ -512,7 +512,7 @@ fun HistoryContent(
             }
 
             // Bento tiles: Total/Active days and Average
-            item {
+            item(key = "bento_tiles") {
                 val fontScale = LocalDensity.current.fontScale
                 val isDay = state.granularity == Granularity.DAY
                 val firstTileTitle = if (isDay) stringResource(R.string.history_active_days) else stringResource(R.string.history_total)

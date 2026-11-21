@@ -50,8 +50,8 @@ class AppsScreenTest {
     fun active_filters_visibility_snaps_under_reduced_motion() {
         var state by mutableStateOf(AppsUiState(loaded = true))
         rule.setContent {
-            CompositionLocalProvider(LocalReduceMotion provides true) {
-                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
                     AppsContent(
                         state = state,
                         onEvent = {},

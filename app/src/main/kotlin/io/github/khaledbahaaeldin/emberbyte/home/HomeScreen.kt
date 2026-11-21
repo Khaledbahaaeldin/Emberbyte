@@ -168,6 +168,11 @@ internal fun HomeContent(
                 HomeHeader(
                     state = state,
                     onSelectPlan = { onEvent(HomeEvent.SelectPlan(it)) },
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
                 )
             }
         }

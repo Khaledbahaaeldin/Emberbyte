@@ -74,24 +74,29 @@ class AppDetailAccessibilityTest {
     @Test
     fun legend_color_meets_wcag_aa_contrast() {
         val lightSpec = EmberbyteThemeSpec(presetId = "dusk", darkTheme = false)
+        var testedFg = androidx.compose.ui.graphics.Color.Unspecified
+        var testedBg = androidx.compose.ui.graphics.Color.Unspecified
         rule.setContent {
             EmberbyteTheme(lightSpec) {
+                val palette = LocalEmberbytePalette.current
+                testedFg = palette.text
+                testedBg = palette.background
                 AppDetailContent(
                     state = sampleAppDetailState,
                     onEvent = {},
                     onBack = {},
                     onOpenSettings = {},
                 )
-                val palette = LocalEmberbytePalette.current
-                val fg = palette.text.compositeOver(palette.background)
-                val l1 = fg.luminance() + 0.05
-                val l2 = palette.background.luminance() + 0.05
-                val ratio = maxOf(l1, l2) / minOf(l1, l2)
-                assertTrue("legend text on dusk light must meet 4.5:1, was $ratio", ratio >= 4.5)
             }
         }
         rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
         rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
+
+        val fg = testedFg.compositeOver(testedBg)
+        val l1 = fg.luminance() + 0.05
+        val l2 = testedBg.luminance() + 0.05
+        val ratio = maxOf(l1, l2) / minOf(l1, l2)
+        assertTrue("legend text on dusk light must meet 4.5:1, was $ratio", ratio >= 4.5)
     }
 
     @Test

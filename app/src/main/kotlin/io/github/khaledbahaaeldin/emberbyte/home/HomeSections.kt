@@ -60,20 +60,18 @@ internal fun HomeHeader(
     onSelectPlan: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (state.planChips.size >= 2) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            state.planChips.forEach { chip ->
-                EmberbyteFilterChip(
-                    selected = chip.selected,
-                    onClick = { onSelectPlan(chip.id) },
-                    label = { Text(chip.name) },
-                )
-            }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        state.planChips.forEach { chip ->
+            EmberbyteFilterChip(
+                selected = chip.selected,
+                onClick = { onSelectPlan(chip.id) },
+                label = { Text(chip.name) },
+            )
         }
     }
 }

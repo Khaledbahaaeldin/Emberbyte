@@ -354,7 +354,7 @@ fun AppDetailContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
         // Header with Back button, AppIcon, Title & Package
-        item {
+        item(key = "app_header") {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -401,7 +401,7 @@ fun AppDetailContent(
         }
 
         // Hero Number section
-        item {
+        item(key = "hero_number") {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "Last 7 days",
@@ -420,7 +420,7 @@ fun AppDetailContent(
         }
 
         // Network split bar & legend
-        item {
+        item(key = "network_summary") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 NetworkBar(
                     mobileBytes = state.mobileBytes,
@@ -437,6 +437,7 @@ fun AppDetailContent(
                     val mobileFmt = formatBytes(state.mobileBytes, state.units)
                     val wifiFmt = formatBytes(state.wifiBytes, state.units)
                     Row(
+                        modifier = Modifier.semantics(mergeDescendants = true) {},
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
@@ -454,6 +455,7 @@ fun AppDetailContent(
                         }
                     }
                     Row(
+                        modifier = Modifier.semantics(mergeDescendants = true) {},
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {

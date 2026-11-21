@@ -363,26 +363,37 @@ internal fun AppsContent(
         // Apps list or empty state
         if (state.loaded && state.apps.isEmpty()) {
             item(key = "empty_state") {
-                if (state.query.isNotBlank()) {
-                    io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState(
-                        icon = androidx.compose.material.icons.Icons.Rounded.Search,
-                        title = "No apps match",
-                        body = "No apps match \"${state.query.trim()}\".",
-                        action = {
-                            TextButton(
-                                onClick = { onEvent(AppsEvent.SetQuery("")) },
-                                modifier = Modifier.sizeIn(minHeight = 48.dp),
-                            ) {
-                                Text("Clear search")
-                            }
-                        },
-                    )
-                } else {
-                    EmptyState(
-                        icon = Icons.Rounded.Apps,
-                        title = "No app data yet",
-                        body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
-                    )
+                EmberbyteCrossfade(
+                    targetState = state.query.isNotBlank(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                ) { isSearching ->
+                    if (isSearching) {
+                        EmptyState(
+                            icon = Icons.Rounded.Search,
+                            title = "No apps match",
+                            body = "No apps match \"${state.query.trim()}\".",
+                            action = {
+                                TextButton(
+                                    onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                    modifier = Modifier.sizeIn(minHeight = 48.dp),
+                                ) {
+                                    Text("Clear search")
+                                }
+                            },
+                        )
+                    } else {
+                        EmptyState(
+                            icon = Icons.Rounded.Apps,
+                            title = "No app data yet",
+                            body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
+                        )
+                    }
                 }
             }
         } else {
