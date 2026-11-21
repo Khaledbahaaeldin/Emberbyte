@@ -521,28 +521,26 @@ fun HistoryContent(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
-                            ForceLtr {
-                                if (isDay) {
+                            if (isDay) {
+                                ForceLtr {
                                     Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                } else {
-                                    MorphingNumber(
-                                        value = formattedTotal.value,
-                                        unit = formattedTotal.unit,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        contentDescription = "$firstTileTitle ${plainBytes(state.totalBytes, state.units)}",
-                                    )
                                 }
+                            } else {
+                                MorphingNumber(
+                                    value = formattedTotal.value,
+                                    unit = formattedTotal.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = plainBytes(state.totalBytes, state.units),
+                                )
                             }
                         }
                         BentoTile(title = avgTitle, modifier = Modifier.fillMaxWidth()) {
-                            ForceLtr {
-                                MorphingNumber(
-                                    value = formattedAvg.value,
-                                    unit = formattedAvg.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = "$avgTitle ${plainBytes(state.averageBytes, state.units)}",
-                                )
-                            }
+                            MorphingNumber(
+                                value = formattedAvg.value,
+                                unit = formattedAvg.unit,
+                                style = MaterialTheme.typography.headlineSmall,
+                                contentDescription = plainBytes(state.averageBytes, state.units),
+                            )
                         }
                     }
                 } else {
@@ -555,31 +553,29 @@ fun HistoryContent(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             container = TileContainer.Primary,
                         ) {
-                            ForceLtr {
-                                if (isDay) {
+                            if (isDay) {
+                                ForceLtr {
                                     Text(firstTileValue, style = MaterialTheme.typography.headlineSmall)
-                                } else {
-                                    MorphingNumber(
-                                        value = formattedTotal.value,
-                                        unit = formattedTotal.unit,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        contentDescription = "$firstTileTitle ${plainBytes(state.totalBytes, state.units)}",
-                                    )
                                 }
+                            } else {
+                                MorphingNumber(
+                                    value = formattedTotal.value,
+                                    unit = formattedTotal.unit,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    contentDescription = plainBytes(state.totalBytes, state.units),
+                                )
                             }
                         }
                         BentoTile(
                             title = avgTitle,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                         ) {
-                            ForceLtr {
-                                MorphingNumber(
-                                    value = formattedAvg.value,
-                                    unit = formattedAvg.unit,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = "$avgTitle ${plainBytes(state.averageBytes, state.units)}",
-                                )
-                            }
+                            MorphingNumber(
+                                value = formattedAvg.value,
+                                unit = formattedAvg.unit,
+                                style = MaterialTheme.typography.headlineSmall,
+                                contentDescription = plainBytes(state.averageBytes, state.units),
+                            )
                         }
                     }
                 }

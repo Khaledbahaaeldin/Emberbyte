@@ -77,7 +77,7 @@ internal fun HomeHeader(
             ) {
                 BrandMark(size = 32.dp)
                 Text(
-                    text = "Emberbyte",
+                    text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = palette.text,
                 )
@@ -148,8 +148,13 @@ internal fun HomeHeroSection(
             .testTag("hero_section"),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        val heroLabel = if (state.isToday) {
+            stringResource(R.string.home_hero_label_today)
+        } else {
+            state.heroLabel.ifEmpty { stringResource(R.string.home_hero_label_today) }
+        }
         Text(
-            text = stringResource(R.string.home_hero_label_today),
+            text = heroLabel,
             style = MaterialTheme.typography.labelMedium,
             color = palette.muted,
         )

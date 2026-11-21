@@ -134,6 +134,30 @@ class WavyRingTest {
     }
 
     @Test
+    fun wavy_ring_respects_delay_millis() {
+        rule.mainClock.autoAdvance = false
+        var animatedSweep = -1f
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                WavyRing(
+                    fraction = 0.8f,
+                    state = BudgetStateUi.Ok,
+                    size = 72.dp,
+                    label = "80%",
+                    delayMillis = 40,
+                    onAnimatedSweepChanged = { animatedSweep = it },
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        assertEquals(0f, animatedSweep, 0.0001f)
+        rule.mainClock.advanceTimeBy(30)
+        assertEquals(0f, animatedSweep, 0.0001f)
+        rule.mainClock.advanceTimeBy(30)
+        assertTrue("Animated sweep should advance after delay: $animatedSweep", animatedSweep > 0f)
+    }
+
+    @Test
     fun rings_snap_when_reduced() {
         rule.mainClock.autoAdvance = false
         var animatedSweep = 0f

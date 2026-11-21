@@ -66,7 +66,8 @@ fun WavyBar(
         }
     }
     if (onAnimatedFractionChanged != null) {
-        SideEffect { onAnimatedFractionChanged(anim.value) }
+        val animatedFraction = anim.value
+        SideEffect { onAnimatedFractionChanged(animatedFraction) }
     }
 
     val palette = LocalEmberbytePalette.current

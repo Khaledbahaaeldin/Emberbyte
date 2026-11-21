@@ -383,6 +383,8 @@ class UsageBarRowTest {
             }
         }
         assertTrue("Initial height must start at 8.dp: $recordedHeights", recordedHeights.contains(8.dp))
+        rule.mainClock.advanceTimeBy(1000)
+        assertEquals((8 + 56 * 1f).dp, recordedHeights.last())
     }
 }
 

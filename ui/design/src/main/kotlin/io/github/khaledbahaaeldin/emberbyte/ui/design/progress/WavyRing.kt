@@ -125,20 +125,21 @@ fun WavyRing(
     val targetSweep = effectiveSweep(fraction)
     val reduceMotion = LocalReduceMotion.current
     val anim = remember(reduceMotion) { Animatable(if (reduceMotion) targetSweep else 0f) }
-    var hasEntered by remember { mutableStateOf(reduceMotion) }
+    var hasEntered by remember(reduceMotion) { mutableStateOf(reduceMotion) }
     LaunchedEffect(targetSweep, reduceMotion) {
         if (reduceMotion) {
             anim.snapTo(targetSweep)
         } else {
             if (!hasEntered && delayMillis > 0) {
                 delay(delayMillis.toLong())
-                hasEntered = true
             }
+            hasEntered = true
             anim.animateTo(targetSweep, animSpec)
         }
     }
     if (onAnimatedSweepChanged != null) {
-        SideEffect { onAnimatedSweepChanged(anim.value) }
+        val sweep = anim.value
+        SideEffect { onAnimatedSweepChanged(sweep) }
     }
 
     Box(

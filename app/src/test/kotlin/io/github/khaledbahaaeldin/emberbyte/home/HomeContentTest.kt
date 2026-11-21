@@ -226,21 +226,30 @@ class HomeContentTest {
             }
         }
 
-        rule.onNodeWithText("Prompt 1").assertExists()
-        rule.onNodeWithText("Prompt 2").assertExists()
+        rule.onNodeWithText("Prompt 1").assertIsDisplayed()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Prompt 2"))
+        rule.onNodeWithText("Prompt 2").assertIsDisplayed()
 
         // Remove p1
         promptList = listOf(p2)
         rule.waitForIdle()
 
-        rule.onNodeWithText("Prompt 2").assertExists()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Prompt 2"))
+        rule.onNodeWithText("Prompt 2").assertIsDisplayed()
         rule.onNodeWithText("Prompt 1").assertDoesNotExist()
     }
 
     @Test
     fun home_hero_labeled_today_with_system_traffic_footnote() {
-        show(HomeUiState(heroBytes = 500_000_000L))
+        show(HomeUiState(heroBytes = 500_000_000L, isToday = true))
         rule.onNodeWithText("Today").assertIsDisplayed()
+        rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_hero_shows_selected_day_label_when_not_today() {
+        show(HomeUiState(heroBytes = 500_000_000L, isToday = false, heroLabel = "Wednesday"))
+        rule.onNodeWithText("Wednesday").assertIsDisplayed()
         rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
     }
 

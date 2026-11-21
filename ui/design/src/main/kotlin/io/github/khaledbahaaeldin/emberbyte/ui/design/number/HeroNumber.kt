@@ -174,7 +174,9 @@ fun HeroNumber(
             val live = !LocalReduceMotion.current
             val rollSpatial = motion.spatial<IntOffset>()
             val rollEffects = motion.effects<Float>()
-            val activeMap = remember { mutableMapOf<Int, MutableList<Char>>() }
+            val activeMap = remember(onDigitsComposed != null) {
+                if (onDigitsComposed != null) mutableMapOf<Int, MutableList<Char>>() else null
+            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -197,7 +199,7 @@ fun HeroNumber(
                                     },
                                     label = "heroDigit",
                                 ) { digit ->
-                                    if (onDigitsComposed != null) {
+                                    if (onDigitsComposed != null && activeMap != null) {
                                         DisposableEffect(digit, slotKey) {
                                             val list = activeMap.getOrPut(slotKey) { mutableListOf() }
                                             list.add(digit)
@@ -223,7 +225,7 @@ fun HeroNumber(
                                     )
                                 }
                             } else {
-                                if (onDigitsComposed != null) {
+                                if (onDigitsComposed != null && activeMap != null) {
                                     DisposableEffect(char, slotKey) {
                                         val list = activeMap.getOrPut(slotKey) { mutableListOf() }
                                         list.clear()
