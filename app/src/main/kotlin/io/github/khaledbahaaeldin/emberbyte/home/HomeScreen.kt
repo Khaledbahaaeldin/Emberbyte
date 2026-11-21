@@ -17,6 +17,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -86,6 +92,9 @@ fun HomeScreen(
     )
 }
 
+/** The Emberbyte mark beside the day title: 44 dp and still (no motion). */
+internal val HOME_BRAND_MARK_SIZE = 44.dp
+
 @Composable
 internal fun HomeContent(
     state: HomeUiState,
@@ -100,11 +109,23 @@ internal fun HomeContent(
     icons: (String) -> ImageBitmap? = { null },
 ) {
     val palette = LocalEmberbytePalette.current
+    val title = if (state.isToday || state.heroLabel.isEmpty()) {
+        stringResource(R.string.home_hero_label_today)
+    } else {
+        state.heroLabel
+    }
     EmberbyteScreenScaffold(
-        title = if (state.isToday || state.heroLabel.isEmpty()) {
-            stringResource(R.string.home_hero_label_today)
-        } else {
-            state.heroLabel
+        title = title,
+        titleContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BrandMark(size = HOME_BRAND_MARK_SIZE, modifier = Modifier.testTag("home_brand_mark"))
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
         },
         actions = {
             IconButton(
