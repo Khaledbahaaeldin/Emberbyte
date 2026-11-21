@@ -68,7 +68,7 @@ fun ForecastTile(
     model: ForecastUi,
     modifier: Modifier = Modifier,
     corner: Corner? = Corner.TopStart,
-    container: TileContainer = TileContainer.Accent,
+    container: TileContainer = TileContainer.Standard,
 ) {
     val palette = LocalEmberbytePalette.current
     BentoTile(
@@ -78,8 +78,8 @@ fun ForecastTile(
         corner = corner,
     ) {
         ForceLtr {
-            Text(model.headline, style = MaterialTheme.typography.headlineLarge, color = palette.onAccent)
-            Text(model.detail, style = MaterialTheme.typography.bodyMedium, color = palette.onAccent.copy(alpha = 0.85f))
+            Text(model.headline, style = MaterialTheme.typography.headlineLarge, color = palette.text)
+            Text(model.detail, style = MaterialTheme.typography.bodyMedium, color = palette.muted)
         }
     }
 }

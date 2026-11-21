@@ -33,11 +33,11 @@ private fun EmberbytePalette.tileMixed(tint: Color, mix: Float): TileColours {
     )
 }
 
-/** The Live tile: the theme's primary mixed into the card colour (22 percent). */
-fun EmberbytePalette.liveTile(): TileColours = tileMixed(primary, 0.22f)
+/** The Live tile: the theme's primary mixed into the card colour (16 percent). */
+fun EmberbytePalette.liveTile(): TileColours = tileMixed(primary, 0.16f)
 
-/** The "Today by network" tile: the theme's green accent (50 percent). */
-fun EmberbytePalette.networkTile(): TileColours = tileMixed(accent, 0.5f)
+/** The "Today by network" tile: the theme's green accent (28 percent). */
+fun EmberbytePalette.networkTile(): TileColours = tileMixed(accent, 0.28f)
 
-/** The Live tile while it shows upload: a warm tint (30 percent; a tint only, not a warning state). */
-fun EmberbytePalette.uploadTile(): TileColours = tileMixed(warn, 0.30f)
+/** The Live tile while it shows upload: a warm tint (20 percent; a tint only, not a warning state). */
+fun EmberbytePalette.uploadTile(): TileColours = tileMixed(warn, 0.20f)

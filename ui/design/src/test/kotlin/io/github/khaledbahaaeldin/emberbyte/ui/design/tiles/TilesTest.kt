@@ -150,13 +150,13 @@ class TilesTest {
         rule.onNodeWithText("Test Corner").assertIsDisplayed()
     }
 
-    @Test fun forecast_tile_uses_the_accent_container() {
+    @Test fun forecast_tile_uses_the_standard_container() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 ForecastTile(ForecastUi(headline = "Thu", detail = "runs out (±1 day)", confidence = "Medium confidence"))
             }
         }
-        rule.onNodeWithTag("bento_tile_accent").assertExists()
+        rule.onNodeWithTag("bento_tile_standard").assertExists()
     }
 
     @Test fun tile_containers_meet_contrast_requirements() {

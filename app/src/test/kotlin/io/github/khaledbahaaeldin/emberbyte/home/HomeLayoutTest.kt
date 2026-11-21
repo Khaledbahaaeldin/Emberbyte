@@ -190,7 +190,7 @@ class HomeLayoutTest {
         show(HomeUiState(hasPlan = true, forecast = forecast, network = io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi.Wifi, wifiBytes = 5L))
         val forecastBounds = rule.onNodeWithText("Forecast", useUnmergedTree = true).getBoundsInRoot()
         val live = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
-        val tile = rule.onNodeWithTag("bento_tile_accent").getBoundsInRoot()
+        val tile = rule.onNode(androidx.compose.ui.test.hasTestTag("bento_tile_standard") and androidx.compose.ui.test.hasAnyDescendant(androidx.compose.ui.test.hasText("Forecast"))).getBoundsInRoot()
         assertTrue("forecast above the pair", tile.bottom <= live.top + 0.5.dp)
         assertTrue("forecast spans the full width", (tile.right - tile.left).value >= (live.right - live.left).value * 2f)
     }
