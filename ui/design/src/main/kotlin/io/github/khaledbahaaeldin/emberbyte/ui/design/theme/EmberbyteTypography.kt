@@ -5,6 +5,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
 /**
@@ -41,4 +42,16 @@ val EmberbyteTypography: Typography by lazy {
         labelMediumEmphasized = base.labelMedium.expressive(null, FontWeight.Bold),
         labelSmallEmphasized = base.labelSmall.expressive(null, FontWeight.Bold),
     )
+}
+
+/** Text sizes of the two Home bento tiles (Space Grotesk). Tokens live here so the tiles carry no raw sizes. */
+object BentoType {
+    val Label: TextUnit = 14.sp
+    val Sub: TextUnit = 12.sp
+    val Unit: TextUnit = 15.sp
+    val Caption: TextUnit = 14.sp
+    val Small: TextUnit = 13.sp
+    val BigMax: TextUnit = 60.sp
+    val BigMin: TextUnit = 36.sp
+    val BigStep: TextUnit = 1.sp
 }

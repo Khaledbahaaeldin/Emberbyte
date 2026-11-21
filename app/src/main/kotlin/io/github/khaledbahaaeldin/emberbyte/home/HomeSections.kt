@@ -13,6 +13,13 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.heightIn
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.rememberPlayHomeEntrance
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBentoTile
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.LiveDirection
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.LiveBentoTile
+import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -175,120 +182,74 @@ internal fun HomeHeroSection(
     }
 }
 
+/** The Forecast tile on its own full-width row; it appears and disappears with a plan's forecast. */
 @Composable
-internal fun HomeBentoRow(
+internal fun HomeForecastRow(
     state: HomeUiState,
     modifier: Modifier = Modifier,
 ) {
-    val fontScale = LocalDensity.current.fontScale
-    val motion = rememberEmberbyteMotion()
-    val reduceMotion = LocalReduceMotion.current
     val lastForecast = rememberRetainedWhen(state.forecast) { it != null }
-
-    if (fontScale >= 1.5f) {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SpeedTile(
-                rxBps = state.liveRxBps,
-                txBps = state.liveTxBps,
-                network = state.network,
-                units = state.units,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            EmberbyteAnimatedVisibility(visible = state.forecast != null) {
-                (state.forecast ?: lastForecast)?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
-            }
-        }
-    } else {
-        BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-            val halfWidth = (maxWidth - 12.dp) / 2
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min),
-            ) {
-                AnimatedVisibility(
-                    visible = state.forecast != null,
-                    enter = if (reduceMotion) {
-                        EnterTransition.None
-                    } else {
-                        expandHorizontally(animationSpec = motion.spatial()) + fadeIn(animationSpec = motion.effects())
-                    },
-                    exit = if (reduceMotion) {
-                        ExitTransition.None
-                    } else {
-                        shrinkHorizontally(animationSpec = motion.spatial()) + fadeOut(animationSpec = motion.effects())
-                    },
-                ) {
-                    (state.forecast ?: lastForecast)?.let { forecast ->
-                        ForecastTile(
-                            model = forecast,
-                            modifier = Modifier
-                                .padding(end = 12.dp)
-                                .width(halfWidth),
-                            corner = Corner.TopStart,
-                            container = TileContainer.Accent,
-                        )
-                    }
-                }
-                SpeedTile(
-                    rxBps = state.liveRxBps,
-                    txBps = state.liveTxBps,
-                    network = state.network,
-                    units = state.units,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("home_speed_tile"),
-                    corner = Corner.BottomStart,
-                )
-            }
-        }
+    EmberbyteAnimatedVisibility(visible = state.forecast != null, modifier = modifier.fillMaxWidth()) {
+        (state.forecast ?: lastForecast)?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
     }
 }
 
+/**
+ * The Live tile and the Today-by-network tile side by side, equal width, 10 dp apart (stacked at large font scales so
+ * nothing clips). The Live tile's direction is session state held by the caller.
+ */
 @Composable
-internal fun HomeNetworkTile(
+internal fun HomeBentoPair(
     state: HomeUiState,
+    direction: LiveDirection,
+    onToggleDirection: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalEmberbytePalette.current
-    val mobile = formatBytes(state.mobileBytes, state.units)
-    val wifi = formatBytes(state.wifiBytes, state.units)
-
-    BentoTile(
-        title = "Today by network",
-        modifier = modifier.fillMaxWidth(),
-        container = TileContainer.Standard,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            NetworkBar(
-                mobileBytes = state.mobileBytes,
-                wifiBytes = state.wifiBytes,
-                mobileColor = palette.primary,
-                wifiColor = palette.accent,
-                height = 14.dp,
-                units = state.units,
-            )
-            ForceLtr {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = "Mobile ${mobile.value} ${mobile.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.muted,
-                    )
-                    Text(
-                        text = "Wi-Fi ${wifi.value} ${wifi.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.muted,
-                    )
-                }
-            }
+    val fontScale = LocalDensity.current.fontScale
+    val playEntrance = rememberPlayHomeEntrance()
+    val networkLabel = when (state.network) {
+        NetworkKindUi.Wifi -> "Wi-Fi"
+        NetworkKindUi.Mobile -> "Mobile"
+        null -> "Offline"
+    }
+    val live: @Composable (Modifier) -> Unit = { tileModifier ->
+        LiveBentoTile(
+            rxBps = state.liveRxBps,
+            txBps = state.liveTxBps,
+            rxHistory = state.liveRxHistory,
+            txHistory = state.liveTxHistory,
+            networkLabel = networkLabel,
+            units = state.units,
+            direction = direction,
+            onToggle = onToggleDirection,
+            modifier = tileModifier,
+            playEntrance = playEntrance,
+        )
+    }
+    val network: @Composable (Modifier) -> Unit = { tileModifier ->
+        NetworkBentoTile(
+            mobileBytes = state.mobileBytes,
+            wifiBytes = state.wifiBytes,
+            units = state.units,
+            playEntrance = playEntrance,
+            modifier = tileModifier,
+        )
+    }
+    if (fontScale >= 1.5f) {
+        Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            live(Modifier.fillMaxWidth())
+            network(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = 212.dp)
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            live(Modifier.weight(1f).fillMaxHeight())
+            network(Modifier.weight(1f).fillMaxHeight())
         }
     }
 }

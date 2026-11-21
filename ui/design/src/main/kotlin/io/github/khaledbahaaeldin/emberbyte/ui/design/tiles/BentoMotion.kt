@@ -1,0 +1,93 @@
+package io.github.khaledbahaaeldin.emberbyte.ui.design.tiles
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroEntranceGate
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+
+/** First tile enters this long after the screen's first composition, and each next one this much later. */
+internal const val BENTO_ENTRANCE_FIRST_MS = 140
+internal const val BENTO_ENTRANCE_STEP_MS = 110
+
+/** The count-up of the network number: starts 380 ms in and lasts 950 ms. */
+internal const val BENTO_COUNT_UP_DELAY_MS = 380
+internal const val BENTO_COUNT_UP_MS = 950
+
+/**
+ * True once per app start, together with the Home hero entrance: the first time the Home tiles are composed. It reads
+ * the same process flag as the hero, so a later visit, a rotation or a scroll back into view does not replay it, and it
+ * is never true when animations are reduced.
+ */
+@Composable
+fun rememberPlayHomeEntrance(): Boolean {
+    val reduce = LocalReduceMotion.current
+    return remember { !reduce && !HeroEntranceGate.played }
+}
+
+/**
+ * Seconds of ambient time, advancing only while the screen is started and [enabled] (loops stop when Home is not
+ * visible and under reduced motion). Read it inside a draw or graphics-layer lambda so nothing recomposes per frame.
+ */
+@Composable
+internal fun rememberAmbientSeconds(enabled: Boolean): State<Float> {
+    val reduce = LocalReduceMotion.current
+    val running by rememberUpdatedState(enabled && !reduce)
+    val seconds = remember { mutableFloatStateOf(0f) }
+    if (enabled && !reduce) {
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        LaunchedEffect(lifecycle) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                var last = 0L
+                while (true) {
+                    val now = withInfiniteAnimationFrameNanos { it }
+                    if (last != 0L && running) seconds.floatValue += (now - last) / 1_000_000_000f
+                    last = now
+                }
+            }
+        }
+    }
+    return seconds
+}
+
+/** Test-only readout of a tile's entrance progress (0 before it starts, 1 when settled). */
+internal val BentoEntranceProgressKey = SemanticsPropertyKey<Float>("BentoEntranceProgress")
+
+/**
+ * Springs a tile in: scale 0.86 to 1, translate 18 dp to 0 and fade, [order] places after the first. Does nothing
+ * when [play] is false, so a tile that is already on screen is never replayed.
+ */
+@Composable
+internal fun Modifier.bentoEntrance(order: Int, play: Boolean): Modifier {
+    if (!play) return this
+    val motion = rememberEmberbyteMotion()
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay((BENTO_ENTRANCE_FIRST_MS + BENTO_ENTRANCE_STEP_MS * order).toLong())
+        progress.animateTo(1f, motion.spatial())
+    }
+    return this.semantics { set(BentoEntranceProgressKey, progress.value) }.graphicsLayer {
+        val p = progress.value
+        val scale = 0.86f + 0.14f * p
+        scaleX = scale
+        scaleY = scale
+        translationY = 18.dp.toPx() * (1f - p)
+        alpha = p.coerceIn(0f, 1f)
+    }
+}

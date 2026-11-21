@@ -17,6 +17,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.LiveDirection
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
@@ -109,6 +113,8 @@ internal fun HomeContent(
     icons: (String) -> ImageBitmap? = { null },
 ) {
     val palette = LocalEmberbytePalette.current
+    // Session only: survives rotation and process recreation of the screen, is never written to settings.
+    var direction by rememberSaveable { mutableStateOf(LiveDirection.Download) }
     val title = if (state.isToday || state.heroLabel.isEmpty()) {
         stringResource(R.string.home_hero_label_today)
     } else {
@@ -231,10 +237,17 @@ internal fun HomeContent(
                         )
                     }
 
-                    // Bento row: Forecast & Speed tiles
-                    item(key = "bento_row") {
-                        HomeBentoRow(
+                    // Forecast on its own full-width row (plan state), then Live and Today by network side by side.
+                    item(key = "forecast_row") {
+                        HomeForecastRow(state = state, modifier = emberbyteAnimateItem(motion))
+                    }
+                    item(key = "bento_pair") {
+                        HomeBentoPair(
                             state = state,
+                            direction = direction,
+                            onToggleDirection = {
+                                direction = if (direction == LiveDirection.Download) LiveDirection.Upload else LiveDirection.Download
+                            },
                             modifier = emberbyteAnimateItem(motion),
                         )
                     }
@@ -267,14 +280,6 @@ internal fun HomeContent(
                                 }
                             }
                         }
-                    }
-
-                    // Network tile
-                    item(key = "network") {
-                        HomeNetworkTile(
-                            state = state,
-                            modifier = emberbyteAnimateItem(motion),
-                        )
                     }
 
                     if (!state.hasPlan) {
