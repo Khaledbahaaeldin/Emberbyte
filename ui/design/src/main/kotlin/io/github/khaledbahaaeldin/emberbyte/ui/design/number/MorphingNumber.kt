@@ -197,9 +197,10 @@ fun MorphingNumber(
     ForceLtr {
         Row(
             modifier = modifier.clearAndSetSemantics {
-                this.text = AnnotatedString(fullText)
                 if (contentDescription != null) {
                     this.contentDescription = contentDescription
+                } else {
+                    this.text = AnnotatedString(fullText)
                 }
             },
             verticalAlignment = Alignment.CenterVertically,

@@ -365,7 +365,7 @@ private fun UsageBarColumn(
         )
         val animatedColor = animateColorAsState(
             targetValue = resolvedColor,
-            animationSpec = motion.effects(),
+            animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else motion.effects(),
             label = "bar_color_$index",
         )
 
@@ -376,6 +376,10 @@ private fun UsageBarColumn(
             else -> null
         }
         val borderWidth = if (isToday) 1.5.dp else 1.dp
+        val density = LocalDensity.current
+        val borderStroke = remember(borderWidth, density) {
+            Stroke(width = with(density) { borderWidth.toPx() })
+        }
 
         Box(
             Modifier
@@ -392,7 +396,6 @@ private fun UsageBarColumn(
                     }
                 }
                 .drawWithCache {
-                    val stroke = Stroke(width = borderWidth.toPx())
                     val defaultRadius = 8.dp.toPx()
                     onDrawBehind {
                         val cornerRadius = CornerRadius(if (isSelected) size.minDimension / 2f else defaultRadius)
@@ -404,7 +407,7 @@ private fun UsageBarColumn(
                             drawRoundRect(
                                 color = borderColor,
                                 cornerRadius = cornerRadius,
-                                style = stroke,
+                                style = borderStroke,
                             )
                         }
                     }

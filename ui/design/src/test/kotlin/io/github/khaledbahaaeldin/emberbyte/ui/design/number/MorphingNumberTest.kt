@@ -93,11 +93,11 @@ class MorphingNumberTest {
                     value = "1.4",
                     unit = "MB/s",
                     prefix = "↓ ",
-                    contentDescription = "Download 1.4 MB/s",
+                    contentDescription = "Download 1.4 megabytes per second",
                 )
             }
         }
-        rule.onNodeWithContentDescription("Download 1.4 MB/s").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Download 1.4 megabytes per second").assertIsDisplayed()
     }
 
     @Test

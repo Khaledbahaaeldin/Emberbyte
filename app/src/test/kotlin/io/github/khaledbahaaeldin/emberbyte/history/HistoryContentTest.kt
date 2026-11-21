@@ -182,15 +182,15 @@ class HistoryContentTest {
         }
 
         // Scroll to BentoTile content
-        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("1.48 GB"))
+        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("1.48 gigabytes"))
 
         // BentoTile titles
         rule.onNodeWithText("Total").assertExists()
         rule.onNodeWithText("Avg / active week").assertExists()
 
         // MorphingNumber accessibility content descriptions
-        rule.onNodeWithContentDescription("1.48 GB").assertIsDisplayed()
-        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("210 MB"))
-        rule.onNodeWithContentDescription("210 MB").assertIsDisplayed()
+        rule.onNodeWithContentDescription("1.48 gigabytes").assertIsDisplayed()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("210 megabytes"))
+        rule.onNodeWithContentDescription("210 megabytes").assertIsDisplayed()
     }
 }

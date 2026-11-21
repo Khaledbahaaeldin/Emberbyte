@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.NetworkKindUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
@@ -51,7 +50,6 @@ fun SpeedTile(
                     prefix = "↓ ",
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.text,
-                    contentDescription = "Download ${down.value} ${spokenUnit(down.unit)} per second",
                 )
                 MorphingNumber(
                     value = up.value,
@@ -59,7 +57,6 @@ fun SpeedTile(
                     prefix = "↑ ",
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.muted,
-                    contentDescription = "Upload ${up.value} ${spokenUnit(up.unit)} per second",
                 )
             }
         }

@@ -165,6 +165,7 @@ class WavyRingTest {
     @Test
     fun rings_snap_when_reduced() {
         rule.mainClock.autoAdvance = false
+        var animatedSweep = 0f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CompositionLocalProvider(LocalReduceMotion provides true) {
@@ -174,12 +175,12 @@ class WavyRingTest {
                         size = 72.dp,
                         label = "80%",
                         modifier = androidx.compose.ui.Modifier.testTag("ring"),
+                        onAnimatedSweepChanged = { animatedSweep = it },
                     )
                 }
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        val info = rule.onNodeWithTag("ring").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertEquals(0.8f, info.current, 0.001f)
+        assertEquals(0.8f, animatedSweep, 0.001f)
     }
 }

@@ -96,6 +96,7 @@ class WavyBarTest {
     @Test
     fun wavy_bar_snaps_when_reduced() {
         rule.mainClock.autoAdvance = false
+        var animatedProgress = 0f
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 androidx.compose.runtime.CompositionLocalProvider(
@@ -105,12 +106,12 @@ class WavyBarTest {
                         fraction = 0.8f,
                         color = Color.Green,
                         modifier = Modifier.testTag("bar"),
+                        onAnimatedFractionChanged = { animatedProgress = it },
                     )
                 }
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        val info = rule.onNodeWithTag("bar").fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
-        assertEquals(0.8f, info.current, 0.001f)
+        assertEquals(0.8f, animatedProgress, 0.001f)
     }
 }

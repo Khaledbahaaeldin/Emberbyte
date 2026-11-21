@@ -530,7 +530,7 @@ fun HistoryContent(
                                     value = formattedTotal.value,
                                     unit = formattedTotal.unit,
                                     style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = plainBytes(state.totalBytes, state.units),
+                                    contentDescription = spokenBytes(state.totalBytes, state.units),
                                 )
                             }
                         }
@@ -539,7 +539,7 @@ fun HistoryContent(
                                 value = formattedAvg.value,
                                 unit = formattedAvg.unit,
                                 style = MaterialTheme.typography.headlineSmall,
-                                contentDescription = plainBytes(state.averageBytes, state.units),
+                                contentDescription = spokenBytes(state.averageBytes, state.units),
                             )
                         }
                     }
@@ -562,7 +562,7 @@ fun HistoryContent(
                                     value = formattedTotal.value,
                                     unit = formattedTotal.unit,
                                     style = MaterialTheme.typography.headlineSmall,
-                                    contentDescription = plainBytes(state.totalBytes, state.units),
+                                    contentDescription = spokenBytes(state.totalBytes, state.units),
                                 )
                             }
                         }
@@ -574,7 +574,7 @@ fun HistoryContent(
                                 value = formattedAvg.value,
                                 unit = formattedAvg.unit,
                                 style = MaterialTheme.typography.headlineSmall,
-                                contentDescription = plainBytes(state.averageBytes, state.units),
+                                contentDescription = spokenBytes(state.averageBytes, state.units),
                             )
                         }
                     }
