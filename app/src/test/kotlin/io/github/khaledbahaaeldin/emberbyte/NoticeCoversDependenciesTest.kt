@@ -97,4 +97,15 @@ class NoticeCoversDependenciesTest {
             missing.isEmpty()
         )
     }
+    @Test
+    fun notice_covers_the_bundled_grotesque() {
+        val noticeText = findNoticeFile().readText(Charsets.UTF_8)
+        assertTrue("NOTICE must credit Space Grotesk", noticeText.contains("Space Grotesk", ignoreCase = true))
+        assertTrue(
+            "NOTICE must point to the bundled licence text",
+            noticeText.contains("licenses/space-grotesk-OFL.txt"),
+        )
+        val licences = findNoticeFile().parentFile.resolve("app/src/main/assets/licences.json").readText(Charsets.UTF_8)
+        assertTrue("licences.json must list Space Grotesk", licences.contains("\"Space Grotesk\""))
+    }
 }
