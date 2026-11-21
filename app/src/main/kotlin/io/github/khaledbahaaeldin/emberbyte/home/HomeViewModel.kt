@@ -27,6 +27,9 @@ import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.appendSample
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilters
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilter
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.NetworkFilter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,6 +54,7 @@ private data class HomeData(
     val week: List<UsagePoint>,
     val zone: ZoneId,
     val planChips: List<PlanChipUi>,
+    val dayApps: List<List<AppUsage>> = emptyList(),
 )
 
 private data class HomeBundle(
@@ -66,7 +70,7 @@ private data class HomeBundle(
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
-    usage: UsageRepository,
+    private val usage: UsageRepository,
     plans: PlanRepository,
     settings: SettingsRepository,
     permissions: PermissionRepository,
@@ -80,6 +84,7 @@ class HomeViewModel(
 
     private val selectedDay = MutableStateFlow<Int?>(null)
     private val selectedPlanId = MutableStateFlow<Long?>(null)
+    private val usageFilters = MutableStateFlow(UsageFilters()) // session only; independent of the Apps screen
 
     // Shared so the speed tile, the Live trace and the totals all follow one collection of the live rate.
     private val live: Flow<LiveSpeed?> = usage.observeLiveSpeed().map<LiveSpeed, LiveSpeed?> { it }.onStart { emit(null) }
@@ -115,8 +120,15 @@ class HomeViewModel(
             usage.observeSeries(weekRange, Granularity.DAY),
         ) { today, liveSpeed, pb, apps, week ->
             HomeData(today, liveSpeed, pb.state, pb.forecast, apps, week, zone, pb.chips)
-        }
+        }.combine(dayApps(todayDate, zone)) { data, perDay -> data.copy(dayApps = perDay) }
     }
+
+    /** One app ranking per day for the last seven days (oldest first), for the usage strip and its filters. */
+    private fun dayApps(todayDate: LocalDate, zone: ZoneId): Flow<List<List<AppUsage>>> =
+        combine((6 downTo 0).map { back ->
+            val day = todayDate.minusDays(back.toLong())
+            usage.observeApps(DateRange(day.atStartOfDay(zone).toInstant(), day.plusDays(1).atStartOfDay(zone).toInstant()))
+        }) { it.toList() }
 
     private val bundle: Flow<HomeBundle> =
         combine(
@@ -128,7 +140,7 @@ class HomeViewModel(
             HomeBundle(d, coverage, perms, spikesList)
         }
 
-    val uiState: StateFlow<HomeUiState> = combine(bundle, settings.observe(), selectedDay, liveHistory) { b, s, selected, history ->
+    val uiState: StateFlow<HomeUiState> = combine(bundle, settings.observe(), selectedDay, liveHistory, usageFilters) { b, s, selected, history, filters ->
         val newestSpike = b.spikes
             .filter { !it.dismissed }
             .maxWithOrNull(compareBy<SpikeEvent> { it.detectedAt }.thenBy { it.id })
@@ -154,6 +166,8 @@ class HomeViewModel(
             spike = spikeUi,
             liveRxHistory = history.first,
             liveTxHistory = history.second,
+            dayApps = b.data.dayApps,
+            usageFilters = filters,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(isLoading = true))
 
@@ -162,6 +176,14 @@ class HomeViewModel(
             is HomeEvent.SelectDay -> selectedDay.update { current -> if (current == event.index) null else event.index }
             is HomeEvent.SelectPlan -> selectedPlanId.value = event.planId
             is HomeEvent.DismissSpike -> viewModelScope.launch { spikes.dismiss(event.id) }
+            is HomeEvent.SetUsageFilters -> usageFilters.value = event.filters
+            is HomeEvent.ShowDay -> selectedDay.value = event.index
+            is HomeEvent.RemoveUsageFilter -> usageFilters.update { current ->
+                when (event.filter) {
+                    UsageFilter.Network -> current.copy(network = NetworkFilter.All)
+                    UsageFilter.SystemApps -> current.copy(showSystemApps = false)
+                }
+            }
         }
     }
 }

@@ -327,41 +327,25 @@ class HomeLayoutTest {
     }
 
     @Test
-    fun top_apps_shows_five_rows_and_see_all_navigates() {
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun usage_card_shows_four_rows_and_all_apps_navigates() {
         var navigatedToApps = false
-        val apps = (1..5).map {
-            AppRowUi("com.app$it", "App $it", it * 100_000_000L, it * 50_000_000L)
-        }
-        val state = HomeUiState(topApps = apps)
-        show(state, onNavigateToApps = { navigatedToApps = true })
+        show(HomeUiState(usage = sampleUsageCard()), onNavigateToApps = { navigatedToApps = true })
 
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("See all"))
-        for (i in 1..5) {
-            rule.onNodeWithText("App $i").assertExists()
+        for (name in listOf("Video", "Chat", "Maps", "Music")) {
+            rule.onNodeWithTag("usage_row_com.${name.lowercase()}").assertExists()
         }
-
-        val seeAll = rule.onNodeWithText("See all")
-        seeAll.assertIsDisplayed()
-        seeAll.performClick()
-        assertTrue("Clicking See all must navigate to Apps", navigatedToApps)
+        rule.onNodeWithTag("usage_btn_all_apps").assertIsDisplayed().performClick()
+        assertTrue("All apps must navigate to Apps", navigatedToApps)
     }
 
     @Test
-    fun see_all_is_on_the_header_row_with_top_apps_today() {
-        val apps = listOf(AppRowUi("com.app1", "App 1", 100_000_000L, 50_000_000L))
-        val state = HomeUiState(topApps = apps)
-        show(state)
-
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Top apps today"))
-        val titleBounds = rule.onNodeWithText("Top apps today").getBoundsInRoot()
-        val seeAllBounds = rule.onNodeWithText("See all").getBoundsInRoot()
-
-        // Both must be on the same header row, with top coordinates vertically aligned
-        val verticalDiff = kotlin.math.abs(titleBounds.top.value - seeAllBounds.top.value)
-        assertTrue(
-            "See all must sit on the header row with Top apps today (diff=$verticalDiff, titleTop=${titleBounds.top}, seeAllTop=${seeAllBounds.top})",
-            verticalDiff < 16f
-        )
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun the_old_top_apps_and_history_cards_are_gone() {
+        show(HomeUiState(usage = sampleUsageCard()))
+        rule.onNodeWithText("Top apps today").assertDoesNotExist()
+        rule.onNodeWithText("See all").assertDoesNotExist()
+        rule.onNodeWithTag("usage_card").assertExists()
     }
 
     @Test
@@ -497,6 +481,7 @@ class HomeLayoutTest {
                         hasPlan = false,
                         planLine = null,
                         subtitle = null,
+                        usage = sampleUsageCard(),
                         spike = SpikeTileUi(
                             id = 1L,
                             packageName = "com.video",
@@ -519,7 +504,7 @@ class HomeLayoutTest {
                 currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
                 rule.waitForIdle()
                 val linkPairs = listOf(
-                    "See all" to expectedSurface2,
+                    "All apps" to expectedSurface2,
                 )
                 for ((label, bg) in linkPairs) {
                     val results = mutableListOf<TextLayoutResult>()
@@ -698,6 +683,7 @@ class HomeLayoutTest {
             kind = ForecastKind.Safe,
         )
         val state = HomeUiState(
+            usage = sampleUsageCard(),
             heroBytes = 200_000_000_000L,
             heroDescription = "200 gigabytes used today",
             mobileBytes = 100_000_000_000L,
@@ -724,7 +710,7 @@ class HomeLayoutTest {
         }
         rule.mainClock.autoAdvance = false
         rule.mainClock.advanceTimeBy(2_000) // let the one-time tile entrance finish before measuring
-        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "GB on Wi-Fi", "See all", "Set up your data plan")) {
+        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "GB on Wi-Fi", "All apps", "Set up your data plan")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()

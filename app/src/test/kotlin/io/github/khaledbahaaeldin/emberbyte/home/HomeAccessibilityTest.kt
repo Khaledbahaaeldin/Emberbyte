@@ -129,21 +129,6 @@ class HomeAccessibilityTest {
 
     @Test
     @Config(qualifiers = "w411dp-h3000dp")
-    fun home_chart_exposes_summary_node_with_highest_day() {
-        show()
-        val summaryNode = rule.onNodeWithContentDescription(
-            "Daily usage, last 7 days, highest Wednesday, 2.10 gigabytes",
-        )
-        summaryNode.assertExists()
-        val summaryBounds = summaryNode.getBoundsInRoot()
-        val width = summaryBounds.right - summaryBounds.left
-        val height = summaryBounds.bottom - summaryBounds.top
-        assertTrue("Summary node width must be >= 48dp but was $width", width >= 48.dp)
-        assertTrue("Summary node height must be >= 48dp but was $height", height >= 48.dp)
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h3000dp")
     fun home_touch_targets_are_at_least_48dp() {
         show()
         assertNoTouchTargetSmallerThan48dp(rule)
@@ -199,8 +184,9 @@ class HomeAccessibilityTest {
 
     @Test
     @Config(qualifiers = "w360dp-h3000dp")
-    fun home_7_day_row_opens_at_end_showing_todays_bar_at_rest() {
-        show()
-        rule.onNodeWithContentDescription("Sunday, 600 megabytes").assertIsDisplayed()
+    fun home_strip_shows_all_seven_days_with_today_selected() {
+        show(sampleHomeState.copy(usage = sampleUsageCard()))
+        rule.onNodeWithContentDescription("Friday, 2.99 gigabytes", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Thursday, 1.60 gigabytes", useUnmergedTree = true).assertIsDisplayed()
     }
 }

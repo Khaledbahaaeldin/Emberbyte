@@ -11,6 +11,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import androidx.compose.runtime.LaunchedEffect
+import io.github.khaledbahaaeldin.emberbyte.nav.ContainerReveal
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -154,6 +160,8 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             NavDiagnostics.record("TRANSITION", "kind=$kind lambda=$lambda from=$from to=$to")
         }
     }
+    // Where the History screen grows out of (the Home card's History button), set just before navigating.
+    var historyOrigin by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     DisposableEffect(navController) {
         val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
             NavDiagnostics.record(
@@ -196,11 +204,26 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             composable(
                 Destination.Home.route,
                 deepLinks = listOf(navDeepLink { uriPattern = DeepLinkPatterns.HOME }),
+                // History grows out of the card, so Home stays put while it opens and closes.
+                exitTransition = {
+                    if (targetState.destination.route?.startsWith("history") == true) ExitTransition.None else transitions.exit(this)
+                },
+                popEnterTransition = {
+                    if (initialState.destination.route?.startsWith("history") == true) EnterTransition.None else transitions.popEnter(this)
+                },
             ) {
+                val returned by it.savedStateHandle
+                    .getStateFlow<Int?>(Routes.HOME_DAY_RESULT, null)
+                    .collectAsStateWithLifecycle()
                 HomeScreen(
                     viewModel(factory = graph.homeViewModelFactory()),
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                    onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                    onOpenHistory = { day, origin ->
+                        historyOrigin = origin
+                        navController.navigate(Routes.historyAt(day))
+                    },
+                    returnedDay = returned,
+                    onReturnedDayConsumed = { it.savedStateHandle[Routes.HOME_DAY_RESULT] = null },
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
                     onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
@@ -269,10 +292,37 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     PlanEditorScreen(viewModel, onBack = { navController.popBackStack() }, onPrompt = actions::onPrompt)
                 }
             }
-            composable(Routes.HISTORY) {
-                PredictiveBackSubScreen {
-                    val viewModel: HistoryViewModel = viewModel(factory = graph.historyViewModelFactory())
-                    HistoryScreen(viewModel, onBack = { navController.popBackStack() })
+            composable(
+                Routes.HISTORY_PATTERN,
+                arguments = listOf(navArgument("day") { type = NavType.IntType; defaultValue = -1 }),
+                // The reveal below is the transition; the standard slide would fight it.
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) { entry ->
+                var closing by remember { mutableStateOf(false) }
+                val origin = historyOrigin
+                val viewModel: HistoryViewModel = viewModel(factory = graph.historyViewModelFactory())
+                val day = entry.arguments?.getInt("day") ?: -1
+                ContainerReveal(
+                    origin = origin,
+                    closeRequested = closing,
+                    onClosed = {
+                        // Hand the day last chosen here back to the Home card, then leave.
+                        viewModel.homeStripDay()?.let { chosen ->
+                            navController.previousBackStackEntry?.savedStateHandle?.set(Routes.HOME_DAY_RESULT, chosen)
+                        }
+                        historyOrigin = null
+                        navController.popBackStack()
+                    },
+                ) {
+                    PredictiveBackSubScreen {
+                        LaunchedEffect(day) { if (day >= 0) viewModel.showHomeDay(day) }
+                        // Back plays the reveal backwards (about 380 ms) before leaving.
+                        androidx.activity.compose.BackHandler(enabled = origin != null && !closing) { closing = true }
+                        HistoryScreen(viewModel, onBack = { closing = true })
+                    }
                 }
             }
             composable(

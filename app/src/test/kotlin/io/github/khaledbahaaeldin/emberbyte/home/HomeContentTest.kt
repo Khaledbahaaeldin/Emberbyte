@@ -38,7 +38,7 @@ class HomeContentTest {
         state: HomeUiState,
         onEvent: (HomeEvent) -> Unit = {},
         onSettings: () -> Unit = {},
-        onHistory: () -> Unit = {},
+        onHistory: (Int) -> Unit = {},
         onPrompt: (String) -> Unit = {},
         onOpenApp: (String) -> Unit = {},
         onSetUpPlan: () -> Unit = {},
@@ -109,22 +109,22 @@ class HomeContentTest {
         assertEquals(1, opened)
     }
 
-    @Test fun the_history_tile_opens_history() {
-        var opened = false
-        show(HomeUiState(), onHistory = { opened = true })
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("History"))
-        rule.onNodeWithText("History").performClick()
-        assertEquals(true, opened)
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun the_history_button_opens_history_on_the_selected_day() {
+        var openedDay = -1
+        show(HomeUiState(usage = sampleUsageCard(selectedIndex = 3)), onHistory = { openedDay = it })
+        rule.onNodeWithTag("usage_btn_history").performClick()
+        assertEquals(3, openedDay)
     }
 
-    @Test fun tapping_a_top_app_opens_it() {
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun expanding_a_top_app_and_tapping_app_details_opens_it() {
         var opened: String? = null
-        show(
-            HomeUiState(topApps = listOf(AppRowUi("com.video", "Video", 1, 1))),
-            onOpenApp = { opened = it },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Video"))
-        rule.onNodeWithText("Video").performClick()
+        show(HomeUiState(usage = sampleUsageCard()), onOpenApp = { opened = it })
+        rule.onNodeWithTag("usage_row_com.video").performClick()
+        rule.onNodeWithTag("usage_row_details", useUnmergedTree = true).performClick()
         assertEquals("com.video", opened)
     }
 
@@ -275,21 +275,11 @@ class HomeContentTest {
     }
 
     @Test
-    fun home_weekly_bar_click_routes_to_history() {
-        var openedHistory = false
-        val weekBars = listOf(
-            BarUi(
-                label = "M\n5",
-                bytes = 100_000_000L,
-                description = "Monday, 5 October, 100 megabytes",
-            )
-        )
-        show(
-            state = HomeUiState(week = weekBars),
-            onHistory = { openedHistory = true },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Monday, 5 October, 100 megabytes"))
-        rule.onNodeWithContentDescription("Monday, 5 October, 100 megabytes").performClick()
-        assertEquals(true, openedHistory)
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun home_day_buttons_select_the_day() {
+        val events = mutableListOf<HomeEvent>()
+        show(state = HomeUiState(usage = sampleUsageCard()), onEvent = { events += it })
+        rule.onNodeWithTag("usage_day_2").performClick()
+        assertEquals(listOf<HomeEvent>(HomeEvent.SelectDay(2)), events)
     }
 }

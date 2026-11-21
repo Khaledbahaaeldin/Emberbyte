@@ -17,6 +17,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFiltersSheet
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageFilters
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.UsageCard
+import androidx.compose.runtime.remember
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.rememberPlayHomeEntrance
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanSetupCard
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.LiveDirection
@@ -59,16 +63,26 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
 fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenSettings: () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenHistory: (dayIndex: Int, origin: androidx.compose.ui.geometry.Rect?) -> Unit,
     onPromptAction: (String) -> Unit,
     onOpenApp: (String) -> Unit,
     onSetUpPlan: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToApps: () -> Unit = {},
     iconProvider: AppIconProvider? = null,
+    returnedDay: Int? = null,
+    onReturnedDayConsumed: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val packageNames = state.topApps.map { it.packageName }
+    // History hands back the day last chosen there; the card keeps it.
+    androidx.compose.runtime.LaunchedEffect(returnedDay) {
+        if (returnedDay != null) {
+            viewModel.onEvent(HomeEvent.ShowDay(returnedDay))
+            onReturnedDayConsumed()
+        }
+    }
+    var historyOrigin by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+    val packageNames = (state.usage?.rows?.map { it.row.packageName } ?: emptyList()) + state.topApps.map { it.packageName }
     val iconMap by produceState<Map<String, ImageBitmap>>(
         initialValue = emptyMap(),
         packageNames,
@@ -88,13 +102,14 @@ fun HomeScreen(
         state = state,
         onEvent = viewModel::onEvent,
         onOpenSettings = onOpenSettings,
-        onOpenHistory = onOpenHistory,
+        onOpenHistory = { day -> onOpenHistory(day, historyOrigin) },
         onPromptAction = onPromptAction,
         onOpenApp = onOpenApp,
         onSetUpPlan = onSetUpPlan,
         onNavigateToApps = onNavigateToApps,
         modifier = modifier,
         icons = { iconMap[it] },
+        onHistoryBounds = { historyOrigin = it },
     )
 }
 
@@ -106,14 +121,16 @@ internal fun HomeContent(
     state: HomeUiState,
     onEvent: (HomeEvent) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenHistory: (dayIndex: Int) -> Unit,
     onPromptAction: (String) -> Unit,
     onOpenApp: (String) -> Unit,
     onSetUpPlan: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToApps: () -> Unit = {},
     icons: (String) -> ImageBitmap? = { null },
+    onHistoryBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
+    var showFilters by rememberSaveable { mutableStateOf(false) }
     val palette = LocalEmberbytePalette.current
     // Session only: survives rotation and process recreation of the screen, is never written to settings.
     var direction by rememberSaveable { mutableStateOf(LiveDirection.Download) }
@@ -150,6 +167,20 @@ internal fun HomeContent(
         },
         modifier = modifier,
     ) { padding ->
+        if (showFilters) {
+            UsageFiltersSheet(
+                filters = state.usage?.filters ?: UsageFilters(),
+                onApply = {
+                    onEvent(HomeEvent.SetUsageFilters(it))
+                    showFilters = false
+                },
+                onReset = {
+                    onEvent(HomeEvent.SetUsageFilters(UsageFilters()))
+                    showFilters = false
+                },
+                onDismiss = { showFilters = false },
+            )
+        }
         EmberbyteCrossfade(
             targetState = state.isLoading,
             modifier = Modifier.fillMaxSize(),
@@ -295,25 +326,37 @@ internal fun HomeContent(
                         }
                     }
 
-                    // Top apps
-                    item(key = "top_apps") {
-                        HomeTopAppsSection(
-                            state = state,
-                            onOpenApp = onOpenApp,
-                            onNavigateToApps = onNavigateToApps,
-                            icons = icons,
-                            modifier = emberbyteAnimateItem(motion),
-                        )
-                    }
-
-                    // History and chart
-                    item(key = "history") {
-                        HomeHistorySection(
-                            state = state,
-                            onSelectDay = { onEvent(HomeEvent.SelectDay(it)) },
-                            onOpenHistory = onOpenHistory,
-                            modifier = emberbyteAnimateItem(motion),
-                        )
+                    // One usage card (week strip, ranking, filters, History). While usage access is missing the
+                    // existing explanation is shown instead of an empty card.
+                    if (state.topAppsLocked) {
+                        item(key = "top_apps") {
+                            HomeTopAppsSection(
+                                state = state,
+                                onOpenApp = onOpenApp,
+                                onNavigateToApps = onNavigateToApps,
+                                icons = icons,
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    } else {
+                        state.usage?.let { usage ->
+                            item(key = "usage_card") {
+                                UsageCard(
+                                    state = usage,
+                                    onSelectDay = { onEvent(HomeEvent.SelectDay(it)) },
+                                    onOpenApp = onOpenApp,
+                                    onAllApps = onNavigateToApps,
+                                    onOpenFilters = { showFilters = true },
+                                    onRemoveFilter = { onEvent(HomeEvent.RemoveUsageFilter(it)) },
+                                    onOpenHistory = onOpenHistory,
+                                    icons = icons,
+                                    onResetFilters = { onEvent(HomeEvent.SetUsageFilters(UsageFilters())) },
+                                    playEntrance = rememberPlayHomeEntrance(),
+                                    onHistoryBounds = onHistoryBounds,
+                                    modifier = emberbyteAnimateItem(motion),
+                                )
+                            }
+                        }
                     }
                 }
             }
