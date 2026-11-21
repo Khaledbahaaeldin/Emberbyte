@@ -55,6 +55,8 @@ class HistoryScreenTest {
     @get:Rule
     val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val zone = ZoneOffset.UTC
     private val locale = Locale.ENGLISH
     private val baseDate = LocalDate.of(2026, 9, 24)

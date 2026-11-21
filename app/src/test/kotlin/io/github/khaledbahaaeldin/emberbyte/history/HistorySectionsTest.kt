@@ -32,6 +32,8 @@ class HistorySectionsTest {
     @get:Rule
     val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val today = LocalDate.of(2026, 11, 20) // a Friday
     private val rows = (0 until 91).map { i ->
         val d = today.minusDays((90 - i).toLong())

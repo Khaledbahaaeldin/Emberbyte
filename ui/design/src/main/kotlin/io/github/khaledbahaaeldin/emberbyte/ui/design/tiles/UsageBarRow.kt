@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -83,6 +84,7 @@ fun UsageBarRow(
     barColor: ((index: Int, isSelected: Boolean) -> Color)? = null,
     showValues: Boolean = true,
     todayIndex: Int? = null,
+    averageBytes: Long? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -196,6 +198,7 @@ fun UsageBarRow(
                         barColor = barColor,
                         palette = palette,
                         motion = motion,
+                        averageBytes = averageBytes,
                     )
                 }
             }
@@ -324,6 +327,7 @@ private fun UsageBarColumn(
     barColor: ((index: Int, isSelected: Boolean) -> Color)?,
     palette: EmberbytePalette,
     motion: io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteMotion,
+    averageBytes: Long? = null,
 ) {
     Column(
         modifier = modifier,
@@ -358,6 +362,8 @@ private fun UsageBarColumn(
                 else -> palette.surface
             }
         val targetHeight = (8 + 56 * (bar.bytes.toFloat() / max)).dp
+        // With an average the cell is tall enough to hold the dashed line at its level, even above a short bar.
+        val averageHeight = averageBytes?.let { (8 + 56 * (it.toFloat() / max)).dp }
         val animatedHeight = animateDpAsState(
             targetValue = if (shown || reduceMotion) targetHeight else 8.dp,
             animationSpec = motion.spatial(),
@@ -387,7 +393,7 @@ private fun UsageBarColumn(
                 .widthIn(max = 24.dp)
                 .fillMaxWidth()
                 .layout { measurable, constraints ->
-                    val h = animatedHeight.value.roundToPx()
+                    val h = (averageHeight?.let { maxOf(animatedHeight.value, it) } ?: animatedHeight.value).roundToPx()
                     val placeable = measurable.measure(
                         constraints.copy(minHeight = h, maxHeight = h)
                     )
@@ -397,17 +403,55 @@ private fun UsageBarColumn(
                 }
                 .drawWithCache {
                     val defaultRadius = 8.dp.toPx()
+                    val mobileShare = if (bar.bytes > 0L) (bar.mobileBytes.toFloat() / bar.bytes).coerceIn(0f, 1f) else 0f
                     onDrawBehind {
+                        val barHeight = animatedHeight.value.toPx().coerceAtMost(size.height)
+                        val top = size.height - barHeight
+                        val barSize = androidx.compose.ui.geometry.Size(size.width, barHeight)
                         val cornerRadius = CornerRadius(if (isSelected) size.minDimension / 2f else defaultRadius)
                         drawRoundRect(
                             color = animatedColor.value,
+                            topLeft = androidx.compose.ui.geometry.Offset(0f, top),
+                            size = barSize,
                             cornerRadius = cornerRadius,
                         )
+                        if (mobileShare > 0f) {
+                            // Mobile data stacks above Wi-Fi, with a 2 dp gap.
+                            val path = androidx.compose.ui.graphics.Path().apply {
+                                addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(androidx.compose.ui.geometry.Offset(0f, top), barSize), cornerRadius))
+                            }
+                            clipPath(path) {
+                                val mobileHeight = barHeight * mobileShare
+                                drawRect(
+                                    color = if (hasSelection && !isSelected) palette.accent.copy(alpha = 0.38f) else palette.accent,
+                                    topLeft = androidx.compose.ui.geometry.Offset(0f, top),
+                                    size = androidx.compose.ui.geometry.Size(size.width, mobileHeight),
+                                )
+                                drawLine(
+                                    color = palette.surface2,
+                                    start = androidx.compose.ui.geometry.Offset(0f, top + mobileHeight),
+                                    end = androidx.compose.ui.geometry.Offset(size.width, top + mobileHeight),
+                                    strokeWidth = 2.dp.toPx(),
+                                )
+                            }
+                        }
                         if (borderColor != null) {
                             drawRoundRect(
                                 color = borderColor,
+                                topLeft = androidx.compose.ui.geometry.Offset(0f, top),
+                                size = barSize,
                                 cornerRadius = cornerRadius,
                                 style = borderStroke,
+                            )
+                        }
+                        if (averageHeight != null) {
+                            val y = size.height - averageHeight.toPx()
+                            drawLine(
+                                color = palette.muted,
+                                start = androidx.compose.ui.geometry.Offset(0f, y),
+                                end = androidx.compose.ui.geometry.Offset(size.width, y),
+                                strokeWidth = 1.5.dp.toPx(),
+                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 6f)),
                             )
                         }
                     }

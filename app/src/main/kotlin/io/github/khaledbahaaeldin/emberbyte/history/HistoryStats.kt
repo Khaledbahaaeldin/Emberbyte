@@ -160,3 +160,54 @@ internal fun hourTotalsOf(points: List<UsagePoint>, zone: ZoneId): LongArray {
     points.forEach { totals[it.start.atZone(zone).hour] += it.totalBytes }
     return totals
 }
+
+/** The plan's cycle so far against its allowance, with the forecast engine's projection (so it agrees with Home). */
+data class PlanPace(
+    val dayOfCycle: Int,
+    val cycleDays: Int,
+    val usedBytes: Long,
+    val allowanceBytes: Long,
+    /** Cumulative mobile data at the end of each day since the cycle started. */
+    val cumulative: List<Long>,
+    val projectedEndBytes: Long,
+    val willPass: Boolean,
+    val passDay: Int?,
+    val text: String,
+)
+
+private fun gigabytes(bytes: Long): String = String.format(java.util.Locale.US, "%.1f GB", bytes / 1_000_000_000.0)
+
+internal fun cyclePace(
+    state: io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState?,
+    forecast: io.github.khaledbahaaeldin.emberbyte.engine.model.Forecast?,
+    rows: List<DayUsage>,
+    today: LocalDate,
+    zone: ZoneId,
+): PlanPace? {
+    if (state == null || state.effectiveCapBytes <= 0L) return null
+    val start = state.window.start.atZone(zone).toLocalDate()
+    val end = state.window.end.atZone(zone).toLocalDate()
+    val cycleDays = java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt().coerceAtLeast(1)
+    val dayOfCycle = (java.time.temporal.ChronoUnit.DAYS.between(start, today).toInt() + 1).coerceIn(1, cycleDays)
+    val byDate = rows.associateBy { it.date }
+    var running = 0L
+    val cumulative = (0 until dayOfCycle).map { offset ->
+        running += byDate[start.plusDays(offset.toLong())]?.mobileBytes ?: 0L
+        running
+    }
+    val used = state.usedBytes
+    val allowance = state.effectiveCapBytes
+    val projected = forecast?.projectedCycleEndBytes ?: (used * cycleDays / dayOfCycle)
+    val willPass = projected > allowance
+    // The projection is a straight line from today's use to the projected end; the plan is passed where it crosses the allowance.
+    val passDay = if (willPass && projected > used) {
+        val remainingDays = cycleDays - dayOfCycle
+        (dayOfCycle + ((allowance - used).coerceAtLeast(0L).toDouble() / (projected - used) * remainingDays).toInt()).coerceIn(dayOfCycle, cycleDays)
+    } else null
+    val percent = (used * 100.0 / allowance).toInt()
+    val where = if (dayOfCycle * 2 in (cycleDays - 1)..(cycleDays + 1)) "halfway through the cycle" else "$dayOfCycle days into the cycle"
+    val outcome = if (willPass) "will pass the plan around day ${passDay ?: cycleDays}" else "will finish at ${gigabytes(projected)}, under the plan"
+    val text = "You have used ${gigabytes(used)} of ${gigabytes(allowance)} ($percent%) $where. At this pace you " +
+        if (willPass) "will finish at ${gigabytes(projected)} and $outcome." else "$outcome."
+    return PlanPace(dayOfCycle, cycleDays, used, allowance, cumulative, projected, willPass, passDay, text)
+}

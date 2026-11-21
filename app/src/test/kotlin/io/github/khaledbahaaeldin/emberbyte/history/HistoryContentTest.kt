@@ -37,6 +37,8 @@ class HistoryContentTest {
     @get:Rule
     val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val zone = ZoneOffset.UTC
     private val today = LocalDate.of(2026, 10, 7)
 

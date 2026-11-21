@@ -27,6 +27,8 @@ import org.robolectric.annotation.Config
 class AppDetailBudgetContentTest {
     @get:Rule val rule = createComposeRule()
 
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
+
     private val baseState = AppDetailUiState(
         packageName = "com.video",
         label = "Video",

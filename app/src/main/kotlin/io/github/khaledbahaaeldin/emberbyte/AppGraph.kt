@@ -189,7 +189,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun historyViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { HistoryViewModel(usage, settings, permissions) }
+        initializer { HistoryViewModel(usage, settings, permissions, plans = plans) }
     }
 
     fun settingsViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
