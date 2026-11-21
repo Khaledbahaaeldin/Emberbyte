@@ -14,9 +14,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
@@ -78,6 +76,12 @@ class AppDetailAccessibilityTest {
         val lightSpec = EmberbyteThemeSpec(presetId = "dusk", darkTheme = false)
         rule.setContent {
             EmberbyteTheme(lightSpec) {
+                AppDetailContent(
+                    state = sampleAppDetailState,
+                    onEvent = {},
+                    onBack = {},
+                    onOpenSettings = {},
+                )
                 val palette = LocalEmberbytePalette.current
                 val fg = palette.text.compositeOver(palette.background)
                 val l1 = fg.luminance() + 0.05
@@ -86,6 +90,8 @@ class AppDetailAccessibilityTest {
                 assertTrue("legend text on dusk light must meet 4.5:1, was $ratio", ratio >= 4.5)
             }
         }
+        rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
     }
 
     @Test

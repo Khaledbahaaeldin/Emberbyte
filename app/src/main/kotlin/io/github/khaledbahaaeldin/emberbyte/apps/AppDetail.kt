@@ -86,6 +86,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.BudgetRing
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
@@ -343,6 +345,7 @@ fun AppDetailContent(
             }
         } else {
             val palette = LocalEmberbytePalette.current
+            val motion = rememberEmberbyteMotion()
             var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
 
             LazyColumn(
@@ -473,44 +476,52 @@ fun AppDetailContent(
 
         // Foreground vs Background split as two BentoTiles. Android's per-app statistics are not split
         // this way by the app yet, so both values stay 0 and the tiles are hidden instead of showing "0 B".
-        if (state.foregroundBytes + state.backgroundBytes > 0L) item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                val fgFmt = formatBytes(state.foregroundBytes, state.units)
-                val bgFmt = formatBytes(state.backgroundBytes, state.units)
-                BentoTile(
-                    title = "Foreground",
-                    modifier = Modifier.weight(1f),
-                    container = TileContainer.Standard,
+        if (state.foregroundBytes + state.backgroundBytes > 0L) {
+            item(key = "foreground_background") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    ForceLtr {
-                        Text(
-                            text = "${fgFmt.value} ${fgFmt.unit}",
-                            style = EmberbyteType.value(20.sp),
-                            color = palette.text,
-                        )
+                    val fgFmt = formatBytes(state.foregroundBytes, state.units)
+                    val bgFmt = formatBytes(state.backgroundBytes, state.units)
+                    BentoTile(
+                        title = "Foreground",
+                        modifier = Modifier.weight(1f),
+                        container = TileContainer.Standard,
+                    ) {
+                        ForceLtr {
+                            Text(
+                                text = "${fgFmt.value} ${fgFmt.unit}",
+                                style = EmberbyteType.value(20.sp),
+                                color = palette.text,
+                            )
+                        }
                     }
-                }
-                BentoTile(
-                    title = "Background",
-                    modifier = Modifier.weight(1f),
-                    container = TileContainer.Standard,
-                ) {
-                    ForceLtr {
-                        Text(
-                            text = "${bgFmt.value} ${bgFmt.unit}",
-                            style = EmberbyteType.value(20.sp),
-                            color = palette.text,
-                        )
+                    BentoTile(
+                        title = "Background",
+                        modifier = Modifier.weight(1f),
+                        container = TileContainer.Standard,
+                    ) {
+                        ForceLtr {
+                            Text(
+                                text = "${bgFmt.value} ${bgFmt.unit}",
+                                style = EmberbyteType.value(20.sp),
+                                color = palette.text,
+                            )
+                        }
                     }
                 }
             }
         }
 
         // Daily chart (7 bars weighted to fit card, today's bar uses primary, others surface2)
-        item {
+        item(key = "daily_usage") {
             val weekSummary = run {
                 val highest = state.bars.maxByOrNull { it.bytes }
                 if (highest != null) "Daily usage, last 7 days, highest ${highest.description}"
@@ -521,28 +532,43 @@ fun AppDetailContent(
                 modifier = Modifier.fillMaxWidth().testTag("DAILY_USAGE_CARD"),
                 container = TileContainer.Standard,
             ) {
-                if (state.bars.isEmpty()) {
-                    EmptyState(
-                        icon = Icons.Rounded.HistoryToggleOff,
-                        title = "No daily usage",
-                        body = "Daily breakdown will show here once usage is recorded.",
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    )
-                } else {
-                    AppDetailDailyChart(
-                        bars = state.bars,
-                        selectedIndex = selectedBarIndex,
-                        onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
-                        summaryDescription = weekSummary,
-                    )
+                EmberbyteCrossfade(
+                    targetState = state.bars.isEmpty(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) { isEmpty ->
+                    if (isEmpty) {
+                        EmptyState(
+                            icon = Icons.Rounded.HistoryToggleOff,
+                            title = "No daily usage",
+                            body = "Daily breakdown will show here once usage is recorded.",
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        )
+                    } else {
+                        AppDetailDailyChart(
+                            bars = state.bars,
+                            selectedIndex = selectedBarIndex,
+                            onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
+                            summaryDescription = weekSummary,
+                        )
+                    }
                 }
             }
         }
 
         // Spikes if present
         if (state.spikes.isNotEmpty()) {
-            item {
-                BentoTile(title = "Spikes", modifier = Modifier.fillMaxWidth(), container = TileContainer.Warn) {
+            item(key = "spikes") {
+                BentoTile(
+                    title = "Spikes",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                    container = TileContainer.Warn,
+                ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -593,64 +619,70 @@ fun AppDetailContent(
         }
 
         // Data budget
-        item {
+        item(key = "data_budget") {
             BentoTile(title = "Data budget", modifier = Modifier.fillMaxWidth()) {
                 val b = state.budget
-                if (b == null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "No budget set",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.muted,
-                        )
-                        TextButton(
-                            onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
-                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                EmberbyteCrossfade(
+                    targetState = b != null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { hasBudget ->
+                    if (!hasBudget) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Set a budget", color = palette.primary)
+                            Text(
+                                "No budget set",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.muted,
+                            )
+                            TextButton(
+                                onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
+                                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                            ) {
+                                Text("Set a budget", color = palette.primary)
+                            }
                         }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BudgetRing(
-                            fraction = b.fraction,
-                            state = b.ringState,
-                            percentText = b.percentText,
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                    } else {
+                        val budget = checkNotNull(b)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            ForceLtr {
-                                Text(b.usedText, style = MaterialTheme.typography.titleMedium, color = palette.text)
-                            }
-                            ForceLtr {
-                                Text(
-                                    b.periodText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = palette.muted,
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(
-                                    onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Edit", color = palette.primary)
+                            BudgetRing(
+                                fraction = budget.fraction,
+                                state = budget.ringState,
+                                percentText = budget.percentText,
+                            )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                ForceLtr {
+                                    Text(budget.usedText, style = MaterialTheme.typography.titleMedium, color = palette.text)
                                 }
-                                TextButton(
-                                    onClick = { onEvent(AppDetailEvent.RemoveBudget) },
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Remove", color = palette.danger)
+                                ForceLtr {
+                                    Text(
+                                        budget.periodText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = palette.muted,
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(
+                                        onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
+                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                                    ) {
+                                        Text("Edit", color = palette.primary)
+                                    }
+                                    TextButton(
+                                        onClick = { onEvent(AppDetailEvent.RemoveBudget) },
+                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                                    ) {
+                                        Text("Remove", color = palette.danger)
+                                    }
                                 }
                             }
                         }
@@ -661,7 +693,7 @@ fun AppDetailContent(
 
         // App settings
         if (!state.packageName.startsWith("uid:") && onOpenSettings != null) {
-            item {
+            item(key = "app_settings") {
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     TextButton(
                         onClick = onOpenSettings,

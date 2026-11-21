@@ -361,12 +361,11 @@ fun HistoryContent(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-        // Header with Back button, ConnectedButtonGroup period selector, HeroNumber & comparison
+        // Header with ConnectedButtonGroup period selector, HeroNumber & comparison
         item {
             HistoryHeader(
                 state = state,
                 onEvent = onEvent,
-                onBack = onBack,
             )
         }
 

@@ -33,7 +33,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalett
  * Header section for History screen (Mockup 06-history option B).
  *
  * Contains:
- * - Screen title ("History") and Back navigation button
  * - Period selector as ConnectedButtonGroup (Day / Week / Month)
  * - Period total as HeroNumber with accessible one-node description
  * - Comparison against previous period ("12% more than last week") with an icon, never colour alone
@@ -42,7 +41,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalett
 fun HistoryHeader(
     state: HistoryUiState,
     onEvent: (HistoryEvent) -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current

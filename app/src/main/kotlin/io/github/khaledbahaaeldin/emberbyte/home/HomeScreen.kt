@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
@@ -124,6 +123,10 @@ internal fun HomeContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(
+                            top = padding.calculateTopPadding(),
+                            bottom = padding.calculateBottomPadding(),
+                        )
                         .testTag("home_loading_indicator"),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -219,7 +222,13 @@ internal fun HomeContent(
             item(key = "spike") {
                 BentoTile(
                     title = "Spike detected",
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
                     container = TileContainer.Tertiary,
                     onClick = { onOpenApp(spike.packageName) },
                 ) {
@@ -253,7 +262,13 @@ internal fun HomeContent(
             item(key = "data_plan") {
                 BentoTile(
                     title = "Data plan",
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
                     onClick = onSetUpPlan,
                 ) {
                     Text(

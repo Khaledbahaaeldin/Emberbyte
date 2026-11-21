@@ -38,6 +38,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.progress.WavyBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
@@ -111,16 +112,13 @@ internal fun HomeHeroSection(
             .testTag("hero_section"),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        val heroLabel = if (state.isToday) {
-            stringResource(R.string.home_hero_label_today)
-        } else {
-            state.heroLabel.ifEmpty { stringResource(R.string.home_hero_label_today) }
+        if (!state.isToday && state.heroLabel.isNotEmpty()) {
+            Text(
+                text = state.heroLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = palette.muted,
+            )
         }
-        Text(
-            text = heroLabel,
-            style = MaterialTheme.typography.labelMedium,
-            color = palette.muted,
-        )
 
         HeroNumber(
             value = formatted.value,
@@ -297,16 +295,21 @@ internal fun HomeTopAppsSection(
             }
         },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            when {
-                state.topAppsLocked -> {
+        val topAppsState = when {
+            state.topAppsLocked -> 0
+            state.topApps.isEmpty() -> 1
+            else -> 2
+        }
+        EmberbyteCrossfade(targetState = topAppsState, modifier = Modifier.fillMaxWidth()) { displayMode ->
+            when (displayMode) {
+                0 -> {
                     Text(
                         text = "Allow usage access to see which apps use your data.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = palette.muted,
                     )
                 }
-                state.topApps.isEmpty() -> {
+                1 -> {
                     Text(
                         text = "No per-app data yet. It appears within about 5 minutes once usage access is allowed.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -314,20 +317,22 @@ internal fun HomeTopAppsSection(
                     )
                 }
                 else -> {
-                    val maxBytes = state.topApps.maxOfOrNull { it.totalBytes } ?: 1L
-                    state.topApps.take(5).forEach { app ->
-                        val fraction = if (maxBytes > 0L) app.totalBytes.toFloat() / maxBytes else 0f
-                        AppRow(
-                            icon = icons(app.packageName),
-                            shape = shapeFor(app.packageName),
-                            label = app.label,
-                            bytes = app.totalBytes,
-                            fraction = fraction,
-                            mobileBytes = app.mobileBytes,
-                            wifiBytes = app.wifiBytes,
-                            onClick = { onOpenApp(app.packageName) },
-                            units = state.units,
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val maxBytes = state.topApps.maxOfOrNull { it.totalBytes } ?: 1L
+                        state.topApps.take(5).forEach { app ->
+                            val fraction = if (maxBytes > 0L) app.totalBytes.toFloat() / maxBytes else 0f
+                            AppRow(
+                                icon = icons(app.packageName),
+                                shape = shapeFor(app.packageName),
+                                label = app.label,
+                                bytes = app.totalBytes,
+                                fraction = fraction,
+                                mobileBytes = app.mobileBytes,
+                                wifiBytes = app.wifiBytes,
+                                onClick = { onOpenApp(app.packageName) },
+                                units = state.units,
+                            )
+                        }
                     }
                 }
             }

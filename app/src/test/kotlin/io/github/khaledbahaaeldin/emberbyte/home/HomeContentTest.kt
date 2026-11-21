@@ -243,7 +243,7 @@ class HomeContentTest {
     @Test
     fun home_hero_labeled_today_with_system_traffic_footnote() {
         show(HomeUiState(heroBytes = 500_000_000L, isToday = true))
-        rule.onAllNodes(hasText("Today")).assertCountEquals(2)
+        rule.onNodeWithText("Today").assertIsDisplayed()
         rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
     }
 
