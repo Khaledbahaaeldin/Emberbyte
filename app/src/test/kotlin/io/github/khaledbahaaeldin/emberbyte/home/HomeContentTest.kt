@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -77,15 +78,35 @@ class HomeContentTest {
         assertEquals("usage_access", picked)
     }
 
-    @Test fun without_a_plan_the_data_plan_tile_explains_whats_coming() {
+    @Test fun no_plan_shows_the_setup_card_and_neither_the_old_link_nor_the_old_card() {
         show(HomeUiState(hasPlan = false))
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Data plan"))
-        rule.onNodeWithText("Data plan").assertIsDisplayed()
+        rule.onNodeWithText("Set up your data plan", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("See what is left and when it runs out.", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Set up plan", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Set up a plan").assertDoesNotExist()
+        rule.onNodeWithText("Data plan").assertDoesNotExist()
+        rule.onNodeWithText("Set up your data plan to see what is left and when it runs out.").assertDoesNotExist()
     }
 
-    @Test fun with_a_plan_the_data_plan_tile_is_hidden() {
+    @Test fun with_a_plan_the_setup_card_is_not_shown() {
         show(HomeUiState(hasPlan = true))
-        rule.onNodeWithText("Data plan").assertDoesNotExist()
+        rule.onNodeWithTag("plan_setup_card").assertDoesNotExist()
+        rule.onNodeWithText("Set up plan").assertDoesNotExist()
+    }
+
+    @Test fun setup_card_button_opens_the_new_plan_flow() {
+        var opened = 0
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = HomeUiState(hasPlan = false),
+                    onEvent = {}, onOpenSettings = {}, onOpenHistory = {}, onPromptAction = {}, onOpenApp = {},
+                    onSetUpPlan = { opened++ },
+                )
+            }
+        }
+        rule.onNodeWithTag("plan_setup_button").performClick()
+        assertEquals(1, opened)
     }
 
     @Test fun the_history_tile_opens_history() {

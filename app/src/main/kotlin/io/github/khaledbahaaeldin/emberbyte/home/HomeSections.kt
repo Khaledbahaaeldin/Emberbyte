@@ -131,7 +131,6 @@ internal fun HomeHeroSection(
         EmberbyteCrossfade(
             targetState = when {
                 lineText != null -> HeroStatusKind.Line
-                !state.hasPlan -> HeroStatusKind.SetupPrompt
                 else -> HeroStatusKind.None
             },
         ) { statusState ->
@@ -155,18 +154,6 @@ internal fun HomeHeroSection(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                    }
-                }
-                HeroStatusKind.SetupPrompt -> {
-                    TextButton(
-                        onClick = onSetUpPlan,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text(
-                            text = "Set up a plan",
-                            color = palette.linkText,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
                     }
                 }
                 HeroStatusKind.None -> Unit
@@ -372,7 +359,6 @@ internal fun HomeHistorySection(
 
 private enum class HeroStatusKind {
     Line,
-    SetupPrompt,
     None,
 }
 

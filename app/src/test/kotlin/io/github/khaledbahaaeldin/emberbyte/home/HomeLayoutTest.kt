@@ -239,7 +239,7 @@ class HomeLayoutTest {
     }
 
     @Test
-    fun no_plan_shows_the_set_up_a_plan_action_and_no_bar() {
+    fun no_plan_shows_the_setup_card_and_no_bar() {
         var setUpClicked = false
         val state = HomeUiState(
             hasPlan = false,
@@ -248,14 +248,25 @@ class HomeLayoutTest {
         )
         show(state, onSetUpPlan = { setUpClicked = true })
 
-        val action = rule.onNodeWithText("Set up a plan")
+        val action = rule.onNodeWithTag("plan_setup_button")
         action.assertIsDisplayed()
         action.performClick()
-        assertTrue("Tapping Set up a plan must invoke callback", setUpClicked)
+        assertTrue("Tapping the setup button must invoke the callback", setUpClicked)
 
-        // WavyBar with ProgressBarRangeInfo should NOT exist
+        // No plan, so no progress bar anywhere (the ghost ring is decorative and publishes no progress).
         rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
             .assertCountEquals(0)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun setup_card_sits_under_the_hero_above_the_tiles() {
+        show(HomeUiState(hasPlan = false, heroBytes = 500_000_000L, heroDescription = "500 megabytes used today"))
+        val hero = rule.onNodeWithTag("hero_section").getBoundsInRoot()
+        val card = rule.onNodeWithTag("plan_setup_card").getBoundsInRoot()
+        val live = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
+        assertTrue("card is under the hero", card.top >= hero.bottom - 0.5.dp)
+        assertTrue("card is above the tiles", card.bottom <= live.top + 0.5.dp)
     }
 
     @Test
@@ -298,6 +309,7 @@ class HomeLayoutTest {
     }
 
     @Test
+    @Config(qualifiers = "w360dp-h3000dp")
     fun forecast_tile_shows_the_run_out_date_when_projected_over_the_cap() {
         val state = HomeUiState(
             forecast = ForecastUi(
@@ -508,8 +520,6 @@ class HomeLayoutTest {
                 rule.waitForIdle()
                 val linkPairs = listOf(
                     "See all" to expectedSurface2,
-                    "Set up a plan" to expectedBackground,
-                    "Set up your data plan" to expectedSurface2,
                 )
                 for ((label, bg) in linkPairs) {
                     val results = mutableListOf<TextLayoutResult>()
@@ -714,7 +724,7 @@ class HomeLayoutTest {
         }
         rule.mainClock.autoAdvance = false
         rule.mainClock.advanceTimeBy(2_000) // let the one-time tile entrance finish before measuring
-        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "GB on Wi-Fi", "See all", "Set up a plan")) {
+        for (label in listOf("3 days left", "Today by network", "Mobile 100 GB", "GB on Wi-Fi", "See all", "Set up your data plan")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()

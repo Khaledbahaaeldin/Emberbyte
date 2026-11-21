@@ -70,24 +70,34 @@ internal fun rememberAmbientSeconds(enabled: Boolean): State<Float> {
 internal val BentoEntranceProgressKey = SemanticsPropertyKey<Float>("BentoEntranceProgress")
 
 /**
- * Springs a tile in: scale 0.86 to 1, translate 18 dp to 0 and fade, [order] places after the first. Does nothing
- * when [play] is false, so a tile that is already on screen is never replayed.
+ * Springs a tile in: scale [fromScale] to 1, translate [fromDy] to 0 and fade, starting [startMs] after the screen's
+ * first composition. Does nothing when [play] is false, so a tile already on screen is never replayed.
  */
 @Composable
-internal fun Modifier.bentoEntrance(order: Int, play: Boolean): Modifier {
-    if (!play) return this
+internal fun Modifier.entrance(
+    startMs: Int,
+    play: Boolean,
+    fromScale: Float = 0.86f,
+    fromDy: androidx.compose.ui.unit.Dp = 18.dp,
+): Modifier {
+    if (!play || LocalReduceMotion.current) return this
     val motion = rememberEmberbyteMotion()
     val progress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay((BENTO_ENTRANCE_FIRST_MS + BENTO_ENTRANCE_STEP_MS * order).toLong())
+        kotlinx.coroutines.delay(startMs.toLong())
         progress.animateTo(1f, motion.spatial())
     }
     return this.semantics { set(BentoEntranceProgressKey, progress.value) }.graphicsLayer {
         val p = progress.value
-        val scale = 0.86f + 0.14f * p
+        val scale = fromScale + (1f - fromScale) * p
         scaleX = scale
         scaleY = scale
-        translationY = 18.dp.toPx() * (1f - p)
+        translationY = fromDy.toPx() * (1f - p)
         alpha = p.coerceIn(0f, 1f)
     }
 }
+
+/** The bento tiles: [order] places each after the first (140 ms, then 110 ms apart). */
+@Composable
+internal fun Modifier.bentoEntrance(order: Int, play: Boolean): Modifier =
+    entrance(BENTO_ENTRANCE_FIRST_MS + BENTO_ENTRANCE_STEP_MS * order, play)

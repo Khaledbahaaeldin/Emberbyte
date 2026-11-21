@@ -71,13 +71,14 @@ private fun buildWavyCirclePathTo(
     waves: Int,
     startAngleRad: Float,
     sweepAngleRad: Float,
+    phaseOffset: Float = 0f,
 ) {
     val steps = maxOf(4, (16 * waves * (sweepAngleRad / (2f * Math.PI.toFloat()))).toInt())
     val dTheta = sweepAngleRad / steps
     for (i in 0..steps) {
         val currentAngle = startAngleRad + i * dTheta
         val phase = i * dTheta
-        val r = baseRadius + amplitude * kotlin.math.cos(waves * phase)
+        val r = baseRadius + amplitude * kotlin.math.cos(waves * phase + phaseOffset)
         val x = cx + r * kotlin.math.cos(currentAngle)
         val y = cy + r * kotlin.math.sin(currentAngle)
         if (i == 0) {
@@ -130,7 +131,12 @@ fun WavyRing(
     delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
     onAnimatedSweepChanged: ((Float) -> Unit)? = null,
+    ghost: GhostRing? = null,
 ) {
+    if (ghost != null) {
+        GhostWavyRing(size = size, ghost = ghost, modifier = modifier)
+        return
+    }
     val palette = LocalEmberbytePalette.current
     val (arcColor, trackColor) = ringColors(state, palette)
     val outlineColor = ringOutlineColor(palette)
@@ -284,6 +290,73 @@ fun WavyRing(
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = markFg,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Ghost mode of [WavyRing] for the "no plan yet" card: a decorative ring whose arc draws itself to [fraction] once and
+ * whose wave then drifts. Not a progress indicator, so it publishes no progress or description.
+ */
+data class GhostRing(val fraction: Float = 0.7f, val drawDurationMs: Int = 1300)
+
+/** The ghost arc as it draws: linear from 0 to [target] over progress 0..1, clamped. */
+internal fun ghostArcFraction(progress: Float, target: Float): Float = progress.coerceIn(0f, 1f) * target
+
+/** Test-only readouts of the ghost ring. */
+internal val GhostRingFractionKey = androidx.compose.ui.semantics.SemanticsPropertyKey<Float>("GhostRingFraction")
+internal val GhostRingPhaseKey = androidx.compose.ui.semantics.SemanticsPropertyKey<Float>("GhostRingPhase")
+
+/** Wave drift of the ghost ring, in radians per second. */
+private const val GHOST_WAVE_RAD_PER_SEC = 2f
+
+@Composable
+private fun GhostWavyRing(size: Dp, ghost: GhostRing, modifier: Modifier) {
+    val palette = LocalEmberbytePalette.current
+    val reduceMotion = LocalReduceMotion.current
+    val progress = remember(reduceMotion) { Animatable(if (reduceMotion) 1f else 0f) }
+    LaunchedEffect(reduceMotion) {
+        if (!reduceMotion) {
+            progress.animateTo(1f, androidx.compose.animation.core.tween(ghost.drawDurationMs, easing = androidx.compose.animation.core.LinearEasing))
+        } else {
+            progress.snapTo(1f)
+        }
+    }
+    val seconds = io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.rememberAmbientSeconds(enabled = true)
+    val arc = palette.primary
+    val track = palette.primary.copy(alpha = 0.2f)
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .semantics {
+                set(GhostRingFractionKey, ghostArcFraction(progress.value, ghost.fraction))
+                set(GhostRingPhaseKey, seconds.value * GHOST_WAVE_RAD_PER_SEC)
+            },
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = this.size.minDimension * 0.07f
+            val radiusBase = (this.size.minDimension - stroke) / 2f
+            // Flat (no wave) when animations are reduced.
+            val amplitude = if (reduceMotion) 0f else radiusBase * 0.026f
+            val baseRadius = radiusBase - amplitude
+            val cx = this.size.width / 2f
+            val cy = this.size.height / 2f
+            val waves = 14
+            val start = -Math.PI.toFloat() / 2f
+            val phase = if (reduceMotion) 0f else seconds.value * GHOST_WAVE_RAD_PER_SEC
+            val style = Stroke(width = stroke, cap = StrokeCap.Round)
+
+            val trackPath = Path()
+            buildWavyCirclePathTo(trackPath, cx, cy, baseRadius, amplitude, waves, start, 2f * Math.PI.toFloat(), phase)
+            drawPath(trackPath, track, style = style)
+
+            val fraction = ghostArcFraction(progress.value, ghost.fraction)
+            if (fraction > 0f) {
+                val arcPath = Path()
+                buildWavyCirclePathTo(arcPath, cx, cy, baseRadius, amplitude, waves, start, fraction * 2f * Math.PI.toFloat(), phase)
+                drawPath(arcPath, arc, style = style)
             }
         }
     }
