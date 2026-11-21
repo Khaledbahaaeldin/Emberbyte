@@ -156,12 +156,14 @@ class AppDetailAccessibilityTest {
         var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
         var expectedLinkColor = Color.Unspecified
         var expectedSurface2 = Color.Unspecified
+        var expectedBackground = Color.Unspecified
         rule.setContent {
             EmberbyteTheme(currentSpec) {
                 val palette = LocalEmberbytePalette.current
                 SideEffect {
                     expectedLinkColor = palette.linkText
                     expectedSurface2 = palette.surface2
+                    expectedBackground = palette.background
                 }
                 AppDetailContent(
                     state = sampleAppDetailState.copy(budget = null),
@@ -176,21 +178,113 @@ class AppDetailAccessibilityTest {
             for ((dark, amoled) in variants) {
                 currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
                 rule.waitForIdle()
-                val results = mutableListOf<TextLayoutResult>()
-                rule.onNodeWithText("Set a budget", useUnmergedTree = true)
-                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
-                val actualColor = results.first().layoutInput.style.color
-                assertEquals(
-                    "Set a budget must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
-                    expectedLinkColor,
-                    actualColor,
+                for ((label, bg) in listOf("Set a budget" to expectedSurface2, "App settings" to expectedBackground)) {
+                    val results = mutableListOf<TextLayoutResult>()
+                    rule.onNodeWithText(label, useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                    val actualColor = results.first().layoutInput.style.color
+                    assertEquals(
+                        "$label must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                        expectedLinkColor,
+                        actualColor,
+                    )
+                    val fg = actualColor.compositeOver(bg)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = bg.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$label on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun spikes_warn_tile_and_edit_link_meet_wcag_aa_contrast_across_all_palettes() {
+        val sampleBudget = BudgetUi(
+            id = 1L,
+            fraction = 0.5f,
+            ringState = BudgetStateUi.Ok,
+            percentText = "50%",
+            usedText = "500 MB of 1 GB",
+            periodText = "Cycle",
+            enabled = true,
+        )
+        val sampleSpike = SpikeRowUi(
+            id = 1L,
+            whenText = "Yesterday 14:00",
+            bytesText = "350 MB",
+            multipleText = "4.2x normal",
+        )
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedOnWarn = Color.Unspecified
+        var expectedWarn = Color.Unspecified
+        var expectedLinkColor = Color.Unspecified
+        var expectedSurface2 = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedOnWarn = palette.onWarn
+                    expectedWarn = palette.warn
+                    expectedLinkColor = palette.linkText
+                    expectedSurface2 = palette.surface2
+                }
+                AppDetailContent(
+                    state = sampleAppDetailState.copy(
+                        budget = sampleBudget,
+                        spikes = listOf(sampleSpike),
+                    ),
+                    onEvent = {},
+                    onBack = {},
+                    onOpenSettings = {},
                 )
-                val fg = actualColor.compositeOver(expectedSurface2)
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+
+                for (warnLabel in listOf("Yesterday 14:00", "350 MB", "4.2x normal", "Dismiss")) {
+                    val results = mutableListOf<TextLayoutResult>()
+                    rule.onNodeWithText(warnLabel, useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                    val actualColor = results.first().layoutInput.style.color
+                    assertEquals(
+                        "$warnLabel must bind to palette.onWarn on ${preset.id} dark=$dark amoled=$amoled",
+                        expectedOnWarn,
+                        actualColor,
+                    )
+                    val fg = actualColor.compositeOver(expectedWarn)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = expectedWarn.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$warnLabel on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on warn, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
+
+                val editResults = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithText("Edit", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(editResults) }
+                val editColor = editResults.first().layoutInput.style.color
+                assertEquals(
+                    "Edit must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedLinkColor,
+                    editColor,
+                )
+                val fg = editColor.compositeOver(expectedSurface2)
                 val l1 = fg.luminance() + 0.05
                 val l2 = expectedSurface2.luminance() + 0.05
                 val ratio = maxOf(l1, l2) / minOf(l1, l2)
                 assertTrue(
-                    "Set a budget on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $ratio",
+                    "Edit on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $ratio",
                     ratio >= 4.5,
                 )
             }

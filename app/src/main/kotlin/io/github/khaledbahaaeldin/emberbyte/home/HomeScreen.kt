@@ -37,6 +37,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.GapBanner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
@@ -259,13 +260,13 @@ internal fun HomeContent(
                                     Text(
                                         spike.detail,
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = palette.onAccent,
                                     )
                                 }
                                 TextButton(
                                     onClick = { onEvent(HomeEvent.DismissSpike(spike.id)) },
                                     colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        contentColor = palette.onAccent,
                                     ),
                                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                 ) {
@@ -308,7 +309,7 @@ internal fun HomeContent(
                                     onClick = onSetUpPlan,
                                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                 ) {
-                                    Text("Set up your data plan")
+                                    Text("Set up your data plan", color = palette.linkText)
                                 }
                             }
                         }

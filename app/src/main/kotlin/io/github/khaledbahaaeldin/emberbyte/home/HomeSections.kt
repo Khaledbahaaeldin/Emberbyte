@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -131,7 +133,7 @@ internal fun HomeHeroSection(
             when (statusState) {
                 0 -> {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        retainedLineText.value?.let { text ->
+                        (lineText ?: retainedLineText.value)?.let { text ->
                             ForceLtr {
                                 Text(
                                     text = text,
@@ -204,47 +206,49 @@ internal fun HomeBentoRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             EmberbyteAnimatedVisibility(visible = state.forecast != null) {
-                lastForecast.value?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+                (state.forecast ?: lastForecast.value)?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
             }
         }
     } else {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            AnimatedVisibility(
-                visible = state.forecast != null,
-                modifier = if (state.forecast != null) Modifier.weight(1f) else Modifier,
-                enter = if (reduceMotion) {
-                    EnterTransition.None
-                } else {
-                    expandHorizontally(animationSpec = motion.spatial()) + fadeIn(animationSpec = motion.effects())
-                },
-                exit = if (reduceMotion) {
-                    ExitTransition.None
-                } else {
-                    shrinkHorizontally(animationSpec = motion.spatial()) + fadeOut(animationSpec = motion.effects())
-                },
+        BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+            val halfWidth = (maxWidth - 12.dp) / 2
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                lastForecast.value?.let { forecast ->
-                    ForecastTile(
-                        model = forecast,
-                        modifier = Modifier.fillMaxWidth(),
-                        corner = Corner.TopStart,
-                        container = TileContainer.Accent,
-                    )
+                AnimatedVisibility(
+                    visible = state.forecast != null,
+                    enter = if (reduceMotion) {
+                        EnterTransition.None
+                    } else {
+                        expandHorizontally(animationSpec = motion.spatial()) + fadeIn(animationSpec = motion.effects())
+                    },
+                    exit = if (reduceMotion) {
+                        ExitTransition.None
+                    } else {
+                        shrinkHorizontally(animationSpec = motion.spatial()) + fadeOut(animationSpec = motion.effects())
+                    },
+                ) {
+                    (state.forecast ?: lastForecast.value)?.let { forecast ->
+                        ForecastTile(
+                            model = forecast,
+                            modifier = Modifier.width(halfWidth),
+                            corner = Corner.TopStart,
+                            container = TileContainer.Accent,
+                        )
+                    }
                 }
+                SpeedTile(
+                    rxBps = state.liveRxBps,
+                    txBps = state.liveTxBps,
+                    network = state.network,
+                    units = state.units,
+                    modifier = Modifier.weight(1f),
+                    corner = Corner.BottomStart,
+                )
             }
-            SpeedTile(
-                rxBps = state.liveRxBps,
-                txBps = state.liveTxBps,
-                network = state.network,
-                units = state.units,
-                modifier = Modifier.weight(1f),
-                corner = Corner.BottomStart,
-            )
         }
     }
 }

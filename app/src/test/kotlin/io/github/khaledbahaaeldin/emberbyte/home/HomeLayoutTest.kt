@@ -4,14 +4,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
@@ -26,6 +31,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -36,7 +43,11 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.ForecastUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -335,5 +346,100 @@ class HomeLayoutTest {
         rule.onNodeWithTag("home_loading_indicator").assertIsDisplayed()
         rule.onNodeWithText("0").assertDoesNotExist()
         rule.onNodeWithText("0 B").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun home_links_use_link_text_and_meet_aa_contrast_across_all_palettes() {
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedLinkColor = Color.Unspecified
+        var expectedSurface2 = Color.Unspecified
+        var expectedBackground = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedLinkColor = palette.linkText
+                    expectedSurface2 = palette.surface2
+                    expectedBackground = palette.background
+                }
+                HomeContent(
+                    state = HomeUiState(hasPlan = false, planLine = null, subtitle = null),
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                )
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+                for ((label, bg) in listOf("See all" to expectedSurface2, "Set up a plan" to expectedBackground)) {
+                    val results = mutableListOf<TextLayoutResult>()
+                    rule.onNodeWithText(label, useUnmergedTree = true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                    val actualColor = results.first().layoutInput.style.color
+                    assertEquals(
+                        "$label must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                        expectedLinkColor,
+                        actualColor,
+                    )
+                    val fg = actualColor.compositeOver(bg)
+                    val l1 = fg.luminance() + 0.05
+                    val l2 = bg.luminance() + 0.05
+                    val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                    assertTrue(
+                        "$label on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1, was $ratio",
+                        ratio >= 4.5,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp")
+    fun home_bento_row_forecast_exit_never_crushes_speed_tile() {
+        val sampleForecast = ForecastUi(
+            headline = "3 days left",
+            detail = "On pace to finish under",
+            confidence = "High",
+            kind = ForecastKind.Safe,
+        )
+        var state by mutableStateOf(HomeUiState(forecast = sampleForecast))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = state,
+                    onEvent = {},
+                    onOpenSettings = {},
+                    onOpenHistory = {},
+                    onPromptAction = {},
+                    onOpenApp = {},
+                    onSetUpPlan = {},
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        val initialSpeedBounds = rule.onNodeWithText("Live ·", substring = true).getBoundsInRoot()
+        val initialSpeedWidth = (initialSpeedBounds.right - initialSpeedBounds.left).value
+        assertTrue("Initial speed tile width should be positive, was $initialSpeedWidth", initialSpeedWidth > 10f)
+
+        state = state.copy(forecast = null)
+        repeat(15) {
+            rule.mainClock.advanceTimeBy(16)
+            val bounds = rule.onNodeWithText("Live ·", substring = true).getBoundsInRoot()
+            val width = (bounds.right - bounds.left).value
+            assertTrue(
+                "Speed tile must never be crushed during ForecastTile exit, saw width=$width",
+                width >= initialSpeedWidth - 1f,
+            )
+        }
     }
 }

@@ -58,6 +58,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
 import io.github.khaledbahaaeldin.emberbyte.common.plainBytes
@@ -313,7 +314,7 @@ internal fun AppsContent(
                                         .horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    renderedFilters.value.forEach { filter ->
+                                    (activeFilters.ifEmpty { renderedFilters.value }).forEach { filter ->
                                         EmberbyteFilterChip(
                                             selected = true,
                                             showCheckIcon = false,
@@ -420,7 +421,7 @@ internal fun AppsContent(
                                                 onClick = { onEvent(AppsEvent.SetQuery("")) },
                                                 modifier = Modifier.sizeIn(minHeight = 48.dp),
                                             ) {
-                                                Text("Clear search")
+                                                Text("Clear search", color = palette.linkText)
                                             }
                                         },
                                     )

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.LazyColumn
@@ -52,6 +53,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
@@ -436,7 +438,7 @@ fun HistoryContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(72.dp)
+                            .height(88.dp)
                             .animateItem(
                                 fadeInSpec = motion.effects(),
                                 placementSpec = motion.spatial(),
@@ -461,10 +463,14 @@ fun HistoryContent(
                                     )
                                     TextButton(
                                         onClick = { onEvent(HistoryEvent.SelectBar(selectedIndex)) },
-                                        modifier = Modifier.height(32.dp),
+                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                                     ) {
-                                        Text("Show total", style = MaterialTheme.typography.labelMedium)
+                                        Text(
+                                            "Show total",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = palette.linkText,
+                                        )
                                     }
                                 }
 

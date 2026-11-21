@@ -146,17 +146,61 @@ class AppsScreenTest {
         rule.onNodeWithContentDescription("Clear search").assertDoesNotExist()
 
         state = state.copy(query = "video")
-        val enterFrames = (1..10).count {
+        val enterWidths = mutableListOf<Float>()
+        repeat(10) {
             rule.mainClock.advanceTimeBy(16)
-            rule.onAllNodes(hasContentDescription("Clear search")).fetchSemanticsNodes().isNotEmpty()
+            val nodes = rule.onAllNodes(hasContentDescription("Clear search")).fetchSemanticsNodes()
+            if (nodes.isNotEmpty()) {
+                val bounds = rule.onNodeWithContentDescription("Clear search").getBoundsInRoot()
+                enterWidths += (bounds.right - bounds.left).value
+            }
         }
-        assertTrue("Clear search icon should appear immediately under reduced motion", enterFrames > 0)
+        assertTrue("Clear search icon must be present across frames, saw ${enterWidths.size}", enterWidths.size >= 8)
+        val fullWidth = enterWidths.last()
+        assertTrue("Clear search icon must snap to full width without scale-in, saw $enterWidths", fullWidth >= 40f)
+        assertTrue(
+            "reduced motion must not show intermediate scale-in widths, saw $enterWidths",
+            enterWidths.all { it >= fullWidth - 0.5f },
+        )
         rule.onNodeWithContentDescription("Clear search").assertIsDisplayed()
 
         state = state.copy(query = "")
-        rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeByFrame()
+        val exitWidths = mutableListOf<Float>()
+        repeat(10) {
+            rule.mainClock.advanceTimeBy(16)
+            val nodes = rule.onAllNodes(hasContentDescription("Clear search")).fetchSemanticsNodes()
+            if (nodes.isNotEmpty()) {
+                val bounds = rule.onNodeWithContentDescription("Clear search").getBoundsInRoot()
+                exitWidths += (bounds.right - bounds.left).value
+            }
+        }
+        assertTrue(
+            "reduced motion must snap exit without intermediate scale-out widths, saw $exitWidths",
+            exitWidths.all { it >= fullWidth - 0.5f },
+        )
         rule.onNodeWithContentDescription("Clear search").assertDoesNotExist()
+    }
+
+    @Test
+    fun active_filters_update_live_while_non_empty() {
+        var state by mutableStateOf(AppsUiState(loaded = true, range = AppsRange.LAST_7_DAYS))
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppsContent(
+                    state = state,
+                    onEvent = {},
+                    onOpenApp = {},
+                    onPromptAction = {},
+                )
+            }
+        }
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
+
+        // Updating filter while activeFilters remains non-empty must recompose to the new chip
+        state = state.copy(range = AppsRange.LAST_30_DAYS)
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Remove 30 days filter").assertIsDisplayed()
     }
 
     @Test

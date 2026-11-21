@@ -609,26 +609,26 @@ fun AppDetailContent(
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             ForceLtr {
-                                                Text(spike.whenText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
+                                                Text(spike.whenText, style = MaterialTheme.typography.bodyMedium, color = palette.onWarn)
                                             }
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 ForceLtr {
                                                     Text(
                                                         spike.bytesText,
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = palette.muted,
+                                                        color = palette.onWarn,
                                                     )
                                                 }
                                                 Text(
                                                     "·",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = palette.muted,
+                                                    color = palette.onWarn,
                                                 )
                                                 ForceLtr {
                                                     Text(
                                                         spike.multipleText,
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = palette.muted,
+                                                        color = palette.onWarn,
                                                     )
                                                 }
                                             }
@@ -689,7 +689,7 @@ fun AppDetailContent(
                                     }
                                 }
                             } else {
-                                val budget = retainedBudget.value ?: return@EmberbyteCrossfade
+                                val budget = state.budget ?: retainedBudget.value ?: return@EmberbyteCrossfade
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
