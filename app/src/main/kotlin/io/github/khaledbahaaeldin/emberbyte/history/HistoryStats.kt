@@ -153,3 +153,10 @@ internal fun topAppsWithChange(current: List<AppUsage>, previous: List<AppUsage>
         )
     }
 }
+
+/** Sums hourly points into 24 buckets by local hour of day. */
+internal fun hourTotalsOf(points: List<UsagePoint>, zone: ZoneId): LongArray {
+    val totals = LongArray(24)
+    points.forEach { totals[it.start.atZone(zone).hour] += it.totalBytes }
+    return totals
+}

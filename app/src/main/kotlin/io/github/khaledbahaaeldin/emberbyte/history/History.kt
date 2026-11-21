@@ -82,6 +82,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import io.github.khaledbahaaeldin.emberbyte.ui.design.usage.DayUsage
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.stateIn
 
@@ -112,11 +115,30 @@ data class HistoryUiState(
     val heroDescription: String? = null,
     val rangeLabel: String? = null,
     val heroLabel: String? = null,
+    /** The last 91 days, oldest first, for the calendar, the weekday pattern and the records. */
+    val rows: List<DayUsage> = emptyList(),
+    /** The fair like-for-like comparison shown under the total (null without previous data). */
+    val comparison: PeriodComparison? = null,
+    val selection: HistorySelection = HistorySelection.Default,
+    /** The heaviest apps of the whole window, with their change against the window before. */
+    val topApps: List<AppShare> = emptyList(),
+    /** The top apps of the selected bucket or day (the latest bucket by default). */
+    val selectedApps: List<AppShare> = emptyList(),
+    /** Total per local hour of the day over the last 12 weeks, for all apps. */
+    val hourTotals: LongArray = LongArray(24),
 )
+
+/** What the selected card shows: the latest bucket, a chart bar, or a calendar day. */
+sealed interface HistorySelection {
+    data object Default : HistorySelection
+    data class Bucket(val index: Int) : HistorySelection
+    data class Day(val date: LocalDate) : HistorySelection
+}
 
 sealed interface HistoryEvent {
     data class SetGranularity(val granularity: Granularity) : HistoryEvent
     data class SelectBar(val index: Int) : HistoryEvent
+    data class SelectDay(val date: LocalDate) : HistoryEvent
 }
 
 /** Day: last 14 days. Week: last 12 weeks (Monday start). Month: last 12 months. Ends at the end of [today]. */
@@ -209,11 +231,18 @@ internal fun buildHistoryUiState(
     locale: Locale,
     needsUsageAccess: Boolean = false,
     selectedIndex: Int? = null,
+    today: LocalDate? = null,
+    rows: List<DayUsage> = emptyList(),
+    selection: HistorySelection? = null,
+    topApps: List<AppShare> = emptyList(),
+    selectedApps: List<AppShare> = emptyList(),
+    hourTotals: LongArray = LongArray(24),
 ): HistoryUiState {
     val total = points.sumOf { it.totalBytes }
     val activeBuckets = points.count { it.totalBytes > 0 }
     val average = if (activeBuckets == 0) 0L else total / activeBuckets
     val comparison = computePeriodComparison(granularity, points)
+    val fair = if (today != null) fairComparison(granularity, points, today, zone) else null
     val spokenTotal = spokenBytes(total, units)
     val rangeLbl = computeRangeLabel(points, granularity, zone, locale)
     val heroLbl = computeHeroLabel(granularity, selectedIndex, points, zone, locale)
@@ -237,8 +266,14 @@ internal fun buildHistoryUiState(
         needsUsageAccess = needsUsageAccess,
         loaded = true,
         selectedIndex = selectedIndex,
-        comparisonText = comparison?.text,
-        trendDirection = comparison?.direction ?: TrendDirection.NONE,
+        comparisonText = fair?.text ?: comparison?.text,
+        trendDirection = fair?.direction ?: comparison?.direction ?: TrendDirection.NONE,
+        comparison = fair,
+        rows = rows,
+        selection = selection ?: if (selectedIndex != null) HistorySelection.Bucket(selectedIndex) else HistorySelection.Default,
+        topApps = topApps,
+        selectedApps = selectedApps,
+        hourTotals = hourTotals,
         heroDescription = heroDesc,
         rangeLabel = rangeLbl,
         heroLabel = heroLbl,
@@ -293,25 +328,92 @@ class HistoryViewModel(
 ) : ViewModel() {
     private val granularity = MutableStateFlow(Granularity.DAY)
     private val selectedBar = MutableStateFlow<Int?>(null)
+    private val selectedDate = MutableStateFlow<LocalDate?>(null)
 
     init {
         dates.drop(1)
-            .onEach { selectedBar.value = null }
+            .onEach {
+                selectedBar.value = null
+                selectedDate.value = null
+            }
             .launchIn(viewModelScope)
     }
+
+    private data class Extras(
+        val rows: List<DayUsage>,
+        val hours: LongArray,
+        val topApps: List<AppShare>,
+    )
 
     val uiState: StateFlow<HistoryUiState> = combine(dates, granularity) { date, g -> date to g }
         .flatMapLatest { (date, g) ->
             val zone = clock.zone
-            val pointsFlow = usage.observeSeries(rangeForHistory(g, date, zone), g)
+            val range = rangeForHistory(g, date, zone)
+            val pointsFlow = usage.observeSeries(range, g)
+            val rowsRange = DateRange(
+                date.minusDays(90).atStartOfDay(zone).toInstant(),
+                date.plusDays(1).atStartOfDay(zone).toInstant(),
+            )
+            val hoursRange = DateRange(
+                date.minusDays(83).atStartOfDay(zone).toInstant(),
+                date.plusDays(1).atStartOfDay(zone).toInstant(),
+            )
+            val before = DateRange(
+                range.from.minusSeconds(range.to.epochSecond - range.from.epochSecond),
+                range.from,
+            )
+            val extras = combine(
+                usage.observeSeries(rowsRange, Granularity.DAY),
+                usage.observeSeries(hoursRange, Granularity.HOUR),
+                usage.observeApps(range),
+                usage.observeApps(before),
+            ) { dayPoints, hourPoints, apps, previous ->
+                Extras(
+                    rows = dayPoints.map {
+                        DayUsage(it.start.atZone(zone).toLocalDate(), it.totalBytes, it.mobileBytes, it.wifiBytes)
+                    },
+                    hours = hourTotalsOf(hourPoints, zone),
+                    topApps = topAppsWithChange(apps, previous),
+                )
+            }
+            val selection = combine(selectedBar, selectedDate) { bar, day -> bar to day }
+            // The apps of the selected bucket or day (the latest bucket by default).
+            val selectedApps = combine(pointsFlow, selection) { points, sel -> points to sel }
+                .flatMapLatest { (points, sel) ->
+                    val (bar, day) = sel
+                    val bucketRange = when {
+                        day != null -> DateRange(day.atStartOfDay(zone).toInstant(), day.plusDays(1).atStartOfDay(zone).toInstant())
+                        else -> {
+                            val index = (bar?.takeIf { it in points.indices }) ?: points.lastIndex
+                            if (index < 0) null else DateRange(
+                                points[index].start,
+                                points.getOrNull(index + 1)?.start ?: range.to,
+                            )
+                        }
+                    }
+                    if (bucketRange == null) flowOf(emptyList()) else usage.observeApps(bucketRange).map { topAppsWithChange(it, emptyList(), 3) }
+                }
             combine(
                 pointsFlow,
                 settings.observe(),
                 permissions.observe(),
-                selectedBar,
-            ) { points, s, perm, sel ->
-                val validSel = if (sel != null && sel in points.indices) sel else null
-                buildHistoryUiState(g, points, s.unitSystem.toByteUnits(), zone, locale, needsUsageAccess = !perm.usageAccess, selectedIndex = validSel)
+                selection,
+                combine(extras, selectedApps) { e, a -> e to a },
+            ) { points, s, perm, sel, extraAndApps ->
+                val (bar, day) = sel
+                val (e, apps) = extraAndApps
+                val validSel = if (day == null && bar != null && bar in points.indices) bar else null
+                val selection = when {
+                    day != null -> HistorySelection.Day(day)
+                    validSel != null -> HistorySelection.Bucket(validSel)
+                    else -> HistorySelection.Default
+                }
+                buildHistoryUiState(
+                    g, points, s.unitSystem.toByteUnits(), zone, locale,
+                    needsUsageAccess = !perm.usageAccess, selectedIndex = validSel,
+                    today = date, rows = e.rows, selection = selection,
+                    topApps = e.topApps, selectedApps = apps, hourTotals = e.hours,
+                )
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
@@ -339,10 +441,16 @@ class HistoryViewModel(
                 if (granularity.value != event.granularity) {
                     granularity.value = event.granularity
                     selectedBar.value = null
+                    selectedDate.value = null
                 }
             }
             is HistoryEvent.SelectBar -> {
+                selectedDate.value = null
                 selectedBar.value = if (selectedBar.value == event.index) null else event.index
+            }
+            is HistoryEvent.SelectDay -> {
+                selectedBar.value = null
+                selectedDate.value = if (selectedDate.value == event.date) null else event.date
             }
         }
     }
