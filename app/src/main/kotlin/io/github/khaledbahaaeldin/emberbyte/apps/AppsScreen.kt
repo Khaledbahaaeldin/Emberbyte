@@ -56,6 +56,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
@@ -171,11 +172,11 @@ internal fun AppsContent(
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         end = 16.dp,
-                                    top = padding.calculateTopPadding(),
-                                    bottom = padding.calculateBottomPadding(),
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
                     // Removable filter chips row (for each non-default filter)
                     val activeFilters = buildList {
                         if (state.range != AppsRange.TODAY) {
@@ -210,7 +211,14 @@ internal fun AppsContent(
 
                     // Search bar with Filters button & active filters
                     item(key = "search_and_filters") {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -290,9 +298,13 @@ internal fun AppsContent(
                                 }
                             }
 
-                            var renderedFilters by remember { mutableStateOf(activeFilters) }
+                            val renderedFilters = remember {
+                                object {
+                                    var value: List<ActiveFilter> = activeFilters
+                                }
+                            }
                             if (activeFilters.isNotEmpty()) {
-                                renderedFilters = activeFilters
+                                renderedFilters.value = activeFilters
                             }
                             EmberbyteAnimatedVisibility(visible = activeFilters.isNotEmpty()) {
                                 Row(
@@ -301,7 +313,7 @@ internal fun AppsContent(
                                         .horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    renderedFilters.forEach { filter ->
+                                    renderedFilters.value.forEach { filter ->
                                         EmberbyteFilterChip(
                                             selected = true,
                                             showCheckIcon = false,
@@ -425,7 +437,7 @@ internal fun AppsContent(
                         items(state.apps, key = { it.packageName }) { app ->
                             AppRow(
                                 icon = icons(app.packageName),
-                                shape = io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor(app.packageName),
+                                shape = shapeFor(app.packageName),
                                 label = app.label,
                                 bytes = app.totalBytes,
                                 fraction = if (state.totalBytes > 0) app.totalBytes.toFloat() / state.totalBytes.toFloat() else 0f,

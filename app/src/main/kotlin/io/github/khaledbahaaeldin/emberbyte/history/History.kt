@@ -368,6 +368,11 @@ fun HistoryContent(
                 HistoryHeader(
                     state = state,
                     onEvent = onEvent,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = motion.effects(),
+                        placementSpec = motion.spatial(),
+                        fadeOutSpec = motion.effects(),
+                    ),
                 )
             }
 
@@ -378,6 +383,11 @@ fun HistoryContent(
                         icon = Icons.Rounded.History,
                         title = "No history yet",
                         body = "Usage data will appear here once recorded.",
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
                     )
                 }
             } else {
@@ -408,6 +418,11 @@ fun HistoryContent(
                         scrollKey = state.granularity,
                         summaryDescription = summary,
                         todayIndex = if (state.granularity == Granularity.DAY) state.bars.lastIndex else null,
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
                     )
                 }
 
@@ -421,7 +436,12 @@ fun HistoryContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(72.dp),
+                            .height(72.dp)
+                            .animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (isSelected && bar != null && point != null) {
@@ -529,7 +549,13 @@ fun HistoryContent(
 
                     if (fontScale >= 1.5f) {
                         Column(
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .animateItem(
+                                    fadeInSpec = motion.effects(),
+                                    placementSpec = motion.spatial(),
+                                    fadeOutSpec = motion.effects(),
+                                ),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             BentoTile(title = firstTileTitle, modifier = Modifier.fillMaxWidth(), container = TileContainer.Primary) {
@@ -557,7 +583,14 @@ fun HistoryContent(
                         }
                     } else {
                         Row(
-                            Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                            Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                                .animateItem(
+                                    fadeInSpec = motion.effects(),
+                                    placementSpec = motion.spatial(),
+                                    fadeOutSpec = motion.effects(),
+                                ),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             BentoTile(

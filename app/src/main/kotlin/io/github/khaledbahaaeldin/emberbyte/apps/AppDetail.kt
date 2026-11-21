@@ -92,6 +92,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
@@ -350,12 +351,17 @@ fun AppDetailContent(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-        // Header with Back button, AppIcon, Title & Package
+                // Header with Back button, AppIcon, Title & Package
                 item(key = "app_header") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding(),
+                            .statusBarsPadding()
+                            .animateItem(
+                                fadeInSpec = motion.effects(),
+                                placementSpec = motion.spatial(),
+                                fadeOutSpec = motion.effects(),
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
@@ -399,7 +405,14 @@ fun AppDetailContent(
 
                 // Hero Number section
                 item(key = "hero_number") {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         Text(
                             text = "Last 7 days",
                             style = MaterialTheme.typography.labelLarge,
@@ -418,7 +431,14 @@ fun AppDetailContent(
 
                 // Network split bar & legend
                 item(key = "network_summary") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = motion.effects(),
+                            placementSpec = motion.spatial(),
+                            fadeOutSpec = motion.effects(),
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         NetworkBar(
                             mobileBytes = state.mobileBytes,
                             wifiBytes = state.wifiBytes,
@@ -617,7 +637,7 @@ fun AppDetailContent(
                                             onClick = { onEvent(AppDetailEvent.DismissSpike(spike.id)) },
                                             modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                         ) {
-                                            Text("Dismiss", color = palette.primary)
+                                            Text("Dismiss", color = palette.onWarn)
                                         }
                                     }
                                 }
@@ -638,11 +658,19 @@ fun AppDetailContent(
                                 fadeOutSpec = motion.effects(),
                             ),
                     ) {
+                        val retainedBudget = remember {
+                            object {
+                                var value: BudgetUi? = state.budget
+                            }
+                        }
+                        if (state.budget != null) {
+                            retainedBudget.value = state.budget
+                        }
                         EmberbyteCrossfade(
-                            targetState = state.budget,
+                            targetState = state.budget != null,
                             modifier = Modifier.fillMaxWidth(),
-                        ) { budget ->
-                            if (budget == null) {
+                        ) { hasBudget ->
+                            if (!hasBudget) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -657,10 +685,11 @@ fun AppDetailContent(
                                         onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
                                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                     ) {
-                                        Text("Set a budget", color = palette.primary)
+                                        Text("Set a budget", color = palette.linkText)
                                     }
                                 }
                             } else {
+                                val budget = retainedBudget.value ?: return@EmberbyteCrossfade
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -690,7 +719,7 @@ fun AppDetailContent(
                                                 onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
                                                 modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                                             ) {
-                                                Text("Edit", color = palette.primary)
+                                                Text("Edit", color = palette.linkText)
                                             }
                                             TextButton(
                                                 onClick = { onEvent(AppDetailEvent.RemoveBudget) },
@@ -723,7 +752,7 @@ fun AppDetailContent(
                                 onClick = onOpenSettings,
                                 modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                             ) {
-                                Text("App settings", color = palette.primary)
+                                Text("App settings", color = palette.linkText)
                             }
                         }
                     }

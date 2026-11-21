@@ -145,10 +145,10 @@ internal fun HomeContent(
                         start = 16.dp,
                         end = 16.dp,
                         top = padding.calculateTopPadding(),
-                                    bottom = padding.calculateBottomPadding(),
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     // When usage access permission is missing, show prompt first
                     if (state.topAppsLocked) {
                         val usagePrompt = state.prompts.firstOrNull { it.id == "usage_access" }

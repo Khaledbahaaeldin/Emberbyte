@@ -102,6 +102,64 @@ class AppsScreenTest {
     }
 
     @Test
+    fun active_filters_retain_chips_while_shrinking_with_motion_enabled() {
+        var state by mutableStateOf(AppsUiState(loaded = true, range = AppsRange.LAST_7_DAYS))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides false) {
+                    AppsContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenApp = {},
+                        onPromptAction = {},
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(100)
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertExists()
+
+        // Clearing filters under normal motion retains the chip during exit shrink animation
+        state = state.copy(range = AppsRange.TODAY)
+        rule.mainClock.advanceTimeBy(16)
+        rule.onNodeWithContentDescription("Remove 7 days filter").assertExists()
+    }
+
+    @Test
+    fun search_clear_icon_snaps_under_reduced_motion() {
+        var state by mutableStateOf(AppsUiState(loaded = true, query = ""))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    AppsContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenApp = {},
+                        onPromptAction = {},
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithContentDescription("Clear search").assertDoesNotExist()
+
+        state = state.copy(query = "video")
+        val enterFrames = (1..10).count {
+            rule.mainClock.advanceTimeBy(16)
+            rule.onAllNodes(hasContentDescription("Clear search")).fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue("Clear search icon should appear immediately under reduced motion", enterFrames > 0)
+        rule.onNodeWithContentDescription("Clear search").assertIsDisplayed()
+
+        state = state.copy(query = "")
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithContentDescription("Clear search").assertDoesNotExist()
+    }
+
+    @Test
     fun apps_screen_renders_inside_screen_scaffold_with_scrim() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {

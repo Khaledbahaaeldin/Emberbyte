@@ -1,5 +1,12 @@
 package io.github.khaledbahaaeldin.emberbyte.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,10 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
@@ -32,11 +36,14 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.progress.WavyBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.ForecastTile
@@ -106,32 +113,55 @@ internal fun HomeHeroSection(
         }
 
         val lineText = state.planLine ?: state.subtitle
+        val retainedLineText = remember {
+            object {
+                var value: String? = lineText
+            }
+        }
         if (lineText != null) {
-            ForceLtr {
-                Text(
-                    text = lineText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = palette.text,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            EmberbyteAnimatedVisibility(visible = state.hasPlan) {
-                WavyBar(
-                    fraction = state.planFraction,
-                    color = palette.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        } else if (!state.hasPlan) {
-            TextButton(
-                onClick = onSetUpPlan,
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-            ) {
-                Text(
-                    text = "Set up a plan",
-                    color = palette.primary,
-                    style = MaterialTheme.typography.labelLarge,
-                )
+            retainedLineText.value = lineText
+        }
+        EmberbyteCrossfade(
+            targetState = when {
+                lineText != null -> 0
+                !state.hasPlan -> 1
+                else -> 2
+            },
+        ) { statusState ->
+            when (statusState) {
+                0 -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        retainedLineText.value?.let { text ->
+                            ForceLtr {
+                                Text(
+                                    text = text,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = palette.text,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                        EmberbyteAnimatedVisibility(visible = state.hasPlan) {
+                            WavyBar(
+                                fraction = state.planFraction,
+                                color = palette.primary,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+                1 -> {
+                    TextButton(
+                        onClick = onSetUpPlan,
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                    ) {
+                        Text(
+                            text = "Set up a plan",
+                            color = palette.linkText,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
             }
         }
 
@@ -150,6 +180,16 @@ internal fun HomeBentoRow(
     modifier: Modifier = Modifier,
 ) {
     val fontScale = LocalDensity.current.fontScale
+    val motion = rememberEmberbyteMotion()
+    val reduceMotion = LocalReduceMotion.current
+    val lastForecast = remember {
+        object {
+            var value = state.forecast
+        }
+    }
+    if (state.forecast != null) {
+        lastForecast.value = state.forecast
+    }
 
     if (fontScale >= 1.5f) {
         Column(
@@ -163,12 +203,8 @@ internal fun HomeBentoRow(
                 units = state.units,
                 modifier = Modifier.fillMaxWidth(),
             )
-            var lastForecast by remember { mutableStateOf(state.forecast) }
-            if (state.forecast != null) {
-                lastForecast = state.forecast
-            }
             EmberbyteAnimatedVisibility(visible = state.forecast != null) {
-                lastForecast?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
+                lastForecast.value?.let { ForecastTile(it, Modifier.fillMaxWidth()) }
             }
         }
     } else {
@@ -178,13 +214,28 @@ internal fun HomeBentoRow(
                 .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            state.forecast?.let { forecast ->
-                ForecastTile(
-                    model = forecast,
-                    modifier = Modifier.weight(1f),
-                    corner = Corner.TopStart,
-                    container = TileContainer.Accent,
-                )
+            AnimatedVisibility(
+                visible = state.forecast != null,
+                modifier = if (state.forecast != null) Modifier.weight(1f) else Modifier,
+                enter = if (reduceMotion) {
+                    EnterTransition.None
+                } else {
+                    expandHorizontally(animationSpec = motion.spatial()) + fadeIn(animationSpec = motion.effects())
+                },
+                exit = if (reduceMotion) {
+                    ExitTransition.None
+                } else {
+                    shrinkHorizontally(animationSpec = motion.spatial()) + fadeOut(animationSpec = motion.effects())
+                },
+            ) {
+                lastForecast.value?.let { forecast ->
+                    ForecastTile(
+                        model = forecast,
+                        modifier = Modifier.fillMaxWidth(),
+                        corner = Corner.TopStart,
+                        container = TileContainer.Accent,
+                    )
+                }
             }
             SpeedTile(
                 rxBps = state.liveRxBps,
@@ -204,7 +255,6 @@ internal fun HomeNetworkTile(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-    val total = formatBytes(state.mobileBytes + state.wifiBytes, state.units)
     val mobile = formatBytes(state.mobileBytes, state.units)
     val wifi = formatBytes(state.wifiBytes, state.units)
 
@@ -264,7 +314,7 @@ internal fun HomeTopAppsSection(
             ) {
                 Text(
                     text = "See all",
-                    color = palette.primary,
+                    color = palette.linkText,
                     style = MaterialTheme.typography.labelLarge,
                 )
             }

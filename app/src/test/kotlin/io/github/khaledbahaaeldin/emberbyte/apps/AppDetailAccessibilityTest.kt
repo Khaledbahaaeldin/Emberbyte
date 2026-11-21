@@ -27,6 +27,11 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollToNode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -143,6 +148,95 @@ class AppDetailAccessibilityTest {
                 }
             }
         }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun set_a_budget_link_meets_wcag_aa_contrast_across_all_palettes() {
+        var currentSpec by mutableStateOf(EmberbyteThemeSpec(presetId = "dusk", darkTheme = false))
+        var expectedLinkColor = Color.Unspecified
+        var expectedSurface2 = Color.Unspecified
+        rule.setContent {
+            EmberbyteTheme(currentSpec) {
+                val palette = LocalEmberbytePalette.current
+                SideEffect {
+                    expectedLinkColor = palette.linkText
+                    expectedSurface2 = palette.surface2
+                }
+                AppDetailContent(
+                    state = sampleAppDetailState.copy(budget = null),
+                    onEvent = {},
+                    onBack = {},
+                    onOpenSettings = {},
+                )
+            }
+        }
+        val variants = listOf(false to false, true to false, true to true)
+        for (preset in ThemePresets) {
+            for ((dark, amoled) in variants) {
+                currentSpec = EmberbyteThemeSpec(presetId = preset.id, darkTheme = dark, amoled = amoled)
+                rule.waitForIdle()
+                val results = mutableListOf<TextLayoutResult>()
+                rule.onNodeWithText("Set a budget", useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+                val actualColor = results.first().layoutInput.style.color
+                assertEquals(
+                    "Set a budget must bind to palette.linkText on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedLinkColor,
+                    actualColor,
+                )
+                val fg = actualColor.compositeOver(expectedSurface2)
+                val l1 = fg.luminance() + 0.05
+                val l2 = expectedSurface2.luminance() + 0.05
+                val ratio = maxOf(l1, l2) / minOf(l1, l2)
+                assertTrue(
+                    "Set a budget on ${preset.id} (dark=$dark, amoled=$amoled) must meet 4.5:1 on surface2, was $ratio",
+                    ratio >= 4.5,
+                )
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h3000dp")
+    fun budget_update_and_removal_crossfade_safely() {
+        val initialBudget = BudgetUi(
+            id = 1L,
+            fraction = 0.5f,
+            ringState = BudgetStateUi.Ok,
+            percentText = "50%",
+            usedText = "500 MB of 1 GB",
+            periodText = "Cycle",
+            enabled = true,
+        )
+        val updatedBudget = initialBudget.copy(
+            fraction = 0.7f,
+            percentText = "70%",
+            usedText = "700 MB of 1 GB",
+        )
+        var state by mutableStateOf(sampleAppDetailState.copy(budget = initialBudget))
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                AppDetailContent(
+                    state = state,
+                    onEvent = {},
+                    onBack = {},
+                    onOpenSettings = {},
+                )
+            }
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("500 MB of 1 GB"))
+        rule.onNodeWithText("500 MB of 1 GB").assertIsDisplayed()
+
+        // Updating live budget values must update text without crashing
+        state = state.copy(budget = updatedBudget)
+        rule.waitForIdle()
+        rule.onNodeWithText("700 MB of 1 GB").assertIsDisplayed()
+
+        // Removing budget must crossfade out safely without throwing checkNotNull
+        state = state.copy(budget = null)
+        rule.waitForIdle()
+        rule.onNodeWithText("Set a budget").assertIsDisplayed()
     }
 
     @Test
