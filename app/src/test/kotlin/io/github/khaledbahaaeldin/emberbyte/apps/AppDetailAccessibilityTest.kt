@@ -228,7 +228,7 @@ class AppDetailAccessibilityTest {
         var expectedWarn = Color.Unspecified
         var expectedLinkColor = Color.Unspecified
         var expectedSurface2 = Color.Unspecified
-        var expectedDangerText = Color.Unspecified
+        var expectedDanger = Color.Unspecified
         rule.setContent {
             EmberbyteTheme(currentSpec) {
                 val palette = LocalEmberbytePalette.current
@@ -237,7 +237,7 @@ class AppDetailAccessibilityTest {
                     expectedWarn = palette.warn
                     expectedLinkColor = palette.linkText
                     expectedSurface2 = palette.surface2
-                    expectedDangerText = palette.dangerText
+                    expectedDanger = palette.danger
                 }
                 AppDetailContent(
                     state = sampleAppDetailState.copy(
@@ -299,8 +299,8 @@ class AppDetailAccessibilityTest {
                     .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(removeResults) }
                 val removeColor = removeResults.first().layoutInput.style.color
                 assertEquals(
-                    "Remove must bind to palette.dangerText on ${preset.id} dark=$dark amoled=$amoled",
-                    expectedDangerText,
+                    "Remove must bind to palette.danger on ${preset.id} dark=$dark amoled=$amoled",
+                    expectedDanger,
                     removeColor,
                 )
                 val removeFg = removeColor.compositeOver(expectedSurface2)
