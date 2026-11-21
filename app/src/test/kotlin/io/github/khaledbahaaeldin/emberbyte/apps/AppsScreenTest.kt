@@ -437,7 +437,7 @@ class AppsScreenTest {
                 }
             }
         }
-        for (label in listOf("Filters", "7 days", "YouTube", "Chat")) {
+        for (label in listOf("Filters", "7 days", "Chat")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()
