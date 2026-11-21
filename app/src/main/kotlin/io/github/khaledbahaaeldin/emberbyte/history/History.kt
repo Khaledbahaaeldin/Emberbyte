@@ -316,6 +316,23 @@ class HistoryViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
 
+    /**
+     * Opens on a day of the Home strip (0 = oldest of the last seven, 6 = today): the Day chart shows 14 days ending
+     * today, so that is bar `7 + stripIndex`.
+     */
+    fun showHomeDay(stripIndex: Int) {
+        if (stripIndex !in 0..6) return
+        granularity.value = Granularity.DAY
+        selectedBar.value = 7 + stripIndex
+    }
+
+    /** The strip index (0..6) of the bar chosen here when it is one of the last seven days; otherwise null. */
+    fun homeStripDay(): Int? {
+        if (granularity.value != Granularity.DAY) return null
+        val bar = selectedBar.value ?: return null
+        return (bar - 7).takeIf { it in 0..6 }
+    }
+
     fun onEvent(event: HistoryEvent) {
         when (event) {
             is HistoryEvent.SetGranularity -> {

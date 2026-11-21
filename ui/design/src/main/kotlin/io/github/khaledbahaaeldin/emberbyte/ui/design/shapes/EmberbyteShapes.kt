@@ -10,6 +10,7 @@ import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * Expressive shape system for app tiles and identity (Contract 13.1, 13.6).
@@ -92,4 +93,15 @@ fun mixedCorners(
 fun shapeFor(packageName: String): AppShape {
     val idx = (packageName.hashCode() and 0x7fffffff) % 4
     return AppShape.entries[idx]
+}
+
+/** Shapes of the Home usage card (strip, rows and the three connected buttons). Tokens, so the card has no raw radii. */
+object UsageShapes {
+    val StripButton: CornerBasedShape = RoundedCornerShape(16.dp)
+    val StripBar: CornerBasedShape = RoundedCornerShape(13.dp)
+    val Row: CornerBasedShape = RoundedCornerShape(22.dp)
+    val FeaturedRow: CornerBasedShape = RoundedCornerShape(26.dp)
+    val SegmentStart: CornerBasedShape = RoundedCornerShape(topStart = 27.dp, bottomStart = 27.dp, topEnd = 9.dp, bottomEnd = 9.dp)
+    val SegmentMiddle: CornerBasedShape = RoundedCornerShape(9.dp)
+    val SegmentEnd: CornerBasedShape = RoundedCornerShape(topStart = 9.dp, bottomStart = 9.dp, topEnd = 27.dp, bottomEnd = 27.dp)
 }

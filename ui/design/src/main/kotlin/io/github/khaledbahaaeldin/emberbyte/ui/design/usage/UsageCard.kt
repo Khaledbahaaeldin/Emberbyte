@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -61,6 +63,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.UsageShapes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -87,6 +90,7 @@ fun UsageCard(
     onResetFilters: () -> Unit = {},
     playEntrance: Boolean = false,
     locale: Locale = Locale.getDefault(),
+    onHistoryBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val shape = remember { mixedCorners(large = 30.dp, small = 10.dp, smallCorner = Corner.BottomStart) }
@@ -180,6 +184,7 @@ fun UsageCard(
             onAllApps = onAllApps,
             onOpenFilters = onOpenFilters,
             onOpenHistory = { onOpenHistory(state.selectedIndex) },
+            onHistoryBounds = onHistoryBounds,
         )
     }
 }
@@ -290,13 +295,12 @@ private fun ConnectedButtons(
     onAllApps: () -> Unit,
     onOpenFilters: () -> Unit,
     onOpenHistory: () -> Unit,
+    onHistoryBounds: (androidx.compose.ui.geometry.Rect) -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
-    val outer = 27.dp
-    val inner = 9.dp
-    val start = RoundedCornerShape(topStart = outer, bottomStart = outer, topEnd = inner, bottomEnd = inner)
-    val middle = RoundedCornerShape(inner)
-    val end = RoundedCornerShape(topStart = inner, bottomStart = inner, topEnd = outer, bottomEnd = outer)
+    val start = UsageShapes.SegmentStart
+    val middle = UsageShapes.SegmentMiddle
+    val end = UsageShapes.SegmentEnd
     val filtersActive = activeFilters > 0
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         Segment(
@@ -329,6 +333,7 @@ private fun ConnectedButtons(
             content = palette.onPrimary,
             onClick = onOpenHistory,
             tag = "usage_btn_history",
+            onBounds = onHistoryBounds,
         )
     }
 }
@@ -345,11 +350,13 @@ private fun androidx.compose.foundation.layout.RowScope.Segment(
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     badge: Int? = null,
     description: String = label,
+    onBounds: ((androidx.compose.ui.geometry.Rect) -> Unit)? = null,
 ) {
     val palette = LocalEmberbytePalette.current
     Row(
         modifier = Modifier
             .weight(weight)
+            .then(if (onBounds != null) Modifier.onGloballyPositioned { onBounds(it.boundsInRoot()) } else Modifier)
             .heightIn(min = 54.dp)
             .clip(shape)
             .background(container)

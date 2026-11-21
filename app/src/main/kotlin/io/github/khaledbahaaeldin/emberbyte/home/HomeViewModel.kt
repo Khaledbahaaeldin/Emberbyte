@@ -177,6 +177,7 @@ class HomeViewModel(
             is HomeEvent.SelectPlan -> selectedPlanId.value = event.planId
             is HomeEvent.DismissSpike -> viewModelScope.launch { spikes.dismiss(event.id) }
             is HomeEvent.SetUsageFilters -> usageFilters.value = event.filters
+            is HomeEvent.ShowDay -> selectedDay.value = event.index
             is HomeEvent.RemoveUsageFilter -> usageFilters.update { current ->
                 when (event.filter) {
                     UsageFilter.Network -> current.copy(network = NetworkFilter.All)

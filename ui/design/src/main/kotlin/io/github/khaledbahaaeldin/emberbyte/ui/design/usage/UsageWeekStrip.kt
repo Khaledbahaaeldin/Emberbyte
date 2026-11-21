@@ -47,6 +47,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.UsageShapes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -118,7 +119,7 @@ private fun DayButton(
     val palette = LocalEmberbytePalette.current
     val reduce = LocalReduceMotion.current
     val motion = rememberEmberbyteMotion()
-    val barShape = RoundedCornerShape(13.dp)
+    val barShape = UsageShapes.StripBar
     val interaction = remember { MutableInteractionSource() }
 
     // Bars grow from 6 percent on first show (once), and glide to a new height on a spatial spring.
@@ -149,7 +150,7 @@ private fun DayButton(
 
     Column(
         modifier = modifier
-            .pressMorph(RoundedCornerShape(16.dp), pressedScale = 0.97f, pressedCorner = 12.dp, interactionSource = interaction)
+            .pressMorph(UsageShapes.StripButton, pressedScale = 0.97f, pressedCorner = 12.dp, interactionSource = interaction)
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) {
                 contentDescription = description

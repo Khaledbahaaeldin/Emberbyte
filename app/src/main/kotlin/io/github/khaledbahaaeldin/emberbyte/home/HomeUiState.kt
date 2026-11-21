@@ -62,4 +62,6 @@ sealed interface HomeEvent {
     /** The usage card's own filters: session only, independent of the Apps screen. */
     data class SetUsageFilters(val filters: UsageFilters) : HomeEvent
     data class RemoveUsageFilter(val filter: UsageFilter) : HomeEvent
+    /** Shows this day of the strip (0 = oldest, 6 = today) without toggling; used when History hands a day back. */
+    data class ShowDay(val index: Int) : HomeEvent
 }

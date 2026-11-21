@@ -46,6 +46,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.MorphingNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.UsageShapes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -76,7 +77,7 @@ internal fun AppUsageRowItem(
     val palette = LocalEmberbytePalette.current
     val reduce = LocalReduceMotion.current
     val motion = rememberEmberbyteMotion()
-    val shape = RoundedCornerShape(if (featured) 26.dp else 22.dp)
+    val shape = if (featured) UsageShapes.FeaturedRow else UsageShapes.Row
     val interaction = remember { MutableInteractionSource() }
     val fillTarget = shareFillFraction(ranked.amountBytes, first)
     val fill = remember { Animatable(fillTarget) }
