@@ -9,7 +9,9 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -408,6 +410,27 @@ class AppDetailAccessibilityTest {
         }
         rule.onNodeWithText("500 MB of 1 GB").assertDoesNotExist()
         rule.onNodeWithText("Set a budget").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun font_scale_2_no_clip_on_narrow_screen() {
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2.0f)) {
+                EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                    AppDetailContent(
+                        state = sampleAppDetailState.copy(budget = null),
+                        onEvent = {},
+                        onBack = {},
+                        onOpenSettings = {},
+                    )
+                }
+            }
+        }
+        rule.onNodeWithText("No budget set").assertIsDisplayed()
+        rule.onNodeWithText("Set a budget").assertIsDisplayed()
+        rule.onNodeWithText("Mobile", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Wi-Fi", substring = true).assertIsDisplayed()
     }
 
     @Test

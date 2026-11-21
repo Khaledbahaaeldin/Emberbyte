@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -446,10 +447,10 @@ fun AppDetailContent(
                             wifiColor = palette.primary,
                             units = state.units,
                         )
-                        Row(
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             val mobileFmt = formatBytes(state.mobileBytes, state.units)
                             val wifiFmt = formatBytes(state.wifiBytes, state.units)
@@ -680,6 +681,7 @@ fun AppDetailContent(
                                         "No budget set",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = palette.muted,
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp),
                                     )
                                     TextButton(
                                         onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },

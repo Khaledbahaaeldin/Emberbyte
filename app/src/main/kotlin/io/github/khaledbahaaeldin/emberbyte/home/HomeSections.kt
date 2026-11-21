@@ -85,12 +85,6 @@ internal fun HomeHeroSection(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-
-    if (state.topAppsLocked) {
-        // Hero figures hidden when permission is missing
-        return
-    }
-
     val formatted = formatBytes(state.heroBytes, state.units)
 
     Column(

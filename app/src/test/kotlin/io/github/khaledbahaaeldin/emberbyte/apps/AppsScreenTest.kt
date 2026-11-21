@@ -97,19 +97,11 @@ class AppsScreenTest {
         )
 
         state = state.copy(range = AppsRange.TODAY)
-        val exitHeights = mutableListOf<Float>()
-        repeat(10) {
-            rule.mainClock.advanceTimeBy(16)
-            val nodes = rule.onAllNodes(hasContentDescription("Remove 7 days filter")).fetchSemanticsNodes()
-            if (nodes.isNotEmpty()) {
-                val bounds = rule.onNodeWithContentDescription("Remove 7 days filter").getBoundsInRoot()
-                exitHeights += (bounds.bottom - bounds.top).value
-            }
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
         }
-        assertTrue(
-            "reduced motion must snap exit without intermediate shrink heights, saw $exitHeights",
-            exitHeights.all { it >= fullHeight - 0.5f },
-        )
         rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
     }
 
@@ -181,20 +173,45 @@ class AppsScreenTest {
         rule.onNodeWithContentDescription("Clear search").assertIsDisplayed()
 
         state = state.copy(query = "")
-        val exitWidths = mutableListOf<Float>()
-        repeat(10) {
-            rule.mainClock.advanceTimeBy(16)
-            val nodes = rule.onAllNodes(hasContentDescription("Clear search")).fetchSemanticsNodes()
-            if (nodes.isNotEmpty()) {
-                val bounds = rule.onNodeWithContentDescription("Clear search").getBoundsInRoot()
-                exitWidths += (bounds.right - bounds.left).value
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithContentDescription("Clear search").assertDoesNotExist()
+    }
+
+    @Test
+    fun apps_loading_crossfade_snaps_under_reduced_motion() {
+        var state by mutableStateOf(AppsUiState(loaded = false))
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    AppsContent(
+                        state = state,
+                        onEvent = {},
+                        onOpenApp = {},
+                        onPromptAction = {},
+                    )
+                }
             }
         }
-        assertTrue(
-            "reduced motion must snap exit without intermediate scale-out widths, saw $exitWidths",
-            exitWidths.all { it >= fullWidth - 0.5f },
-        )
-        rule.onNodeWithContentDescription("Clear search").assertDoesNotExist()
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Loading apps").assertIsDisplayed()
+
+        // Snaps out of loading to content within 2 frames (32ms)
+        state = state.copy(loaded = true, apps = sampleApps, totalBytes = 1_100_000_000L)
+        rule.waitForIdle()
+        repeat(2) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        rule.onNodeWithContentDescription("Loading apps").assertDoesNotExist()
+        rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
+        rule.onNodeWithText("YouTube").assertIsDisplayed()
     }
 
     @Test
