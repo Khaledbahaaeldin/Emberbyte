@@ -157,10 +157,11 @@ class AppsViewModelTest {
         assertEquals(AppsRange.LAST_7_DAYS, vm.uiState.value.range)
         assertEquals(AppsNetwork.WIFI, vm.uiState.value.network)
 
-        vm.onEvent(AppsEvent.RemoveFilter(AppFilterKind.RANGE))
+        vm.onEvent(AppsEvent.RemoveFilter(AppFilterKind.NETWORK))
         advanceUntilIdle()
-        assertEquals(AppsRange.TODAY, vm.uiState.value.range)
-        assertEquals(AppsNetwork.WIFI, vm.uiState.value.network)
+        // The period is not a filter any more: removing a chip never touches it.
+        assertEquals(AppsRange.LAST_7_DAYS, vm.uiState.value.range)
+        assertEquals(AppsNetwork.ALL, vm.uiState.value.network)
         job.cancel()
     }
 
@@ -176,10 +177,62 @@ class AppsViewModelTest {
 
         vm.onEvent(AppsEvent.ResetFilters)
         advanceUntilIdle()
-        assertEquals(AppsRange.TODAY, vm.uiState.value.range)
+        // Reset clears the filters but keeps the period the user picked on the page.
+        assertEquals(AppsRange.LAST_7_DAYS, vm.uiState.value.range)
         assertEquals(AppsNetwork.ALL, vm.uiState.value.network)
         assertEquals(AppSort.BYTES_DESC, vm.uiState.value.sort)
         assertEquals(false, vm.uiState.value.showSystemApps)
         job.cancel()
+    }
+
+    @Test fun set_range_changes_the_rows_and_totals_immediately() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.onEvent(AppsEvent.SetRange(AppsRange.LAST_30_DAYS))
+        advanceUntilIdle()
+        assertEquals(AppsRange.LAST_30_DAYS, vm.uiState.value.range)
+        assertTrue(vm.uiState.value.loaded)
+        job.cancel()
+    }
+
+    @Test fun apply_filters_does_not_change_the_range() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        vm.onEvent(AppsEvent.SetRange(AppsRange.LAST_7_DAYS))
+        vm.onEvent(AppsEvent.ApplyFilters(AppsNetwork.MOBILE, AppSort.NAME, true))
+        advanceUntilIdle()
+        val state = vm.uiState.value
+        assertEquals(AppsRange.LAST_7_DAYS, state.range)
+        assertEquals(AppsNetwork.MOBILE, state.network)
+        assertEquals(AppSort.NAME, state.sort)
+        assertEquals(true, state.showSystemApps)
+        assertEquals(3, state.activeFilterCount)
+        job.cancel()
+    }
+
+    @Test fun totals_split_into_wifi_and_mobile() = runTest(dispatcher) {
+        val vm = viewModel()
+        val job = launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        val state = vm.uiState.value
+        assertEquals(state.totalBytes, state.wifiBytes + state.mobileBytes)
+        assertTrue(state.mobileBytes > 0L)
+        assertEquals(state.apps.size + (if (state.featured != null) 1 else 0), state.appCount)
+        job.cancel()
+    }
+
+    @Test fun filters_are_independent_of_homes() = runTest(dispatcher) {
+        // Each screen owns its own selection: a view model starts with defaults and shares nothing.
+        val first = viewModel()
+        val second = viewModel()
+        val jobs = listOf(launch { first.uiState.collect {} }, launch { second.uiState.collect {} })
+        advanceUntilIdle()
+        first.onEvent(AppsEvent.ApplyFilters(AppsNetwork.WIFI, AppSort.NAME, true))
+        advanceUntilIdle()
+        assertEquals(0, second.uiState.value.activeFilterCount)
+        assertEquals(3, first.uiState.value.activeFilterCount)
+        jobs.forEach { it.cancel() }
     }
 }

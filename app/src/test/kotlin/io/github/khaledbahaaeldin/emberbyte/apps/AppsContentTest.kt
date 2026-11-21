@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -22,9 +23,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w360dp-h3000dp")
 class AppsContentTest {
     @get:Rule val rule = createComposeRule()
+
+    @org.junit.Before fun settleEntrance() { AppsEntranceGate.played = true }
 
     private val state = AppsUiState(
         apps = listOf(AppRowUi("com.video", "Video", 600_000_000, 400_000_000), AppRowUi("com.chat", "Chat", 100_000_000, 0)),
@@ -45,7 +48,8 @@ class AppsContentTest {
         show()
         rule.onNodeWithText("Video").assertIsDisplayed()
         rule.onNodeWithText("Chat").assertIsDisplayed()
-        rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
+        rule.onNodeWithText("Apps used today (apps only)").assertIsDisplayed()
+        rule.onNodeWithTag("apps_summary_total", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test fun tapping_a_row_opens_that_app() {
@@ -55,14 +59,15 @@ class AppsContentTest {
         assertEquals("com.chat", opened)
     }
 
-    @Test fun chips_send_range_and_network_events() {
+    @Test fun period_buttons_set_the_range_and_the_sheet_sends_network_filters() {
         val events = mutableListOf<AppsEvent>()
         show(onEvent = { events += it })
-        rule.onNodeWithText("Filters").performClick()
         rule.onNodeWithText("7 days").performClick()
+        assertEquals(listOf<AppsEvent>(AppsEvent.SetRange(AppsRange.LAST_7_DAYS)), events)
+        rule.onNodeWithTag("apps_filters_button").performClick()
         rule.onNodeWithText("Wi-Fi").performClick()
         rule.onNodeWithText("Apply").performScrollTo().performClick()
-        assertEquals(listOf(AppsEvent.ApplyFilters(AppsRange.LAST_7_DAYS, AppsNetwork.WIFI, AppSort.BYTES_DESC, false)), events)
+        assertEquals(AppsEvent.ApplyFilters(AppsNetwork.WIFI, AppSort.BYTES_DESC, false), events.last())
     }
 
     @Test fun typing_in_the_search_field_sends_the_query() {
@@ -87,10 +92,10 @@ class AppsContentTest {
     @Test fun selecting_a_sort_option_sends_the_sort_event() {
         val events = mutableListOf<AppsEvent>()
         show(onEvent = { events += it })
-        rule.onNodeWithText("Filters").performClick()
+        rule.onNodeWithTag("apps_filters_button").performClick()
         rule.onNodeWithText("Name").performClick()
         rule.onNodeWithText("Apply").performScrollTo().performClick()
-        assertEquals(listOf(AppsEvent.ApplyFilters(AppsRange.TODAY, AppsNetwork.ALL, AppSort.NAME, false)), events)
+        assertEquals(listOf<AppsEvent>(AppsEvent.ApplyFilters(AppsNetwork.ALL, AppSort.NAME, false)), events)
     }
 
     @Test fun a_search_without_matches_says_so() {

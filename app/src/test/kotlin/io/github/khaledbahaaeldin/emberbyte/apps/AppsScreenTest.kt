@@ -48,10 +48,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w360dp-h3000dp")
 class AppsScreenTest {
     @get:Rule
     val rule = createComposeRule()
+
+    @org.junit.Before fun settleEntrance() { AppsEntranceGate.played = true }
 
     private val sampleFeatured = AppRowUi("com.video", "YouTube", 600_000_000L, 400_000_000L)
     private val sampleApps = listOf(
@@ -76,28 +78,28 @@ class AppsScreenTest {
             }
         }
         rule.mainClock.advanceTimeByFrame()
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertDoesNotExist()
 
-        state = state.copy(range = AppsRange.LAST_7_DAYS)
+        state = state.copy(network = AppsNetwork.WIFI)
         rule.waitForIdle()
         repeat(2) {
             rule.mainClock.advanceTimeByFrame()
             rule.waitForIdle()
         }
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertIsDisplayed()
 
-        state = state.copy(range = AppsRange.TODAY)
+        state = state.copy(network = AppsNetwork.ALL)
         rule.waitForIdle()
         repeat(2) {
             rule.mainClock.advanceTimeByFrame()
             rule.waitForIdle()
         }
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertDoesNotExist()
     }
 
     @Test
     fun active_filters_retain_chips_while_shrinking_with_motion_enabled() {
-        var state by mutableStateOf(AppsUiState(loaded = true, range = AppsRange.LAST_7_DAYS))
+        var state by mutableStateOf(AppsUiState(loaded = true, network = AppsNetwork.WIFI))
         rule.mainClock.autoAdvance = false
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
@@ -112,16 +114,16 @@ class AppsScreenTest {
             }
         }
         rule.mainClock.advanceTimeBy(100)
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertExists()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertExists()
 
         // Clearing filters under normal motion retains the chip during exit shrink animation
-        state = state.copy(range = AppsRange.TODAY)
+        state = state.copy(network = AppsNetwork.ALL)
         rule.mainClock.advanceTimeBy(16)
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertExists()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertExists()
 
         // Once the exit animation completes, the chip is removed
         rule.mainClock.advanceTimeBy(1000)
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertDoesNotExist()
     }
 
     @Test
@@ -200,13 +202,14 @@ class AppsScreenTest {
             rule.waitForIdle()
         }
         rule.onNodeWithContentDescription("Loading apps").assertDoesNotExist()
-        rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
+        rule.onNodeWithText("Apps used today (apps only)").assertIsDisplayed()
+        rule.onNodeWithTag("apps_summary_total", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("YouTube").assertIsDisplayed()
     }
 
     @Test
     fun active_filters_update_live_while_non_empty() {
-        var state by mutableStateOf(AppsUiState(loaded = true, range = AppsRange.LAST_7_DAYS))
+        var state by mutableStateOf(AppsUiState(loaded = true, network = AppsNetwork.WIFI))
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 AppsContent(
@@ -217,13 +220,14 @@ class AppsScreenTest {
                 )
             }
         }
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed()
-
-        // Updating filter while activeFilters remains non-empty must recompose to the new chip
-        state = state.copy(range = AppsRange.LAST_30_DAYS)
         rule.waitForIdle()
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertDoesNotExist()
-        rule.onNodeWithContentDescription("Remove 30 days filter").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertIsDisplayed()
+
+        // Updating a filter while the chip row stays non-empty must recompose to the new chip
+        state = state.copy(network = AppsNetwork.MOBILE)
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Remove Network: Mobile filter").assertIsDisplayed()
     }
 
     @Test
@@ -267,22 +271,19 @@ class AppsScreenTest {
             }
         }
 
-        // Removable chips for non-default filters:
-        // 1. Range: "7 days" with remove action
-        rule.onNodeWithContentDescription("Remove 7 days filter").assertIsDisplayed().performClick()
-        assertEquals(AppsEvent.RemoveFilter(AppFilterKind.RANGE), events.last())
-
-        // 2. Network: "Wi-Fi" with remove action
-        rule.onNodeWithContentDescription("Remove Wi-Fi filter").assertIsDisplayed().performClick()
+        // Removable chips for the non-default filters, labelled in full (the period is not a filter).
+        rule.onNodeWithContentDescription("Remove Network: Wi-Fi filter").assertIsDisplayed().performClick()
         assertEquals(AppsEvent.RemoveFilter(AppFilterKind.NETWORK), events.last())
 
-        // 3. Sort: "Name" with remove action
-        rule.onNodeWithContentDescription("Remove Name filter").assertIsDisplayed().performClick()
+        rule.onNodeWithContentDescription("Remove Sort: Name filter").assertIsDisplayed().performClick()
         assertEquals(AppsEvent.RemoveFilter(AppFilterKind.SORT), events.last())
 
-        // 4. System apps: "System apps" with remove action
         rule.onNodeWithContentDescription("Remove System apps filter").assertIsDisplayed().performClick()
         assertEquals(AppsEvent.RemoveFilter(AppFilterKind.SYSTEM_APPS), events.last())
+
+        // Three active filters: a Reset chip appears.
+        rule.onNodeWithTag("apps_chip_reset").assertIsDisplayed().performClick()
+        assertEquals(AppsEvent.ResetFilters, events.last())
     }
 
     @Test
@@ -363,7 +364,7 @@ class AppsScreenTest {
 
         // Screen renders without crash in RTL
         rule.onNodeWithText("Apps").assertIsDisplayed()
-        rule.onNodeWithText("Filters").assertIsDisplayed()
+        rule.onNodeWithTag("apps_filters_button").assertIsDisplayed()
     }
 
     @Test
@@ -411,7 +412,7 @@ class AppsScreenTest {
             }
         }
 
-        rule.onNodeWithText("1.10 GB (apps only)").assertIsDisplayed()
+        rule.onNodeWithText("Apps used today (apps only)").assertIsDisplayed()
     }
 
     @Test
@@ -437,7 +438,7 @@ class AppsScreenTest {
                 }
             }
         }
-        for (label in listOf("Filters", "7 days", "Chat")) {
+        for (label in listOf("7 days", "Chat")) {
             val node = rule.onNodeWithText(label, useUnmergedTree = true)
             node.assertIsDisplayed()
             val bounds = node.getBoundsInRoot()

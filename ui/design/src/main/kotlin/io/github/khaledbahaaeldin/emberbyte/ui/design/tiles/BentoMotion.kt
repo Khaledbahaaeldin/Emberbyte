@@ -101,3 +101,12 @@ internal fun Modifier.entrance(
 @Composable
 internal fun Modifier.bentoEntrance(order: Int, play: Boolean): Modifier =
     entrance(BENTO_ENTRANCE_FIRST_MS + BENTO_ENTRANCE_STEP_MS * order, play)
+
+/**
+ * Staggered screen entrance for a page's blocks: each block fades and rises (translate 16 dp, scale 0.97) on the
+ * spatial spring, [order] x 70 ms after the first block, which starts 80 ms after the screen is shown. Pass
+ * `play = false` (or reduced motion) and it does nothing.
+ */
+@Composable
+fun Modifier.staggerEntrance(order: Int, play: Boolean): Modifier =
+    entrance(startMs = 80 + 70 * order, play = play, fromScale = 0.97f, fromDy = 16.dp)

@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.lerp
  * Colours of one of the colour-blocked Home tiles. [onContainer] is the primary label (at least 7:1 on
  * [container]); [onContainerSecondary] is secondary text (at least 4.5:1).
  */
-internal data class TileColours(
+data class TileColours(
     val container: Color,
     val onContainer: Color,
     val onContainerSecondary: Color,
@@ -34,10 +34,10 @@ private fun EmberbytePalette.tileMixed(tint: Color, mix: Float): TileColours {
 }
 
 /** The Live tile: the theme's primary mixed into the card colour (22 percent). */
-internal fun EmberbytePalette.liveTile(): TileColours = tileMixed(primary, 0.22f)
+fun EmberbytePalette.liveTile(): TileColours = tileMixed(primary, 0.22f)
 
 /** The "Today by network" tile: the theme's green accent (50 percent). */
-internal fun EmberbytePalette.networkTile(): TileColours = tileMixed(accent, 0.5f)
+fun EmberbytePalette.networkTile(): TileColours = tileMixed(accent, 0.5f)
 
 /** The Live tile while it shows upload: a warm tint (30 percent; a tint only, not a warning state). */
-internal fun EmberbytePalette.uploadTile(): TileColours = tileMixed(warn, 0.30f)
+fun EmberbytePalette.uploadTile(): TileColours = tileMixed(warn, 0.30f)

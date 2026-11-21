@@ -32,7 +32,7 @@ enum class AppsRange { TODAY, LAST_7_DAYS, LAST_30_DAYS, THIS_MONTH, CYCLE }
 
 enum class AppsNetwork { ALL, MOBILE, WIFI }
 
-enum class AppFilterKind { RANGE, NETWORK, SORT, SYSTEM_APPS }
+enum class AppFilterKind { NETWORK, SORT, SYSTEM_APPS }
 
 data class AppsUiState(
     val range: AppsRange = AppsRange.TODAY,
@@ -43,11 +43,18 @@ data class AppsUiState(
     val apps: List<AppRowUi> = emptyList(),
     val featured: AppRowUi? = null,
     val totalBytes: Long = 0L,
+    val wifiBytes: Long = 0L,
+    val mobileBytes: Long = 0L,
+    /** Apps shown (the featured one plus the list), for the "47 apps" pill. */
+    val appCount: Int = 0,
     val units: ByteUnits = ByteUnits.DECIMAL,
     val needsUsageAccess: Boolean = false,
     val loaded: Boolean = false,
 ) {
     val isLoading: Boolean get() = !loaded
+
+    /** Filters that differ from the defaults; the period buttons are not filters. */
+    val activeFilterCount: Int get() = activeFilterCount(network, sort, showSystemApps)
 }
 
 sealed interface AppsEvent {
@@ -59,7 +66,6 @@ sealed interface AppsEvent {
     data class RemoveFilter(val filter: AppFilterKind) : AppsEvent
     data object ResetFilters : AppsEvent
     data class ApplyFilters(
-        val range: AppsRange,
         val network: AppsNetwork,
         val sort: AppSort,
         val showSystemApps: Boolean,
@@ -123,6 +129,9 @@ internal fun buildAppsUiState(
         apps = rows,
         featured = featuredRow,
         totalBytes = shown.sumOf { it.totalBytes },
+        wifiBytes = shown.sumOf { it.wifiBytes },
+        mobileBytes = shown.sumOf { it.mobileBytes },
+        appCount = shown.size,
         units = units,
         needsUsageAccess = needsUsageAccess,
         loaded = true,
@@ -182,16 +191,14 @@ class AppsViewModel(
             is AppsEvent.SetQuery -> query.value = event.query
             is AppsEvent.RemoveFilter -> {
                 when (event.filter) {
-                    AppFilterKind.RANGE -> selection.update { it.copy(range = AppsRange.TODAY) }
                     AppFilterKind.NETWORK -> selection.update { it.copy(network = AppsNetwork.ALL) }
                     AppFilterKind.SORT -> selection.update { it.copy(sort = AppSort.BYTES_DESC) }
                     AppFilterKind.SYSTEM_APPS -> selection.update { it.copy(showSystemApps = false) }
                 }
             }
-            is AppsEvent.ResetFilters -> selection.value = Selection()
+            is AppsEvent.ResetFilters -> selection.update { Selection(range = it.range) }
             is AppsEvent.ApplyFilters -> selection.update {
                 it.copy(
-                    range = event.range,
                     network = event.network,
                     sort = event.sort,
                     showSystemApps = event.showSystemApps,
