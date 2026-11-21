@@ -99,6 +99,22 @@ object EmberbyteType {
         ),
     )
 
+    private val heroWeightFamilies = java.util.concurrent.ConcurrentHashMap<Int, FontFamily>()
+
+    /**
+     * The hero style at a given weight on the same Roboto Flex font, keeping the hero `wdth` 36 and `opsz` 144.
+     * Used by the Home weight-bloom entrance. Families are cached per whole weight so an animation reuses a typeface
+     * instead of building one per frame; [wght] is clamped to the font's 100..1000 range.
+     */
+    fun heroAxes(size: TextUnit, wght: Float): TextStyle {
+        val weight = wght.coerceIn(100f, 1000f).toInt()
+        val family = heroWeightFamilies.getOrPut(weight) {
+            val base = axes(Role.Hero)
+            createFamily(base.copy(wght = weight))
+        }
+        return hero(size).copy(fontFamily = family)
+    }
+
     fun badge(size: TextUnit): TextStyle = TextStyle(
         fontFamily = badgeFamily,
         fontSize = size,
