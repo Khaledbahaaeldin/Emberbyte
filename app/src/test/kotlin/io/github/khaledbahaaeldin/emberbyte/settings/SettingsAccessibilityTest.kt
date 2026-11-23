@@ -70,8 +70,8 @@ class SettingsAccessibilityTest {
         val unmergedLiveNodes = rule.onAllNodesWithText("Live notification", useUnmergedTree = true)
         unmergedLiveNodes.assertCountEquals(1)
 
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("AMOLED black"))
-        val amoledBlackNode = rule.onNodeWithText("AMOLED black")
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Pure black (AMOLED)"))
+        val amoledBlackNode = rule.onNodeWithText("Pure black (AMOLED)")
         amoledBlackNode.assertIsDisplayed()
         amoledBlackNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
         amoledBlackNode.assertIsOff()

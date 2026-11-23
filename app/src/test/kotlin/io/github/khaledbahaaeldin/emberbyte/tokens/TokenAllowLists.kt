@@ -12,10 +12,7 @@ internal object TokenAllowLists {
     val rawRadii: Map<String, Int> = mapOf(
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/BackTransitions.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/placeholder/StartupPlaceholder.kt" to 4,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/AppearanceScreen.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/LicencesScreen.kt" to 4,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/SettingsGroups.kt" to 2,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/SettingsScreen.kt" to 7,
         "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/tiles/BentoTile.kt" to 1,
         "ui/design/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/ui/design/tiles/NoticeLine.kt" to 1,
     )
@@ -24,8 +21,6 @@ internal object TokenAllowLists {
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/onboarding/OnboardingPages.kt" to 5,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/onboarding/OnboardingScreen.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/LicencesScreen.kt" to 7,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/SettingsGroups.kt" to 4,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/SettingsScreen.kt" to 3,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/widget/DashboardWidget.kt" to 7,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/widget/PlanWidget.kt" to 7,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/widget/TodayWidget.kt" to 2,

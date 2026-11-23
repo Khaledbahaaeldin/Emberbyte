@@ -64,6 +64,7 @@ class SettingsContentTest {
     @Test fun toggling_spike_alerts_updates_spike_alerts_enabled() {
         var transform: ((Settings) -> Settings)? = null
         show(onUpdate = { transform = it })
+        scrollTo("Spike alerts")
         rule.onNodeWithText("Spike alerts").performClick()
         val result = transform!!(Settings())
         assertFalse(result.spikeAlertsEnabled)
@@ -83,8 +84,8 @@ class SettingsContentTest {
     @Test fun amoled_and_dynamic_colour_toggles() {
         val seen = mutableListOf<(Settings) -> Settings>()
         show(onUpdate = { seen += it })
-        scrollTo("AMOLED black")
-        rule.onNodeWithText("AMOLED black").performClick()
+        scrollTo("Pure black (AMOLED)")
+        rule.onNodeWithText("Pure black (AMOLED)").performClick()
         assertTrue(seen[0](Settings()).amoledBlack)
         assertEquals(1, seen.size)
     }

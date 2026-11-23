@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -35,11 +37,15 @@ class AppearanceViewModel(
     private val isSystemDark: () -> Boolean = { false },
     private val sdkInt: Int = Build.VERSION.SDK_INT,
     private val widgetRefresh: suspend () -> Unit = {},
+    systemDarkFlow: Flow<Boolean>? = null,
 ) : ViewModel() {
 
-    private fun toUiState(s: Settings): AppearanceUiState {
+    private val internalSystemDark = MutableStateFlow(isSystemDark())
+    private val effectiveSystemDarkFlow: Flow<Boolean> = systemDarkFlow ?: internalSystemDark
+
+    internal fun toUiState(s: Settings, systemDark: Boolean): AppearanceUiState {
         val effectiveDark = when (s.themeMode) {
-            ThemeMode.SYSTEM -> isSystemDark()
+            ThemeMode.SYSTEM -> systemDark
             ThemeMode.LIGHT -> false
             ThemeMode.DARK -> true
         }
@@ -55,13 +61,17 @@ class AppearanceViewModel(
     }
 
     val uiState: StateFlow<AppearanceUiState> =
-        settings.observe()
-            .map { toUiState(it) }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                toUiState(Settings()),
-            )
+        combine(settings.observe(), effectiveSystemDarkFlow) { s, sysDark ->
+            toUiState(s, sysDark)
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            toUiState(Settings(), isSystemDark()),
+        )
+
+    fun setSystemDark(dark: Boolean) {
+        internalSystemDark.value = dark
+    }
 
     fun onEvent(event: AppearanceEvent) {
         viewModelScope.launch {

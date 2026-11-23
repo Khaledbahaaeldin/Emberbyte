@@ -195,7 +195,15 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun appearanceViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { AppearanceViewModel(settings) }
+        initializer {
+            AppearanceViewModel(
+                settings = settings,
+                isSystemDark = {
+                    val mode = appContext.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                    mode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                },
+            )
+        }
     }
 
     fun dataViewModelFactory(opener: StreamOpener): ViewModelProvider.Factory = viewModelFactory {

@@ -1,33 +1,38 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.DataObject
+import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
+import io.github.khaledbahaaeldin.emberbyte.R
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 
 @Composable
 fun DataSection(
@@ -42,9 +47,9 @@ fun DataSection(
     restoreFileChosen: Boolean = false,
     onDismissRestorePassphrase: () -> Unit = {},
 ) {
-    var showRangeDialog by remember { mutableStateOf(false) }
-    var showCreateBackupDialog by remember { mutableStateOf(false) }
-    var showRestoreWarningDialog by remember { mutableStateOf(false) }
+    var showRangeDialog by rememberSaveable { mutableStateOf(false) }
+    var showCreateBackupDialog by rememberSaveable { mutableStateOf(false) }
+    var showRestoreWarningDialog by rememberSaveable { mutableStateOf(false) }
     val createBackupRequester = remember { FocusRequester() }
     val restoreBackupRequester = remember { FocusRequester() }
     val palette = LocalEmberbytePalette.current
@@ -63,12 +68,12 @@ fun DataSection(
         CreateBackupPassphraseDialog(
             onDismiss = {
                 showCreateBackupDialog = false
-                createBackupRequester.requestFocus()
+                runCatching { createBackupRequester.requestFocus() }
             },
             onCreate = { passphrase ->
                 showCreateBackupDialog = false
                 onCreateBackup(passphrase)
-                createBackupRequester.requestFocus()
+                runCatching { createBackupRequester.requestFocus() }
             },
         )
     }
@@ -77,7 +82,7 @@ fun DataSection(
         RestoreWarningDialog(
             onDismiss = {
                 showRestoreWarningDialog = false
-                restoreBackupRequester.requestFocus()
+                runCatching { restoreBackupRequester.requestFocus() }
             },
             onConfirm = {
                 showRestoreWarningDialog = false
@@ -90,11 +95,11 @@ fun DataSection(
         RestorePassphraseDialog(
             onDismiss = {
                 onDismissRestorePassphrase()
-                restoreBackupRequester.requestFocus()
+                runCatching { restoreBackupRequester.requestFocus() }
             },
             onRestore = { passphrase ->
                 onRestoreBackup(passphrase)
-                restoreBackupRequester.requestFocus()
+                runCatching { restoreBackupRequester.requestFocus() }
             },
         )
     }
@@ -103,81 +108,70 @@ fun DataSection(
 
     Column(modifier = modifier.fillMaxWidth()) {
         SettingsRow(
-            title = "Export usage (CSV)",
-            subtitle = "Detailed hourly usage for a spreadsheet",
+            title = stringResource(R.string.settings_export_csv_title),
+            subtitle = stringResource(R.string.settings_export_csv_subtitle),
             enabled = rowsEnabled,
-            iconShape = AppShape.Cookie,
-            iconColor = palette.primary,
-            onIconColor = palette.onPrimary,
-            iconText = "C",
+            iconVector = Icons.Rounded.FileDownload,
             onClick = { showRangeDialog = true },
         )
         SettingsRow(
-            title = "Export everything (JSON)",
-            subtitle = "Plans, budgets and usage as standard JSON",
+            title = stringResource(R.string.settings_export_json_title),
+            subtitle = stringResource(R.string.settings_export_json_subtitle),
             enabled = rowsEnabled,
-            iconShape = AppShape.Squircle,
-            iconColor = palette.accent,
-            onIconColor = palette.onAccent,
-            iconText = "J",
+            iconVector = Icons.Rounded.DataObject,
             onClick = onExportJson,
         )
         SettingsRow(
-            title = "Create backup",
-            subtitle = "Save an encrypted copy of your data",
+            title = stringResource(R.string.settings_backup_create_title),
+            subtitle = stringResource(R.string.settings_backup_create_subtitle),
             enabled = rowsEnabled,
-            iconShape = AppShape.Sunny,
-            iconColor = palette.warn,
-            onIconColor = palette.onWarn,
-            iconText = "B",
+            iconVector = Icons.Rounded.Backup,
             onClick = { showCreateBackupDialog = true },
             modifier = Modifier.focusRequester(createBackupRequester),
         )
         SettingsRow(
-            title = "Restore backup",
-            subtitle = "Replace data from an encrypted backup",
+            title = stringResource(R.string.settings_backup_restore_title),
+            subtitle = stringResource(R.string.settings_backup_restore_subtitle),
             enabled = rowsEnabled,
-            iconShape = AppShape.Burst,
-            iconColor = palette.danger,
-            onIconColor = palette.onDanger,
-            iconText = "R",
+            iconVector = Icons.Rounded.Restore,
             onClick = { showRestoreWarningDialog = true },
             modifier = Modifier.focusRequester(restoreBackupRequester),
         )
 
-        if (uiState.busy) {
+        EmberbyteAnimatedVisibility(visible = uiState.busy) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                LoadingState(label = "Working")
+                LoadingState(label = stringResource(R.string.settings_working))
             }
         }
 
-
-        if (uiState.message != null) {
+        EmberbyteAnimatedVisibility(visible = uiState.message != null) {
+            val msg = uiState.message.orEmpty()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = uiState.message,
+                    text = msg,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (uiState.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    color = if (uiState.isError) palette.danger else palette.text,
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 8.dp),
                 )
                 TextButton(
                     onClick = onClearMessage,
+                    colors = ButtonDefaults.textButtonColors(contentColor = palette.linkText),
                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
                 ) {
-                    Text("Dismiss")
+                    Text(stringResource(R.string.settings_dismiss))
                 }
             }
         }
