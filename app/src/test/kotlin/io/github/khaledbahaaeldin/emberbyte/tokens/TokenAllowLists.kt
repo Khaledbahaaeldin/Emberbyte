@@ -12,7 +12,6 @@ internal object TokenAllowLists {
     val rawRadii: Map<String, Int> = mapOf(
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/nav/BackTransitions.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/placeholder/StartupPlaceholder.kt" to 4,
-        "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/plans/flow/PlanFlowScreen.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/AppearanceScreen.kt" to 1,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/LicencesScreen.kt" to 4,
         "app/src/main/kotlin/io/github/khaledbahaaeldin/emberbyte/settings/SettingsGroups.kt" to 2,
