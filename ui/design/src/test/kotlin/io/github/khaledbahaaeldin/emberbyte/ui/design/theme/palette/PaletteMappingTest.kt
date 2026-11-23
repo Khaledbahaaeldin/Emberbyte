@@ -61,7 +61,7 @@ class PaletteMappingTest {
         )
         val darkPalette = resolvePalette(darkSpec, sdkInt = 35) { error("dynamic lambda should not be called") }
         assertEquals(Color.Black, darkPalette.background)
-        assertEquals(Color.Black, darkPalette.surface)
+        assertEquals(Color(0xFF0B0B0B), darkPalette.surface)
 
         val lightSpec = EmberbyteThemeSpec(
             presetId = "dusk",

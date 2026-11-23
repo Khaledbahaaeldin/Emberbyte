@@ -123,7 +123,7 @@ class SettingsScreenTest {
             Triple("Live notification", "Today's usage in the notification shade", true),
             Triple("Show speed", "Add your current speed to the notification", false),
             Triple("Spike alerts", "Tell me when an app suddenly uses a lot of mobile data", true),
-            Triple("AMOLED black", "Pure black backgrounds in dark theme", false),
+            Triple("Pure black (AMOLED)", "Dark mode only", false),
         )
 
         for ((title, subtitle, expectedOn) in switchRows) {
@@ -290,6 +290,7 @@ class SettingsScreenTest {
         scrollTo("Export usage (CSV)")
         rule.onNodeWithText("Export usage (CSV)").assertIsDisplayed().performClick()
         rule.onNodeWithText("Last 7 days").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Export").assertIsDisplayed().performClick()
         assertEquals(ExportRange.LAST_7_DAYS, exportedCsv)
 
         // Export JSON
@@ -331,8 +332,17 @@ class SettingsScreenTest {
         val density = Density(rule.density.density, fontScale = 2f)
         val maxWidthPx = with(density) { 360.dp.toPx() }
 
+        // Settings title lives in the pinned top app bar (EmberbyteScreenScaffold), not inside the LazyColumn.
+        val titleNode = rule.onNodeWithText("Settings", substring = true).fetchSemanticsNode()
+        val titleBounds = titleNode.boundsInRoot
+        assertTrue(
+            "Node 'Settings' right (${titleBounds.right}) exceeds 360dp width ($maxWidthPx)",
+            titleBounds.right <= maxWidthPx + 1f,
+        )
+        assertTrue("Node 'Settings' left (${titleBounds.left}) is negative", titleBounds.left >= -1f)
+        assertTrue("Node 'Settings' has non-positive size", titleBounds.width > 0f && titleBounds.height > 0f)
+
         val checkItems = listOf(
-            "Settings",
             "Notifications",
             "Live notification",
             "Alerts",
@@ -372,12 +382,16 @@ class SettingsScreenTest {
     fun rtl() {
         show(layoutDirection = LayoutDirection.Rtl)
 
-        // In RTL, the Back button is on the right side of the header
+        // In RTL, both the Back icon and the expanded MediumFlexibleTopAppBar title mirror to the right side
         val backBounds = rule.onNodeWithContentDescription("Back").fetchSemanticsNode().boundsInRoot
         val titleBounds = rule.onNodeWithText("Settings").fetchSemanticsNode().boundsInRoot
         assertTrue(
-            "In RTL, Back button (${backBounds.left}) should be to the right of Settings title (${titleBounds.left})",
-            backBounds.left > titleBounds.left,
+            "In RTL, Back button right (${backBounds.right}) should be at or to the right of Settings title right (${titleBounds.right})",
+            backBounds.right >= titleBounds.right,
+        )
+        assertTrue(
+            "In RTL, header elements should align to the right half (back=${backBounds.center.x}, title=${titleBounds.center.x})",
+            backBounds.center.x > 160f && titleBounds.center.x > 160f,
         )
 
         // In RTL, Units ConnectedButtonGroup mirrors so "Decimal (GB)" is to the right of "Binary (GiB)"

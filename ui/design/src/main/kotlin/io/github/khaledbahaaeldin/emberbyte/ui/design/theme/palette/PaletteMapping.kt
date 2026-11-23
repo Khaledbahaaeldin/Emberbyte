@@ -122,7 +122,13 @@ internal fun resolvePalette(
         if (spec.darkTheme) pair.first else pair.second
     }
     return if (spec.darkTheme && spec.amoled) {
-        base.copy(background = Color.Black, surface = Color.Black)
+        val amoledSurface = Color(0xFF0B0B0B)
+        val amoledSurface2 = if (contrastRatio(base.surface2, Color.Black) >= 1.05) {
+            base.surface2
+        } else {
+            Color(0xFF141414)
+        }
+        base.copy(background = Color.Black, surface = amoledSurface, surface2 = amoledSurface2)
     } else {
         base
     }

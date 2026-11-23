@@ -1,13 +1,16 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import android.content.Intent
-import android.os.Build
-import android.widget.Toast
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,17 +24,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,33 +51,38 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import io.github.khaledbahaaeldin.emberbyte.nav.NavDiagnostics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.R
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
 import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
+import io.github.khaledbahaaeldin.emberbyte.nav.NavDiagnostics
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppShape
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppsShapes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.ShapedBox
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.toShape
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteShapeRadii
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePreset
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.ThemePresets
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 import java.time.LocalDate
 
@@ -225,6 +236,16 @@ class SettingsPendingState(
     }
 }
 
+internal fun previewPresetsFor(themeId: String, count: Int = 5): List<ThemePreset> {
+    val firstN = ThemePresets.take(count)
+    val selected = ThemePresets.firstOrNull { it.id == themeId }
+    return if (selected == null || firstN.any { it.id == selected.id }) {
+        firstN
+    } else {
+        firstN.dropLast(1) + selected
+    }
+}
+
 @Composable
 internal fun SettingsContent(
     settings: Settings,
@@ -256,156 +277,156 @@ internal fun SettingsContent(
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
         ?: settings.themeId.replaceFirstChar { it.uppercase() }
     val modeLabel = when (settings.themeMode) {
-        ThemeMode.SYSTEM -> "System"
-        ThemeMode.LIGHT -> "Light"
-        ThemeMode.DARK -> "Dark"
+        ThemeMode.SYSTEM -> stringResource(R.string.settings_mode_system)
+        ThemeMode.LIGHT -> stringResource(R.string.settings_mode_light)
+        ThemeMode.DARK -> stringResource(R.string.settings_mode_dark)
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item { ScreenHeader("Settings", onBack) }
-
-        item {
-            SettingsGroup(
-                title = "Notifications",
-                iconShape = AppShape.Cookie,
-                iconColor = palette.primary,
-                onIconColor = palette.onPrimary,
-                iconVector = Icons.Rounded.Notifications,
-                iconText = null,
-            ) {
-                SettingsSwitchRow(
-                    title = "Live notification",
-                    subtitle = "Today's usage in the notification shade",
-                    checked = settings.liveNotificationEnabled,
+    EmberbyteScreenScaffold(
+        title = stringResource(R.string.settings_title),
+        onBack = onBack,
+        modifier = modifier,
+    ) { scaffoldPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = scaffoldPadding.calculateTopPadding(),
+                bottom = scaffoldPadding.calculateBottomPadding(),
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item(key = "notifications") {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_notifications),
                     iconShape = AppShape.Cookie,
+                    iconColor = palette.primary,
+                    onIconColor = palette.onPrimary,
                     iconVector = Icons.Rounded.Notifications,
-                    iconText = null,
-                    onCheckedChange = { onUpdate { s -> s.copy(liveNotificationEnabled = it, promotedDismissedOn = null) } },
-                )
-                LiveUpdatesRow(
-                    mayPost = mayPostLiveUpdates,
-                    onClick = onOpenLiveUpdatesSettings,
-                )
-                SettingsSwitchRow(
-                    title = "Show speed",
-                    subtitle = "Add your current speed to the notification",
-                    checked = settings.notificationShowsSpeed,
-                    enabled = settings.liveNotificationEnabled,
-                    iconShape = AppShape.Squircle,
-                    iconVector = Icons.Rounded.Speed,
-                    iconText = null,
-                    onCheckedChange = { onUpdate { s -> s.copy(notificationShowsSpeed = it) } },
-                )
+                ) {
+                    SettingsSwitchRow(
+                        title = stringResource(R.string.settings_live_title),
+                        subtitle = stringResource(R.string.settings_live_subtitle),
+                        checked = settings.liveNotificationEnabled,
+                        iconVector = Icons.Rounded.Notifications,
+                        onCheckedChange = { onUpdate { s -> s.copy(liveNotificationEnabled = it, promotedDismissedOn = null) } },
+                    )
+                    LiveUpdatesRow(
+                        mayPost = mayPostLiveUpdates,
+                        onClick = onOpenLiveUpdatesSettings,
+                    )
+                    SettingsSwitchRow(
+                        title = stringResource(R.string.settings_show_speed_title),
+                        subtitle = stringResource(R.string.settings_show_speed_subtitle),
+                        checked = settings.notificationShowsSpeed,
+                        enabled = settings.liveNotificationEnabled,
+                        iconVector = Icons.Rounded.Speed,
+                        onCheckedChange = { onUpdate { s -> s.copy(notificationShowsSpeed = it) } },
+                    )
+                }
             }
-        }
 
-        item {
-            SettingsGroup(
-                title = "Alerts",
-                iconShape = AppShape.Burst,
-                iconColor = palette.warn,
-                onIconColor = palette.onWarn,
-                iconVector = Icons.Rounded.Warning,
-                iconText = null,
-            ) {
-                SettingsSwitchRow(
-                    title = "Spike alerts",
-                    subtitle = "Tell me when an app suddenly uses a lot of mobile data",
-                    checked = settings.spikeAlertsEnabled,
+            item(key = "alerts") {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_alerts),
                     iconShape = AppShape.Burst,
+                    iconColor = palette.warn,
+                    onIconColor = palette.onWarn,
                     iconVector = Icons.Rounded.Warning,
-                    iconText = null,
-                    onCheckedChange = { onUpdate { s -> s.copy(spikeAlertsEnabled = it) } },
+                ) {
+                    SettingsSwitchRow(
+                        title = stringResource(R.string.settings_spike_alerts_title),
+                        subtitle = stringResource(R.string.settings_spike_alerts_subtitle),
+                        checked = settings.spikeAlertsEnabled,
+                        iconVector = Icons.Rounded.Warning,
+                        onCheckedChange = { onUpdate { s -> s.copy(spikeAlertsEnabled = it) } },
+                    )
+                }
+            }
+
+            item(key = "appearance") {
+                AppearanceHeroCard(
+                    themeName = themeName,
+                    modeLabel = modeLabel,
+                    settings = settings,
+                    onUpdate = onUpdate,
+                    onOpenAppearance = onOpenAppearance,
                 )
             }
-        }
 
-        item {
-            AppearanceHeroCard(
-                themeName = themeName,
-                modeLabel = modeLabel,
-                settings = settings,
-                onUpdate = onUpdate,
-                onOpenAppearance = onOpenAppearance,
-            )
-        }
+            item(key = "units") {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_units),
+                    iconShape = AppShape.Sunny,
+                    iconColor = palette.warn,
+                    onIconColor = palette.onWarn,
+                    iconVector = Icons.Rounded.Tune,
+                ) {
+                    val unitIndex = if (settings.unitSystem == UnitSystem.DECIMAL) 0 else 1
+                    ConnectedButtonGroup(
+                        options = listOf(
+                            stringResource(R.string.settings_units_decimal),
+                            stringResource(R.string.settings_units_binary),
+                        ),
+                        selectedIndex = unitIndex,
+                        onSelect = { index ->
+                            val nextUnit = if (index == 0) UnitSystem.DECIMAL else UnitSystem.BINARY
+                            onUpdate { s -> s.copy(unitSystem = nextUnit) }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                    )
+                }
+            }
 
-        item {
-            SettingsGroup(
-                title = "Units",
-                iconShape = AppShape.Sunny,
-                iconColor = palette.warn,
-                onIconColor = palette.onWarn,
-                iconVector = Icons.Rounded.Tune,
-                iconText = null,
-            ) {
-                val unitIndex = if (settings.unitSystem == UnitSystem.DECIMAL) 0 else 1
-                ConnectedButtonGroup(
-                    options = listOf("Decimal (GB)", "Binary (GiB)"),
-                    selectedIndex = unitIndex,
-                    onSelect = { index ->
-                        val nextUnit = if (index == 0) UnitSystem.DECIMAL else UnitSystem.BINARY
-                        onUpdate { s -> s.copy(unitSystem = nextUnit) }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
+            item(key = "data") {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_data),
+                    iconShape = AppShape.Burst,
+                    iconColor = palette.accent,
+                    onIconColor = palette.onAccent,
+                    iconVector = Icons.Rounded.History,
+                ) {
+                    DataSection(
+                        uiState = dataUiState,
+                        onExportCsv = onExportCsv,
+                        onExportJson = onExportJson,
+                        onCreateBackup = onCreateBackup,
+                        onRestoreChosen = onRestoreChosen,
+                        onRestoreBackup = onRestoreBackup,
+                        onClearMessage = onClearDataMessage,
+                        restoreFileChosen = restoreFileChosen,
+                        onDismissRestorePassphrase = onDismissRestorePassphrase,
+                    )
+                }
+            }
+
+            item(key = "keep_measuring") {
+                BackgroundKeepMeasuringCard(
+                    onOpenBatterySettings = onOpenBatterySettings,
                 )
             }
-        }
 
-        item {
-            SettingsGroup(
-                title = "Data and backup",
-                iconShape = AppShape.Burst,
-                iconColor = palette.accent,
-                onIconColor = palette.onAccent,
-                iconVector = Icons.Rounded.History,
-                iconText = null,
-            ) {
-                DataSection(
-                    uiState = dataUiState,
-                    onExportCsv = onExportCsv,
-                    onExportJson = onExportJson,
-                    onCreateBackup = onCreateBackup,
-                    onRestoreChosen = onRestoreChosen,
-                    onRestoreBackup = onRestoreBackup,
-                    onClearMessage = onClearDataMessage,
-                    restoreFileChosen = restoreFileChosen,
-                    onDismissRestorePassphrase = onDismissRestorePassphrase,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                )
-            }
-        }
-
-        item {
-            BackgroundKeepMeasuringCard(
-                onOpenBatterySettings = onOpenBatterySettings,
-            )
-        }
-
-        item {
-            SettingsGroup(
-                title = "About",
-                iconShape = AppShape.Burst,
-                iconColor = palette.primary,
-                onIconColor = palette.onPrimary,
-                iconVector = Icons.Rounded.Info,
-                iconText = null,
-            ) {
-                AboutGroupContent(
-                    versionName = versionName,
-                    onOpenSource = onOpenSource,
-                    onOpenLicenses = onOpenLicenses,
-                    onCopyNavLog = onCopyNavLog,
-                    updateSource = updateSource,
-                    onOpenUpdater = onOpenUpdater,
-                    onOpenReleases = onOpenReleases,
-                )
+            item(key = "about") {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_about),
+                    iconShape = AppShape.Burst,
+                    iconColor = palette.primary,
+                    onIconColor = palette.onPrimary,
+                    iconVector = Icons.Rounded.Info,
+                ) {
+                    AboutGroupContent(
+                        versionName = versionName,
+                        onOpenSource = onOpenSource,
+                        onOpenLicenses = onOpenLicenses,
+                        onCopyNavLog = onCopyNavLog,
+                        updateSource = updateSource,
+                        onOpenUpdater = onOpenUpdater,
+                        onOpenReleases = onOpenReleases,
+                    )
+                }
             }
         }
     }
@@ -420,25 +441,36 @@ private fun AppearanceHeroCard(
     onOpenAppearance: () -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
-    val heroShape = mixedCorners(large = 36.dp, small = 12.dp, smallCorner = Corner.BottomStart)
+    val systemDark = isSystemInDarkTheme()
+    val effectiveDark = when (settings.themeMode) {
+        ThemeMode.SYSTEM -> systemDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    val heroShape = mixedCorners(
+        large = EmberbyteShapeRadii.ExtraLargeIncreased,
+        small = EmberbyteShapeRadii.Small,
+        smallCorner = Corner.BottomStart,
+    )
+    val previewPresets = remember(settings.themeId) { previewPresetsFor(settings.themeId) }
 
     Surface(
         shape = heroShape,
-        color = palette.surface2,
+        color = palette.surface,
         contentColor = palette.text,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Surface(
                 onClick = onOpenAppearance,
-                color = palette.surface2,
+                color = palette.surface,
                 contentColor = palette.text,
-                shape = RoundedCornerShape(22.dp),
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 56.dp)
@@ -447,36 +479,52 @@ private fun AppearanceHeroCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        Box(
+                            modifier = Modifier
+                                .width(48.dp)
+                                .clearAndSetSemantics {},
+                            contentAlignment = Alignment.CenterStart,
                         ) {
                             ShapedBox(
                                 shape = AppShape.Cookie.toShape(),
-                                color = palette.primary,
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clearAndSetSemantics {},
+                                color = palette.primary.copy(alpha = 0.12f),
+                                modifier = Modifier.size(36.dp),
                             ) {
-                                Text(
-                                    text = "A",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                                    color = palette.onPrimary,
-                                    modifier = Modifier.align(Alignment.Center),
+                                Icon(
+                                    imageVector = Icons.Rounded.Palette,
+                                    contentDescription = null,
+                                    tint = palette.primary,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .align(Alignment.Center)
+                                        .testTag(SETTINGS_ROW_ICON_TAG),
                                 )
                             }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Appearance",
-                                style = EmberbyteType.heading(19.sp),
+                                text = stringResource(R.string.settings_appearance_title),
+                                style = MaterialTheme.typography.titleMediumEmphasized,
                                 color = palette.text,
                             )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = themeName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = palette.muted,
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_appearance_summary, modeLabel, ThemePresets.size),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = palette.muted,
+                                )
+                            }
                         }
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
@@ -485,37 +533,27 @@ private fun AppearanceHeroCard(
                             modifier = Modifier.clearAndSetSemantics {},
                         )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = themeName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.muted,
-                        )
-                        Text(
-                            text = " · $modeLabel · 12 themes",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.muted,
-                        )
-                    }
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clearAndSetSemantics {},
+                            .padding(start = 48.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        val previewPresets = ThemePresets.take(5)
                         for (preset in previewPresets) {
+                            val swatchPalette = if (effectiveDark) preset.dark else preset.light
                             ShapedBox(
-                                shape = RoundedCornerShape(10.dp),
-                                color = preset.dark.background,
-                                modifier = Modifier.size(32.dp),
+                                shape = MaterialTheme.shapes.small,
+                                color = swatchPalette.surface2,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .testTag("appearance_hero_swatch_${preset.id}")
+                                    .clearAndSetSemantics {},
                             ) {
                                 ShapedBox(
                                     shape = AppShape.Cookie.toShape(),
-                                    color = preset.dark.primary,
+                                    color = swatchPalette.primary,
                                     modifier = Modifier
                                         .size(22.dp)
                                         .align(Alignment.Center),
@@ -524,22 +562,20 @@ private fun AppearanceHeroCard(
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = "+${ThemePresets.size - previewPresets.size} more",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = palette.primary,
+                            text = stringResource(R.string.settings_appearance_more, ThemePresets.size - previewPresets.size),
+                            style = MaterialTheme.typography.labelSmallEmphasized,
+                            color = palette.linkText,
+                            modifier = Modifier.clearAndSetSemantics {},
                         )
                     }
                 }
             }
 
             SettingsSwitchRow(
-                title = "AMOLED black",
-                subtitle = "Pure black backgrounds in dark theme",
+                title = stringResource(R.string.settings_amoled_title),
+                subtitle = stringResource(R.string.settings_amoled_subtitle),
                 checked = settings.amoledBlack,
-                iconShape = AppShape.Squircle,
-                iconColor = palette.surface,
-                onIconColor = palette.primary,
-                iconText = "B",
+                iconVector = Icons.Rounded.DarkMode,
                 onCheckedChange = { onUpdate { s -> s.copy(amoledBlack = it) } },
             )
         }
@@ -551,7 +587,11 @@ private fun BackgroundKeepMeasuringCard(
     onOpenBatterySettings: () -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
-    val shape = mixedCorners(large = 30.dp, small = 10.dp, smallCorner = Corner.BottomEnd)
+    val shape = mixedCorners(
+        large = EmberbyteShapeRadii.ExtraLarge,
+        small = EmberbyteShapeRadii.ExtraSmall,
+        smallCorner = Corner.BottomEnd,
+    )
 
     Surface(
         shape = shape,
@@ -566,18 +606,18 @@ private fun BackgroundKeepMeasuringCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
-                text = "Keep measuring in the background",
-                style = EmberbyteType.heading(15.sp),
+                text = stringResource(R.string.settings_keep_measuring_title),
+                style = MaterialTheme.typography.titleMediumEmphasized,
                 color = palette.onAccent,
             )
             Text(
-                text = "Some phones stop background apps. Allow Emberbyte in the battery settings so it can keep measuring.",
+                text = stringResource(R.string.settings_keep_measuring_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = palette.onAccent,
             )
             Surface(
                 onClick = onOpenBatterySettings,
-                shape = RoundedCornerShape(percent = 50),
+                shape = CircleShape,
                 color = palette.onAccent,
                 contentColor = palette.accent,
                 modifier = Modifier
@@ -591,8 +631,8 @@ private fun BackgroundKeepMeasuringCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Battery settings",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        text = stringResource(R.string.settings_battery_button),
+                        style = MaterialTheme.typography.labelLargeEmphasized,
                         color = palette.accent,
                     )
                 }
@@ -614,18 +654,20 @@ private fun AboutGroupContent(
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
     val singleColumn = density.fontScale >= 1.5f
+    val copyLogLabel = stringResource(R.string.settings_copy_nav_log)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
             modifier = Modifier
+                .padding(horizontal = 10.dp)
                 .pointerInput(onCopyNavLog) { detectTapGestures(onLongPress = { onCopyNavLog() }) }
                 .semantics {
-                    onLongClick(label = "Copy navigation log") {
+                    onLongClick(label = copyLogLabel) {
                         onCopyNavLog()
                         true
                     }
@@ -636,12 +678,12 @@ private fun AboutGroupContent(
             BrandMark(size = 48.dp)
             Column {
                 Text(
-                    text = "Emberbyte $versionName",
-                    style = EmberbyteType.heading(20.sp),
+                    text = stringResource(R.string.settings_about_version, versionName),
+                    style = MaterialTheme.typography.titleLargeEmphasized,
                     color = palette.text,
                 )
                 Text(
-                    text = "Open source under the GPL-3.0 or later. Your data never leaves this device.",
+                    text = stringResource(R.string.settings_about_licence_line),
                     style = MaterialTheme.typography.bodySmall,
                     color = palette.muted,
                 )
@@ -657,46 +699,40 @@ private fun AboutGroupContent(
 
         if (singleColumn) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 AboutPillButton(
-                    label = "Source code",
-                    shape = RoundedCornerShape(percent = 50),
+                    label = stringResource(R.string.settings_about_source),
+                    shape = CircleShape,
                     onClick = onOpenSource,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 AboutPillButton(
-                    label = "Open-source licences",
-                    shape = RoundedCornerShape(percent = 50),
+                    label = stringResource(R.string.settings_about_licences),
+                    shape = CircleShape,
                     onClick = onOpenLicenses,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         } else {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 AboutPillButton(
-                    label = "Source code",
-                    shape = RoundedCornerShape(
-                        topStart = CornerSize(50),
-                        bottomStart = CornerSize(50),
-                        topEnd = CornerSize(8.dp),
-                        bottomEnd = CornerSize(8.dp),
-                    ),
+                    label = stringResource(R.string.settings_about_source),
+                    shape = AppsShapes.PeriodStart,
                     onClick = onOpenSource,
                     modifier = Modifier.weight(1f),
                 )
                 AboutPillButton(
-                    label = "Open-source licences",
-                    shape = RoundedCornerShape(
-                        topStart = CornerSize(8.dp),
-                        bottomStart = CornerSize(8.dp),
-                        topEnd = CornerSize(50),
-                        bottomEnd = CornerSize(50),
-                    ),
+                    label = stringResource(R.string.settings_about_licences),
+                    shape = AppsShapes.PeriodEnd,
                     onClick = onOpenLicenses,
                     modifier = Modifier.weight(1f),
                 )
@@ -708,7 +744,7 @@ private fun AboutGroupContent(
 @Composable
 private fun AboutPillButton(
     label: String,
-    shape: androidx.compose.ui.graphics.Shape,
+    shape: Shape,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -717,7 +753,7 @@ private fun AboutPillButton(
         onClick = onClick,
         shape = shape,
         color = palette.surface2,
-        contentColor = palette.primary,
+        contentColor = palette.linkText,
         modifier = modifier
             .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
             .semantics(mergeDescendants = true) {},
@@ -730,8 +766,8 @@ private fun AboutPillButton(
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
-                color = palette.primary,
+                style = MaterialTheme.typography.labelLargeEmphasized,
+                color = palette.linkText,
                 textAlign = TextAlign.Center,
             )
         }
