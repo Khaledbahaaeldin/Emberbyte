@@ -77,7 +77,45 @@ fun AppDetailContent(
         if (loading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingState(label = "Loading app details") }
         } else {
-            DetailBody(state, onEvent, onBack, onOpenSettings, icon, zone)
+            Box(Modifier.fillMaxSize()) {
+                DetailBody(state, onEvent, onBack, onOpenSettings, icon, zone)
+                if (state.showBudgetRemovedUndo) {
+                    val palette = LocalEmberbytePalette.current
+                    androidx.compose.material3.Surface(
+                        color = palette.surface2,
+                        contentColor = palette.text,
+                        shape = MaterialTheme.shapes.large,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 24.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = androidx.compose.ui.res.stringResource(io.github.khaledbahaaeldin.emberbyte.R.string.dialog_budget_removed),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.text,
+                            )
+                            TextButton(
+                                onClick = { onEvent(AppDetailEvent.UndoRemoveBudget) },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) {
+                                Text(
+                                    text = androidx.compose.ui.res.stringResource(io.github.khaledbahaaeldin.emberbyte.R.string.dialog_undo),
+                                    color = palette.linkText,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             if (state.editor != null) {
                 BudgetEditorDialog(editor = state.editor, planOptions = state.planOptions, onEvent = onEvent)
             }

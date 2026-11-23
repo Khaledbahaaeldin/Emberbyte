@@ -149,6 +149,7 @@ data class AppDetailUiState(
     val spikes: List<SpikeRowUi> = emptyList(),
     val planOptions: List<PlanOptionUi> = emptyList(),
     val editor: BudgetEditorUi? = null,
+    val showBudgetRemovedUndo: Boolean = false,
 ) {
     val isLoading: Boolean get() = !loaded
 }
@@ -189,6 +190,7 @@ private data class BudgetAndSpikesState(
     val spikes: List<SpikeEvent>,
     val plans: List<Plan>,
     val editor: BudgetEditorUi?,
+    val showBudgetUndo: Boolean,
 )
 
 /** @param dates tests MUST pass a finite flow. */
@@ -207,7 +209,9 @@ class AppDetailViewModel(
 ) : ViewModel() {
     private val _editor = MutableStateFlow<BudgetEditorUi?>(null)
     private val _range = MutableStateFlow(DetailRange.Week)
+    private val _showBudgetUndo = MutableStateFlow(false)
     @Volatile private var currentBudgetStatus: BudgetStatus? = null
+    @Volatile private var lastRemovedBudget: AppBudget? = null
     @Volatile private var currentSettings: Settings = Settings()
 
     val uiState: StateFlow<AppDetailUiState> = combine(dates, _range) { date, detailRange -> date to detailRange }
@@ -234,13 +238,16 @@ class AppDetailViewModel(
             val previous = both.dropLast(days).takeLast(days)
             Triple(apps, series to previous.sumOf { it.totalBytes }, hours to s)
         }
+        val editorAndUndo = combine(_editor, _showBudgetUndo) { editorState, showUndo ->
+            editorState to showUndo
+        }
         val budgetAndSpikes = combine(
             budgets.observeStatuses(),
             spikes.observeSpikes(includeDismissed = false),
             plans.observePlans(includeArchived = false),
-            _editor,
-        ) { statuses, spikeList, planList, editorState ->
-            BudgetAndSpikesState(statuses, spikeList, planList, editorState)
+            editorAndUndo,
+        ) { statuses, spikeList, planList, (editorState, showUndo) ->
+            BudgetAndSpikesState(statuses, spikeList, planList, editorState, showUndo)
         }
         combine(usageAndSettings, budgetAndSpikes) { (apps, seriesAndPrevious, hoursAndSettings), bState ->
             val (series, previousTotal) = seriesAndPrevious
@@ -269,6 +276,7 @@ class AppDetailViewModel(
                 spikes = appSpikes,
                 planOptions = planOptionList,
                 editor = bState.editor,
+                showBudgetRemovedUndo = bState.showBudgetUndo,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppDetailUiState(packageName))
@@ -364,9 +372,22 @@ class AppDetailViewModel(
             }
             AppDetailEvent.RemoveBudget -> {
                 val current = currentBudgetStatus?.budget ?: return
+                lastRemovedBudget = current.copy(id = 0L)
+                _showBudgetUndo.value = true
                 viewModelScope.launch {
                     budgets.delete(current.id)
                 }
+            }
+            AppDetailEvent.UndoRemoveBudget -> {
+                val restored = lastRemovedBudget ?: return
+                lastRemovedBudget = null
+                _showBudgetUndo.value = false
+                viewModelScope.launch {
+                    budgets.upsert(restored)
+                }
+            }
+            AppDetailEvent.DismissBudgetUndo -> {
+                _showBudgetUndo.value = false
             }
             is AppDetailEvent.DismissSpike -> {
                 viewModelScope.launch {

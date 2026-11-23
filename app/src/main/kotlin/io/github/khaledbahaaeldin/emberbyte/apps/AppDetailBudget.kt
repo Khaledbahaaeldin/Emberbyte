@@ -55,6 +55,8 @@ sealed interface AppDetailEvent {
     data class SetBudgetWarn(val percent: Int) : AppDetailEvent
     data object SaveBudget : AppDetailEvent
     data object RemoveBudget : AppDetailEvent
+    data object UndoRemoveBudget : AppDetailEvent
+    data object DismissBudgetUndo : AppDetailEvent
     data class DismissSpike(val id: Long) : AppDetailEvent
     data class SetRange(val range: io.github.khaledbahaaeldin.emberbyte.apps.detail.DetailRange) : AppDetailEvent
 }
