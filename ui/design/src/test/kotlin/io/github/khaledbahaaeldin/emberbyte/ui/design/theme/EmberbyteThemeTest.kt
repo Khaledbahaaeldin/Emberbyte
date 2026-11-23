@@ -57,7 +57,7 @@ class EmberbyteThemeTest {
     @Test fun amoled_makes_dark_surfaces_black() {
         val palette = resolve(dark = true, dynamic = false, amoled = true, sdk = 34)
         assertEquals(Color.Black, palette.background)
-        assertEquals(Color.Black, palette.surface)
+        assertEquals(Color(0xFF0B0B0B), palette.surface)
     }
 
     @Test fun amoled_is_ignored_in_light_theme() =
@@ -80,7 +80,7 @@ class EmberbyteThemeTest {
             dynamic = { lifted },
         )
         assertEquals(Color.Black, palette.background)
-        assertEquals(Color.Black, palette.surface)
+        assertEquals(Color(0xFF0B0B0B), palette.surface)
         assertEquals(Color.Blue, palette.primary)
         assertEquals(lifted.surfaceVariant, palette.surface2)
         assertEquals(lifted.onSurface, palette.text)
