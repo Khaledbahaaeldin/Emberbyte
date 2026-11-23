@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.plans.flow
 
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSimInfoSource
@@ -195,6 +197,261 @@ class PlanFlowScreenTest {
 
         rule.onNodeWithText("Start next cycle").performClick()
         assertEquals(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.StartNextCycle), lastEvent)
+    }
+
+    @Test
+    fun review_shows_sim_and_next_renewal() {
+        val state = PlanFlowState(
+            step = 5,
+            totalSteps = 5,
+            name = "Vodafone Main",
+            subscriptionId = 2,
+            sims = listOf(
+                io.github.khaledbahaaeldin.emberbyte.plans.SimOptionUi(null, "Not tied to a SIM"),
+                io.github.khaledbahaaeldin.emberbyte.plans.SimOptionUi(2, "SIM 1 · Vodafone"),
+            ),
+            capText = "20",
+            capUnit = CapUnit.GB,
+            cycleKind = CycleKind.Monthly,
+            dayOfMonth = 17,
+            nextCycleStartText = "17 Dec",
+            isMidCycleApplicable = true,
+            firstCycleChoice = FirstCycleChoice.PhoneRecord,
+            isReviewStep = true,
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                StepReview(
+                    state = state,
+                    onEvent = {},
+                )
+            }
+        }
+        rule.onNodeWithText("Vodafone Main").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("20 GB").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("SIM 1 · Vodafone").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Renews 17 Dec").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun continue_is_a_filled_button_when_valid() {
+        val state = PlanFlowState(
+            step = 1,
+            totalSteps = 5,
+            name = "Vodafone Main",
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                PlanFlowContent(
+                    state = state,
+                    onEvent = {},
+                    onBack = {},
+                )
+            }
+        }
+        rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_filled_continue")).assertIsDisplayed().assertIsEnabled()
+        rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_text_back")).assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun plan_flow_progress_is_wavy_and_animated() {
+        rule.mainClock.autoAdvance = false
+        val state = androidx.compose.runtime.mutableStateOf(
+            PlanFlowState(step = 1, totalSteps = 5, name = "Vodafone Main"),
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                PlanFlowContent(
+                    state = state.value,
+                    onEvent = {},
+                    onBack = {},
+                )
+            }
+        }
+        rule.mainClock.advanceTimeBy(1500)
+        state.value = state.value.copy(step = 2)
+        androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeBy(64)
+
+        val wavyNode = rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_wavy_progress")).fetchSemanticsNode()
+        val rangeInfo = wavyNode.config[androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo]
+        val animatedMid = wavyNode.config[PlanFlowAnimatedProgressKey]
+        assertEquals(0.4f, rangeInfo.current, 0.001f)
+        assertTrue("Expected in-between animated progress between 0.2 and 0.4, got $animatedMid", animatedMid > 0.2f && animatedMid < 0.4f)
+
+        rule.mainClock.advanceTimeBy(1500)
+        val settled = rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_wavy_progress"))
+            .fetchSemanticsNode().config[PlanFlowAnimatedProgressKey]
+        assertEquals(0.4f, settled, 0.005f)
+    }
+
+    @Test
+    fun plan_flow_progress_snaps_when_reduced_motion() {
+        rule.mainClock.autoAdvance = false
+        val state = androidx.compose.runtime.mutableStateOf(
+            PlanFlowState(step = 1, totalSteps = 5, name = "Vodafone Main"),
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
+                ) {
+                    PlanFlowContent(
+                        state = state.value,
+                        onEvent = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+        state.value = state.value.copy(step = 2)
+        androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        val snapped = rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_wavy_progress"))
+            .fetchSemanticsNode().config[PlanFlowAnimatedProgressKey]
+        assertEquals(0.4f, snapped, 0.001f)
+    }
+
+    @Test
+    fun step_label_crossfades() {
+        rule.mainClock.autoAdvance = false
+        val state = androidx.compose.runtime.mutableStateOf(
+            PlanFlowState(step = 1, totalSteps = 5, name = "Vodafone Main"),
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                PlanFlowContent(
+                    state = state.value,
+                    onEvent = {},
+                    onBack = {},
+                )
+            }
+        }
+        rule.mainClock.advanceTimeBy(500)
+        rule.onNodeWithText("Step 1 of 5").assertIsDisplayed()
+
+        state.value = state.value.copy(step = 2)
+        androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeBy(64)
+
+        // Mid-crossfade: both outgoing and incoming step labels exist simultaneously.
+        rule.onNodeWithText("Step 1 of 5").assertIsDisplayed()
+        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
+
+        rule.mainClock.advanceTimeBy(600)
+        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
+    }
+
+    @Test
+    fun step_label_snaps_when_reduced_motion() {
+        rule.mainClock.autoAdvance = false
+        val state = androidx.compose.runtime.mutableStateOf(
+            PlanFlowState(step = 1, totalSteps = 5, name = "Vodafone Main"),
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
+                ) {
+                    PlanFlowContent(
+                        state = state.value,
+                        onEvent = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        state.value = state.value.copy(step = 2)
+        androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
+        rule.onNodeWithText("Step 1 of 5").assertDoesNotExist()
+    }
+
+    @Test
+    fun all_steps_respect_48dp_targets_and_bounds_across_widths_font_scales_and_themes() {
+        val themeSpecs = listOf(
+            EmberbyteThemeSpec(presetId = "dusk", darkTheme = false, amoled = false),
+            EmberbyteThemeSpec(presetId = "dusk", darkTheme = true, amoled = false),
+            EmberbyteThemeSpec(presetId = "dusk", darkTheme = true, amoled = true),
+        )
+        val widthsDp = listOf(360, 411)
+        val fontScales = listOf(1.0f, 1.5f, 2.0f)
+
+        val currentSpec = androidx.compose.runtime.mutableStateOf(themeSpecs.first())
+        val currentWidth = androidx.compose.runtime.mutableStateOf(411)
+        val currentScale = androidx.compose.runtime.mutableStateOf(1.0f)
+        val currentStep = androidx.compose.runtime.mutableStateOf(2)
+
+        rule.setContent {
+            val base = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(base.density, fontScale = currentScale.value),
+            ) {
+                EmberbyteTheme(currentSpec.value) {
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
+                    ) {
+                        androidx.compose.foundation.layout.Box(
+                            modifier = androidx.compose.ui.Modifier.width(
+                                androidx.compose.ui.unit.Dp(currentWidth.value.toFloat()),
+                            ),
+                        ) {
+                            PlanFlowContent(
+                                state = PlanFlowState(
+                                    step = currentStep.value,
+                                    totalSteps = 5,
+                                    name = "Vodafone Main",
+                                    capText = "20",
+                                    nextCycleStartText = "17 Dec",
+                                    isReviewStep = currentStep.value == 5,
+                                ),
+                                onEvent = {},
+                                onBack = {},
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        for (spec in themeSpecs) {
+            currentSpec.value = spec
+            for (w in widthsDp) {
+                currentWidth.value = w
+                for (scale in fontScales) {
+                    currentScale.value = scale
+                    for (step in listOf(2, 3, 5)) {
+                        currentStep.value = step
+                        rule.waitForIdle()
+                        val minPx = with(rule.density) { 47.5f * density }
+                        val maxWidthPx = with(rule.density) { (w + 1) * density }
+                        val clickables = rule.onAllNodes(androidx.compose.ui.test.hasClickAction()).fetchSemanticsNodes()
+                        assertTrue("Expected interactive controls on step $step", clickables.isNotEmpty())
+                        for (node in clickables) {
+                            val b = node.boundsInRoot
+                            assertTrue(
+                                "Touch target height ${b.height}px < ${minPx}px on step $step width=${w}dp scale=$scale",
+                                b.height >= minPx,
+                            )
+                            assertTrue(
+                                "Control overflows ${w}dp container (right=${b.right} > $maxWidthPx) on step $step scale=$scale",
+                                b.right <= maxWidthPx,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -30,7 +30,7 @@
 | T3 Width-aware ConnectedButtonGroup | Khaled | not started |
 | T4 Loading states | Omar | not started |
 | T5 Data correctness and History | Omar | not started |
-| T6 New-plan flow | Joe | not started |
+| T6 New-plan flow | Joe | done |
 | T7 Plan editor, Plans, what-if | Joe | not started |
 | T8 Settings, dialogs, AMOLED | Joe | not started |
 | T9 Motion foundations | Khaled (wrappers); each owner applies them in their own screens | not started |
