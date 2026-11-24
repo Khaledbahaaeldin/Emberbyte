@@ -133,7 +133,7 @@ class PlanEditorScreenTest {
                 }
             }
         }
-        rule.onNodeWithText("Save").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Save").assertIsDisplayed()
     }
 
     @Test
@@ -150,6 +150,6 @@ class PlanEditorScreenTest {
                 }
             }
         }
-        rule.onNodeWithText("Save").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Save").assertIsDisplayed()
     }
 }

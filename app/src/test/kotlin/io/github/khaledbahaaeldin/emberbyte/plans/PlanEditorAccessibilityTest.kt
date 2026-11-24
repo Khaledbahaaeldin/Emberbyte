@@ -61,7 +61,7 @@ class PlanEditorAccessibilityTest {
         backButton.assertIsDisplayed()
         backButton.assert(hasClickAction())
 
-        val saveButton = rule.onNodeWithText("Save").performScrollTo()
+        val saveButton = rule.onNodeWithText("Save")
         saveButton.assertIsDisplayed()
         saveButton.assert(hasClickAction())
     }
@@ -126,9 +126,9 @@ class PlanEditorAccessibilityTest {
         val capField = rule.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.Error, "Enter a cap greater than zero"),
         )
-        capField.assertIsDisplayed()
+        capField.performScrollTo().assertIsDisplayed()
         val capErrorNode = rule.onNodeWithText("Enter a cap greater than zero")
-        capErrorNode.assertIsDisplayed()
+        capErrorNode.performScrollTo().assertIsDisplayed()
     }
 
     @Test

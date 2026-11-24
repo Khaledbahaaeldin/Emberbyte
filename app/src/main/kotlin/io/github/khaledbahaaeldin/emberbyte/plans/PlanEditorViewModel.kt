@@ -7,6 +7,7 @@ import io.github.khaledbahaaeldin.emberbyte.data.PermissionRepository
 import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
 import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
+import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.alert.AlertRepository
 import io.github.khaledbahaaeldin.emberbyte.data.source.SimInfoSource
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
@@ -14,6 +15,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.plan.CycleCalculator
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AddOn
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AlertRule
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle
+import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
 import io.github.khaledbahaaeldin.emberbyte.engine.model.EmberbyteError
 import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.FreeRule
@@ -24,6 +26,7 @@ import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
 import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import java.time.Clock
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -54,6 +57,8 @@ class PlanEditorViewModel(
     private val previewDebounceMillis: Long = 300L,
     private val savedStateHandle: SavedStateHandle,
     private val widgetRefresh: suspend () -> Unit = {},
+    private val usage: UsageRepository? = null,
+    private val labelOf: (String) -> String = { it },
 ) : ViewModel() {
     private val hasRestored = savedStateHandle.get<String>(KEY_FORM)?.let { PlanEditorFormJson.decode(it) } != null
     private var isRestoredDirty = hasRestored
@@ -75,6 +80,23 @@ class PlanEditorViewModel(
     init {
         viewModelScope.launch { load() }
         viewModelScope.launch { permissions.observe().collect { refreshSims(it.phoneState) } }
+        if (usage != null) {
+            viewModelScope.launch {
+                val now = clock.instant()
+                val range = DateRange(now.minus(Duration.ofDays(30)), now)
+                usage.observeApps(range).collect { appList ->
+                    val choices = appList
+                        .filter { !it.packageName.startsWith("uid:") }
+                        .map { app ->
+                            val resolved = labelOf(app.packageName).ifBlank { app.label }.ifBlank { app.packageName }
+                            AppChoiceUi(app.packageName, resolved)
+                        }
+                        .distinctBy { it.packageName }
+                        .sortedBy { it.label.lowercase(locale) }
+                    _state.update { it.copy(availableApps = choices) }
+                }
+            }
+        }
         viewModelScope.launch {
             _state.map { it.form to it.unitSystem }.distinctUntilChanged().debounce(previewDebounceMillis)
                 .collectLatest { (form, system) -> _state.update { it.copy(preview = preview(form, system)) } }
@@ -191,9 +213,9 @@ class PlanEditorViewModel(
                 pinned = plan.pinned,
             )
             loadedForm = form
-            _state.update { it.copy(form = form, loading = false, whatIf = initialWhatIf, isDirty = false) }
+            _state.update { it.copy(form = form, isArchived = plan.archived, loading = false, whatIf = initialWhatIf, isDirty = false) }
         } else {
-            _state.update { it.copy(loading = false, whatIf = initialWhatIf, isDirty = true) }
+            _state.update { it.copy(isArchived = plan.archived, loading = false, whatIf = initialWhatIf, isDirty = true) }
         }
     }
 
@@ -383,6 +405,9 @@ class PlanEditorViewModel(
             PlanEditorEvent.Archive -> {
                 viewModelScope.launch { archive() }
             }
+            PlanEditorEvent.Unarchive -> {
+                viewModelScope.launch { unarchive() }
+            }
             PlanEditorEvent.Delete -> {
                 viewModelScope.launch { archive() }
             }
@@ -461,6 +486,22 @@ class PlanEditorViewModel(
                 widgetRefresh()
             }
             is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not archive. Try again.")) }
+        }
+    }
+
+    private suspend fun unarchive() {
+        val currentPlanId = _state.value.planId
+        if (currentPlanId == 0L) return
+        val existing = plans.observePlans(includeArchived = true).first().firstOrNull { it.id == currentPlanId } ?: return
+        when (plans.upsertPlan(existing.copy(archived = false))) {
+            is Outcome.Success -> {
+                savedStateHandle.remove<String>(KEY_FORM)
+                isRestoredDirty = false
+                loadedForm = _state.value.form
+                _state.update { it.copy(isArchived = false, saved = true, isDirty = false) }
+                widgetRefresh()
+            }
+            is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not unarchive. Try again.")) }
         }
     }
 
