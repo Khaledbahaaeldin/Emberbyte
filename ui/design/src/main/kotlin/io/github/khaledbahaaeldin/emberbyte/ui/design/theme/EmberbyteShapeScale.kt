@@ -3,6 +3,8 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Shapes
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -35,3 +37,6 @@ val EmberbyteShapeScale: Shapes = Shapes(
     extraLargeIncreased = RoundedCornerShape(EmberbyteShapeRadii.ExtraLargeIncreased),
     extraExtraLarge = RoundedCornerShape(EmberbyteShapeRadii.ExtraExtraLarge),
 )
+
+/** Dynamic corner shape for predictive-back transitions. */
+fun predictiveBackShape(radius: Dp): Shape = RoundedCornerShape(radius)

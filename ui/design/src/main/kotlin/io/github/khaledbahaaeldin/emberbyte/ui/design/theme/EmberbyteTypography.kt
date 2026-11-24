@@ -130,3 +130,49 @@ object HistoryType {
     val SelectedTotal: TextUnit = 40.sp
     val Record: TextUnit = 20.sp
 }
+
+/** Text sizes for shared `ui/design` components. Tokens live here so components carry no raw `.sp` literals. */
+object ComponentType {
+    val DialogTitle: TextUnit = 24.sp
+    val DialogBody: TextUnit = 15.sp
+    val NavLabel: TextUnit = 13.sp
+    val NavLabelCharWidth: TextUnit = 7.2f.sp
+    val HeroMax: TextUnit = 96.sp
+    val HeroMin: TextUnit = 36.sp
+    val MorphingSize: TextUnit = 72.sp
+    val RingLabel: TextUnit = 17.sp
+    val EmptyTitle: TextUnit = 20.sp
+    val RowValue: TextUnit = 12.sp
+}
+
+/** Text sizes for the Licences screen. Tokens live here so the screen carries no raw `.sp` literals. */
+object LicencesType {
+    val Header: TextUnit = 18.sp
+    val SectionTracking: TextUnit = 1.sp
+    val ItemTitle: TextUnit = 15.sp
+    val LicenceBody: TextUnit = 11.sp
+    val LicenceLineHeight: TextUnit = 15.sp
+}
+
+/** Text sizes for Onboarding screens. Tokens live here so onboarding carries no raw `.sp` literals. */
+object OnboardingType {
+    val HeroTitle: TextUnit = 16.sp
+    val Body: TextUnit = 14.sp
+    val HeroValue: TextUnit = 76.sp
+    val Action: TextUnit = 15.sp
+    val Button: TextUnit = 16.sp
+}
+
+/** Text sizes for home-screen Glance widgets. Tokens live here so widgets carry no raw `.sp` literals. */
+object WidgetType {
+    val HeroLarge: TextUnit = 38.sp
+    val HeroToday: TextUnit = 32.sp
+    val HeroCompact: TextUnit = 28.sp
+    val Metric: TextUnit = 24.sp
+    val Unit: TextUnit = 16.sp
+    val Title: TextUnit = 15.sp
+    val UnitSmall: TextUnit = 14.sp
+    val Body: TextUnit = 13.sp
+    val Label: TextUnit = 12.sp
+    val Caption: TextUnit = 11.sp
+}

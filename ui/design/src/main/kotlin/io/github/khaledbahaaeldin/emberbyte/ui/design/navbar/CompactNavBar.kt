@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
 import kotlinx.coroutines.CoroutineStart
@@ -167,7 +168,7 @@ private fun NavBarRow(
     if (trailing != null) lastTrailing[0] = trailing
 
     val labelStyle = MaterialTheme.typography.labelLarge.copy(
-        fontSize = 13.sp,
+        fontSize = ComponentType.NavLabel,
         fontWeight = FontWeight.Bold,
     )
 
@@ -190,7 +191,7 @@ private fun NavBarRow(
         // Fallback character-width floor (7.2sp per glyph) when Robolectric returns 0px for custom fonts
         val charFloorPx = with(density) {
             items.maxOfOrNull { item ->
-                item.label.length * (7.2f.sp.toPx())
+                item.label.length * (ComponentType.NavLabelCharWidth.toPx())
             } ?: 0f
         }
         maxOf(measurerPx, charFloorPx)

@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import androidx.compose.ui.graphics.ImageBitmap
@@ -194,7 +195,7 @@ fun AppRow(
             ForceLtr {
                 Text(
                     text = "${total.value} ${total.unit}",
-                    style = EmberbyteType.value(12.sp),
+                    style = EmberbyteType.value(ComponentType.RowValue),
                     color = palette.text,
                     maxLines = 1,
                 )

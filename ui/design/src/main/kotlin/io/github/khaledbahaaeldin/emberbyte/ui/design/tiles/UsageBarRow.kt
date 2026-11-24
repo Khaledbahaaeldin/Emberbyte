@@ -66,6 +66,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -302,7 +303,7 @@ fun UsageBarRow(
             ForceLtr {
                 Text(
                     text = valueText,
-                    style = EmberbyteType.value(12.sp),
+                    style = EmberbyteType.value(ComponentType.RowValue),
                     color = palette.text,
                     maxLines = 1,
                 )
