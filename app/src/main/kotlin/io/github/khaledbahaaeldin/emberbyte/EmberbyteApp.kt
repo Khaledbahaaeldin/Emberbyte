@@ -202,7 +202,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 OnboardingScreen(
                     viewModel,
                     actions,
-                    onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
+                    onSetUpPlan = { navController.navigate(Routes.PLAN_NEW) },
                     onFinish = {
                         viewModel.finish {
                             ServiceStarter.start(context)
@@ -238,7 +238,7 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                     onReturnedDayConsumed = { it.savedStateHandle[Routes.HOME_DAY_RESULT] = null },
                     onPromptAction = actions::onPrompt,
                     onOpenApp = { navController.navigate(Routes.appDetail(it)) },
-                    onSetUpPlan = { navController.navigate(Routes.planEditor(0)) },
+                    onSetUpPlan = { navController.navigate(Routes.PLAN_NEW) },
                     onNavigateToApps = { navController.navigateToTab(Destination.Apps) },
                     iconProvider = graph.appIcons,
                 )

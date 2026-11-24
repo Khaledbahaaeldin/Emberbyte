@@ -93,7 +93,7 @@ internal fun WelcomeStep(
             text = "Your data stays on your phone.",
             style = EmberbyteType.title(OnboardingType.WelcomeTitle).copy(
                 lineHeight = OnboardingType.WelcomeTitle * 1.04f,
-                letterSpacing = (-0.035).em,
+                letterSpacing = (-0.01).em,
             ),
             color = palette.text,
             modifier = Modifier

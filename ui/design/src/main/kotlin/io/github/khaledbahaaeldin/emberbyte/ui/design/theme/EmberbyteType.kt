@@ -17,10 +17,10 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.R
  *
  * All roles configure the bundled Roboto Flex variable font axes via [FontVariation]:
  * - [hero]: wght 800, wdth 36, opsz 144, letterSpacing -0.04.em
- * - [badge]: wght 850, wdth 110
- * - [title]: wght 800, wdth 40, opsz 144
- * - [heading]: wght 800, wdth 105
- * - [value]: wght 850, wdth 75
+ * - [badge]: wght 700, wdth 105
+ * - [title]: wght 600, wdth 100, opsz 28
+ * - [heading]: wght 600, wdth 100
+ * - [value]: wght 700, wdth 80
  */
 object EmberbyteType {
     enum class Role {
@@ -39,10 +39,10 @@ object EmberbyteType {
 
     internal fun axes(role: Role): TypeAxes = when (role) {
         Role.Hero -> TypeAxes(wght = 800, wdth = 36f, opsz = 144f)
-        Role.Badge -> TypeAxes(wght = 850, wdth = 110f, opsz = null)
-        Role.Title -> TypeAxes(wght = 800, wdth = 40f, opsz = 144f)
-        Role.Heading -> TypeAxes(wght = 800, wdth = 105f, opsz = null)
-        Role.Value -> TypeAxes(wght = 850, wdth = 75f, opsz = null)
+        Role.Badge -> TypeAxes(wght = 700, wdth = 105f, opsz = null)
+        Role.Title -> TypeAxes(wght = 600, wdth = 100f, opsz = 28f)
+        Role.Heading -> TypeAxes(wght = 600, wdth = 100f, opsz = null)
+        Role.Value -> TypeAxes(wght = 700, wdth = 80f, opsz = null)
     }
 
     internal fun axes(roleName: String): TypeAxes {

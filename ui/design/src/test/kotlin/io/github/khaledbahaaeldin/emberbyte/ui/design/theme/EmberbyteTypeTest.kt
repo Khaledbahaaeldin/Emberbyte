@@ -26,28 +26,28 @@ class EmberbyteTypeTest {
         assertEquals(36f, hero.wdth, 0.001f)
         assertEquals(144f, hero.opsz ?: 0f, 0.001f)
 
-        // badge: wght 850, wdth 110, opsz null
+        // badge: wght 700, wdth 105, opsz null
         val badge = EmberbyteType.axes(EmberbyteType.Role.Badge)
-        assertEquals(850, badge.wght)
-        assertEquals(110f, badge.wdth, 0.001f)
+        assertEquals(700, badge.wght)
+        assertEquals(105f, badge.wdth, 0.001f)
         assertNull(badge.opsz)
 
-        // title: wght 800, wdth 40, opsz 144
+        // title: wght 600, wdth 100, opsz 28
         val title = EmberbyteType.axes(EmberbyteType.Role.Title)
-        assertEquals(800, title.wght)
-        assertEquals(40f, title.wdth, 0.001f)
-        assertEquals(144f, title.opsz ?: 0f, 0.001f)
+        assertEquals(600, title.wght)
+        assertEquals(100f, title.wdth, 0.001f)
+        assertEquals(28f, title.opsz ?: 0f, 0.001f)
 
-        // heading: wght 800, wdth 105, opsz null
+        // heading: wght 600, wdth 100, opsz null
         val heading = EmberbyteType.axes(EmberbyteType.Role.Heading)
-        assertEquals(800, heading.wght)
-        assertEquals(105f, heading.wdth, 0.001f)
+        assertEquals(600, heading.wght)
+        assertEquals(100f, heading.wdth, 0.001f)
         assertNull(heading.opsz)
 
-        // value: wght 850, wdth 75, opsz null
+        // value: wght 700, wdth 80, opsz null
         val value = EmberbyteType.axes(EmberbyteType.Role.Value)
-        assertEquals(850, value.wght)
-        assertEquals(75f, value.wdth, 0.001f)
+        assertEquals(700, value.wght)
+        assertEquals(80f, value.wdth, 0.001f)
         assertNull(value.opsz)
 
         // Also verify string-based overload matches

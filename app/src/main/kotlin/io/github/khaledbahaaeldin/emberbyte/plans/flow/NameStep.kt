@@ -85,7 +85,7 @@ internal fun NameStep(
         val r0 = reveal(0)
         Text(
             text = stringResource(R.string.plan_flow_name_title),
-            style = EmberbyteType.title(PlanFlowType.Title).copy(letterSpacing = (-0.035).em),
+            style = EmberbyteType.title(PlanFlowType.Title).copy(letterSpacing = (-0.01).em),
             color = palette.text,
             modifier = Modifier
                 .semantics { heading() }

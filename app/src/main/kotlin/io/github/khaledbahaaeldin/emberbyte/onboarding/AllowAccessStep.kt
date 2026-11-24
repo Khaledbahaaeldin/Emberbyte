@@ -77,7 +77,7 @@ internal fun AllowAccessStep(
         val r0 = reveal(0)
         Text(
             text = "Allow access",
-            style = EmberbyteType.title(OnboardingType.StepTitle).copy(letterSpacing = (-0.035).em),
+            style = EmberbyteType.title(OnboardingType.StepTitle).copy(letterSpacing = (-0.01).em),
             color = palette.text,
             modifier = Modifier
                 .semantics { heading() }

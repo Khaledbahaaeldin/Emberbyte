@@ -73,7 +73,7 @@ internal fun ThisCycleStep(
         val r0 = reveal(0)
         Text(
             text = stringResource(R.string.plan_flow_this_cycle_title, ordinalDay(today)),
-            style = EmberbyteType.title(PlanFlowType.Title).copy(letterSpacing = (-0.035).em),
+            style = EmberbyteType.title(PlanFlowType.Title).copy(letterSpacing = (-0.01).em),
             color = palette.text,
             modifier = Modifier
                 .semantics { heading() }
@@ -230,6 +230,7 @@ private fun CycleChoiceCard(
                             text = title,
                             style = EmberbyteType.heading(PlanFlowType.CardTitle),
                             color = palette.text,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         if (tag != null) {
                             Surface(
@@ -240,6 +241,8 @@ private fun CycleChoiceCard(
                                     text = tag,
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = PlanFlowType.Micro),
                                     color = palette.muted,
+                                    maxLines = 1,
+                                    softWrap = false,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 )
                             }

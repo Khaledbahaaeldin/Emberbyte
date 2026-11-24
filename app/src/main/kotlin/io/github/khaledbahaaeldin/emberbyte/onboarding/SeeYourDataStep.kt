@@ -73,7 +73,7 @@ internal fun SeeYourDataStep(
         val r0 = reveal(0)
         Text(
             text = "See your data",
-            style = EmberbyteType.title(OnboardingType.StepTitle).copy(letterSpacing = (-0.035).em),
+            style = EmberbyteType.title(OnboardingType.StepTitle).copy(letterSpacing = (-0.01).em),
             color = palette.text,
             modifier = Modifier
                 .semantics { heading() }
