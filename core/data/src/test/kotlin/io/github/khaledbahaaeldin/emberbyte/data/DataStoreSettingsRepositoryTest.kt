@@ -71,7 +71,9 @@ class DataStoreSettingsRepositoryTest {
             val backupService = DefaultBackupService(
                 export = exportService,
                 restore = RoomRestoreStore(db),
-                resolver = PackageResolver { null },
+                resolver = object : PackageResolver {
+                    override fun resolve(packageName: String) = null
+                },
                 params = BackupCodec.Params(memoryKiB = 64, iterations = 1, parallelism = 1),
             )
             val out = ByteArrayOutputStream()

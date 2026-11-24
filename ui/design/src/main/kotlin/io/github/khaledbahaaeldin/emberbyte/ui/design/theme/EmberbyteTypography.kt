@@ -176,3 +176,17 @@ object WidgetType {
     val Label: TextUnit = 12.sp
     val Caption: TextUnit = 11.sp
 }
+
+/** Text sizes for the redesigned Settings hub and sub-screens. */
+object SettingsType {
+    val HubTitle: TextUnit = 38.sp
+    val BannerTitle: TextUnit = 34.sp
+    val UnitsDisplay: TextUnit = 44.sp
+    val PulseHeadline: TextUnit = 23.sp
+    val CardTitle: TextUnit = 17.sp
+    val RowTitle: TextUnit = 15.sp
+    val PulseBody: TextUnit = 13.sp
+    val RowSubtitle: TextUnit = 12.5f.sp
+    val Caption: TextUnit = 12.sp
+    val Micro: TextUnit = 11.sp
+}
