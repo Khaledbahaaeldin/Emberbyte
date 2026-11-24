@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteShapeScale
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,7 +45,7 @@ internal const val TILE_TITLE_ALPHA = 0.87f
 
 internal fun bentoTileShape(
     corner: Corner?,
-    defaultShape: CornerBasedShape = RoundedCornerShape(28.dp),
+    defaultShape: CornerBasedShape = EmberbyteShapeScale.largeIncreased as CornerBasedShape,
 ): CornerBasedShape = if (corner != null) {
     mixedCorners(large = 24.dp, small = 8.dp, smallCorner = corner)
 } else {

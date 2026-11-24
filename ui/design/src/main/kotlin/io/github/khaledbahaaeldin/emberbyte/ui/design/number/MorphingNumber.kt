@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
 import androidx.compose.ui.text.font.Font
@@ -129,9 +130,9 @@ fun MorphingNumber(
     val rollSpatial = motion.spatial<IntOffset>()
     val rollEffects = motion.effects<Float>()
     val heroStyle = remember(family) {
-        EmberbyteType.hero(72.sp).copy(
+        EmberbyteType.hero(ComponentType.MorphingSize).copy(
             fontFamily = family,
-            lineHeight = 72.sp,
+            lineHeight = ComponentType.MorphingSize,
         )
     }
 

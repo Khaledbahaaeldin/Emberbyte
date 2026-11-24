@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -67,7 +68,7 @@ internal fun formatHeroValue(value: String): AnnotatedString {
     }
 }
 
-internal val HERO_NUMBER_MIN_SIZE: TextUnit = 36.sp
+internal val HERO_NUMBER_MIN_SIZE: TextUnit = ComponentType.HeroMin
 internal val HERO_NUMBER_BADGE_SIZE: Dp = 62.dp
 internal val HERO_NUMBER_SPACING: Dp = 8.dp
 
@@ -138,7 +139,7 @@ internal fun calculateHeroNumberSize(
  * Large expressive hero number displaying a data value and its cookie unit badge (Contract 13.1).
  *
  * Exposes a single accessibility semantics node with [contentDescription]. Auto-shrinks
- * the value text via binary search down to a minimum of 36.sp so that it never clips even
+ * the value text via binary search down to a minimum of [HERO_NUMBER_MIN_SIZE] so that it never clips even
  * under high font scaling (e.g. font scale 2.0).
  *
  * [entrance] = [HeroEntrance.WeightBloom] makes each digit bloom from a thin to the final weight, left to right, once
@@ -151,7 +152,7 @@ fun HeroNumber(
     unit: String,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    size: TextUnit = 96.sp,
+    size: TextUnit = ComponentType.HeroMax,
     color: Color = LocalEmberbytePalette.current.primary,
     onSizeResolved: ((TextUnit) -> Unit)? = null,
     entrance: HeroEntrance = HeroEntrance.None,

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.WidgetType
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.Emittable
 import androidx.glance.EmittableWithChildren
@@ -130,7 +130,7 @@ fun HeroBlock(
     ) {
         Text(
             text = "Today",
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Label, fontWeight = FontWeight.Medium)
         )
         Spacer(GlanceModifier.height(2.dp))
 
@@ -145,12 +145,12 @@ fun HeroBlock(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = formattedToday.value,
-                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.HeroLarge, fontWeight = FontWeight.Bold)
                 )
                 Spacer(GlanceModifier.width(4.dp))
                 Text(
                     text = formattedToday.unit,
-                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.Unit, fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -158,7 +158,7 @@ fun HeroBlock(
         Spacer(GlanceModifier.height(2.dp))
         Text(
             text = planCaption,
-            style = TextStyle(color = ColorProvider(palette.primary), fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.Body, fontWeight = FontWeight.Medium),
             maxLines = 1
         )
     }
@@ -216,19 +216,19 @@ fun RingBlock(
         } else {
             Text(
                 text = "$percent%",
-                style = TextStyle(color = ColorProvider(palette.primary), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.Metric, fontWeight = FontWeight.Bold)
             )
         }
 
         Spacer(GlanceModifier.height(4.dp))
         Text(
             text = plan?.plan?.name ?: "No plan",
-            style = TextStyle(color = ColorProvider(palette.text), fontSize = 12.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = ColorProvider(palette.text), fontSize = WidgetType.Label, fontWeight = FontWeight.Bold),
             maxLines = 1
         )
         Text(
             text = if (plan != null) remainingText(plan.remainingBytes, units) else "Set up a plan",
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption),
             maxLines = 1
         )
     }
@@ -288,13 +288,13 @@ fun AppRowsBlock(
                 }
                 Text(
                     text = app.label,
-                    style = TextStyle(color = ColorProvider(palette.text), fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(color = ColorProvider(palette.text), fontSize = WidgetType.Label, fontWeight = FontWeight.Medium),
                     maxLines = 1,
                     modifier = GlanceModifier.defaultWeight()
                 )
                 Text(
                     text = plainBytes(app.totalBytes, units),
-                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp)
+                    style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption)
                 )
             }
         }
@@ -347,12 +347,12 @@ fun NetworkBlock(
         ) {
             Text(
                 text = "Mobile: ${plainBytes(data.mobileBytes, units)}",
-                style = TextStyle(color = ColorProvider(palette.text), fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(color = ColorProvider(palette.text), fontSize = WidgetType.Caption, fontWeight = FontWeight.Medium),
                 modifier = GlanceModifier.defaultWeight()
             )
             Text(
                 text = "Wi-Fi: ${plainBytes(data.wifiBytes, units)}",
-                style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp)
+                style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption)
             )
         }
         Spacer(GlanceModifier.height(4.dp))
@@ -404,7 +404,7 @@ fun ChartBlock(
     ) {
         Text(
             text = "Last 7 days",
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption, fontWeight = FontWeight.Medium)
         )
         Spacer(GlanceModifier.height(4.dp))
         if (chartBitmap != null) {
@@ -466,13 +466,13 @@ fun PermissionBlock(
         }
         Text(
             text = "Allow usage access",
-            style = TextStyle(color = ColorProvider(palette.primary), fontSize = 15.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.Title, fontWeight = FontWeight.Bold),
             maxLines = 2
         )
         Spacer(GlanceModifier.height(4.dp))
         Text(
             text = "Tap to grant permission",
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption),
             maxLines = 2
         )
     }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -34,7 +33,7 @@ fun StartupPlaceholder() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(MaterialTheme.shapes.large)
                 .background(color)
         )
         // Row of two 96 dp blocks
@@ -46,14 +45,14 @@ fun StartupPlaceholder() {
                 modifier = Modifier
                     .weight(1f)
                     .height(96.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(MaterialTheme.shapes.large)
                     .background(color)
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .height(96.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(MaterialTheme.shapes.large)
                     .background(color)
             )
         }
@@ -62,7 +61,7 @@ fun StartupPlaceholder() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(MaterialTheme.shapes.large)
                 .background(color)
         )
     }

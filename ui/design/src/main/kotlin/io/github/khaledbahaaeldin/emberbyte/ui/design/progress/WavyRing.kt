@@ -43,6 +43,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import kotlinx.coroutines.delay
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
@@ -127,7 +128,7 @@ fun WavyRing(
     size: Dp,
     label: String,
     modifier: Modifier = Modifier,
-    labelSize: TextUnit = 17.sp,
+    labelSize: TextUnit = ComponentType.RingLabel,
     delayMillis: Int = 0,
     onAnimationSpecResolved: ((AnimationSpec<Float>) -> Unit)? = null,
     onAnimatedSweepChanged: ((Float) -> Unit)? = null,

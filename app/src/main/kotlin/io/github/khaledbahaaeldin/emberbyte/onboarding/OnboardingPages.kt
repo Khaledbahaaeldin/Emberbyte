@@ -47,6 +47,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.toShape
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.OnboardingType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BrandMark
 
 internal const val ONBOARDING_PAGE_COUNT = 4
@@ -114,7 +115,7 @@ internal fun WelcomeOnboardingPage(
             BrandMark(size = 28.dp)
             Text(
                 text = "Emberbyte",
-                style = EmberbyteType.heading(16.sp),
+                style = EmberbyteType.heading(OnboardingType.HeroTitle),
                 color = palette.primary,
             )
         }
@@ -162,14 +163,14 @@ internal fun SeeYourDataOnboardingPage(
             ) {
                 Text(
                     text = "Today",
-                    style = EmberbyteType.heading(14.sp),
+                    style = EmberbyteType.heading(OnboardingType.Body),
                     color = palette.muted,
                 )
                 HeroNumber(
                     value = "1.4",
                     unit = "GB",
                     contentDescription = "Sample usage 1.4 gigabytes today",
-                    size = 76.sp,
+                    size = OnboardingType.HeroValue,
                 )
                 Text(
                     text = "Mobile 920 MB · Wi-Fi 480 MB",
@@ -237,7 +238,7 @@ internal fun StayUnderYourCapOnboardingPage(
                 ) {
                     Text(
                         text = "Your data plan",
-                        style = EmberbyteType.heading(16.sp),
+                        style = EmberbyteType.heading(OnboardingType.HeroTitle),
                         color = palette.text,
                     )
                     Text(
@@ -426,7 +427,7 @@ private fun PermissionRowCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
-                        style = EmberbyteType.heading(15.sp),
+                        style = EmberbyteType.heading(OnboardingType.Action),
                         color = palette.text,
                     )
                     Text(
