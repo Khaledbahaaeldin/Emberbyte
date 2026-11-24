@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Speed
@@ -96,6 +97,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenLicenses: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
+    onOpenWhatsNew: (() -> Unit)? = null,
+    hasWhatsNew: Boolean = true,
 ) {
     val settings by viewModel.uiState.collectAsStateWithLifecycle()
     val dataUiState by dataViewModel.uiState.collectAsStateWithLifecycle()
@@ -154,6 +157,8 @@ fun SettingsScreen(
             }
         },
         onOpenReleases = { runCatching { uriHandler.openUri(RELEASES_URL) } },
+        onOpenWhatsNew = onOpenWhatsNew,
+        hasWhatsNew = hasWhatsNew,
         onCopyNavLog = {
             val info = runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
             val header = "Emberbyte $versionName (code ${info?.longVersionCode ?: 0}) | Android ${Build.VERSION.RELEASE} " +
@@ -272,6 +277,8 @@ internal fun SettingsContent(
     updateSource: UpdateSource = UpdateSource.Unknown,
     onOpenUpdater: () -> Unit = {},
     onOpenReleases: () -> Unit = {},
+    onOpenWhatsNew: (() -> Unit)? = null,
+    hasWhatsNew: Boolean = true,
 ) {
     val palette = LocalEmberbytePalette.current
     val themeName = ThemePresets.firstOrNull { it.id == settings.themeId }?.name
@@ -425,6 +432,8 @@ internal fun SettingsContent(
                         updateSource = updateSource,
                         onOpenUpdater = onOpenUpdater,
                         onOpenReleases = onOpenReleases,
+                        onOpenWhatsNew = onOpenWhatsNew,
+                        hasWhatsNew = hasWhatsNew,
                     )
                 }
             }
@@ -650,6 +659,8 @@ private fun AboutGroupContent(
     updateSource: UpdateSource,
     onOpenUpdater: () -> Unit,
     onOpenReleases: () -> Unit,
+    onOpenWhatsNew: (() -> Unit)? = null,
+    hasWhatsNew: Boolean = true,
 ) {
     val palette = LocalEmberbytePalette.current
     val density = LocalDensity.current
@@ -690,11 +701,26 @@ private fun AboutGroupContent(
             }
         }
 
+        if (onOpenWhatsNew != null) {
+            SettingsRow(
+                title = stringResource(R.string.whatsnew_settings_title),
+                subtitle = if (hasWhatsNew) {
+                    stringResource(R.string.whatsnew_settings_subtitle, versionName)
+                } else {
+                    stringResource(R.string.whatsnew_settings_empty)
+                },
+                iconVector = Icons.Rounded.NewReleases,
+                enabled = hasWhatsNew,
+                onClick = onOpenWhatsNew,
+            )
+        }
+
         UpdatesRow(
             updateSource = updateSource,
             versionName = versionName,
             onOpenUpdater = onOpenUpdater,
             onOpenReleases = onOpenReleases,
+            onOpenWhatsNew = onOpenWhatsNew,
         )
 
         if (singleColumn) {

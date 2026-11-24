@@ -39,7 +39,7 @@
 | T12 Typography and shape scale | Khaled (T12a tokens first, T12b migration sweep last) | not started |
 | T13 Navbar and adaptive | Khaled (also the Plus button exit) | not started |
 | T14 Localisation groundwork and cleanup | Khaled (last) | not started |
-| T16 What's new sheet (offline) | Joe | not started |
+| T16 What's new sheet (offline) | Joe | done |
 | T17 Home hero motion | Khaled | not started |
 | T18 Home bento tiles | Khaled | not started |
 | T19 Home plan setup card | Khaled | not started |

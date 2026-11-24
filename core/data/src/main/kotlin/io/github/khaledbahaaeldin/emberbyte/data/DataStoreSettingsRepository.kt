@@ -11,9 +11,11 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.khaledbahaaeldin.emberbyte.engine.model.EmberbyteError
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -31,6 +33,7 @@ internal object SettingsKeys {
     val HAPTICS = booleanPreferencesKey("haptics_enabled")
     val PROMOTED_DISMISSED_ON = stringPreferencesKey("promoted_dismissed_on")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+    val LAST_SEEN_WHATS_NEW_VERSION_CODE = intPreferencesKey("last_seen_whats_new_version_code")
     val LEGACY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
 }
 
@@ -143,3 +146,30 @@ class DataStoreOnboardingRepository(private val store: DataStore<Preferences>) :
         store.edit { it[SettingsKeys.ONBOARDING_COMPLETED] = true }
     }
 }
+
+interface WhatsNewPrefsRepository {
+    fun observeLastSeenVersionCode(): Flow<Int?>
+    suspend fun lastSeenVersionCode(): Int?
+    suspend fun markSeen(versionCode: Int)
+}
+
+class DataStoreWhatsNewPrefsRepository(private val store: DataStore<Preferences>) : WhatsNewPrefsRepository {
+    override fun observeLastSeenVersionCode(): Flow<Int?> = store.data.safe()
+        .map { it[SettingsKeys.LAST_SEEN_WHATS_NEW_VERSION_CODE] }
+
+    override suspend fun lastSeenVersionCode(): Int? =
+        store.data.safe().map { it[SettingsKeys.LAST_SEEN_WHATS_NEW_VERSION_CODE] }.let { flow ->
+            var value: Int? = null
+            flow.collect {
+                value = it
+                throw StopCollectException
+            }
+            value
+        }
+
+    override suspend fun markSeen(versionCode: Int) {
+        store.edit { it[SettingsKeys.LAST_SEEN_WHATS_NEW_VERSION_CODE] = versionCode }
+    }
+}
+
+private object StopCollectException : CancellationException("Done reading single value")

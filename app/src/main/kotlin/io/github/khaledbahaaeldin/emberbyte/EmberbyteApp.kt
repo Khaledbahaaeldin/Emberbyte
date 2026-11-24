@@ -78,6 +78,9 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.CompactNavBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.PlusButton
 import io.github.khaledbahaaeldin.emberbyte.ui.design.navbar.rememberNavBarVisibility
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.whatsnew.WHATS_NEW_CHANGELOG_URL
+import io.github.khaledbahaaeldin.emberbyte.whatsnew.WhatsNewSheet
+import io.github.khaledbahaaeldin.emberbyte.whatsnew.WhatsNewViewModel
 
 @Composable
 fun EmberbyteApp(graph: AppGraph, hapticsEnabled: Boolean = true) {
@@ -147,6 +150,15 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
     val actions = rememberPermissionActions(graph)
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
+    val whatsNewViewModel: WhatsNewViewModel = viewModel(factory = graph.whatsNewViewModelFactory())
+    val whatsNewState by whatsNewViewModel.uiState.collectAsStateWithLifecycle()
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    LaunchedEffect(startOnboarding, route) {
+        whatsNewViewModel.onAppReady(
+            onboardingCompleted = !startOnboarding,
+            overlayBlocking = route == Routes.ONBOARDING || route == Routes.PLAN_NEW,
+        )
+    }
     androidx.compose.runtime.LaunchedEffect(route) {
         visibility.show()
     }
@@ -344,6 +356,8 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                         onBack = { navController.popBackStack() },
                         onOpenLicenses = { navController.navigate(Routes.LICENCES) },
                         onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
+                        onOpenWhatsNew = whatsNewViewModel::openManually,
+                        hasWhatsNew = whatsNewState.hasRecordedChanges,
                     )
                 }
             }
@@ -402,6 +416,16 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
                 .navigationBarsPadding()
                 .padding(bottom = 12.dp),
         )
+
+        val currentEntry = whatsNewState.currentEntry
+        if (whatsNewState.showSheet && currentEntry != null && route != Routes.ONBOARDING) {
+            WhatsNewSheet(
+                entry = currentEntry,
+                olderEntries = whatsNewState.olderEntries,
+                onDismiss = whatsNewViewModel::onDismiss,
+                onOpenChangelog = { runCatching { uriHandler.openUri(WHATS_NEW_CHANGELOG_URL) } },
+            )
+        }
     }
 }
 
