@@ -17,6 +17,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,6 +68,9 @@ internal fun OnboardingContent(
     val reduceMotion = LocalReduceMotion.current
     val pagerState = rememberPagerState(pageCount = { ONBOARDING_PAGE_COUNT })
     val scope = rememberCoroutineScope()
+    // With reduced motion the pager is never composed, so its state cannot scroll: a plain index drives the page then.
+    var reducedPage by remember { mutableIntStateOf(0) }
+    val currentPage = if (reduceMotion) reducedPage else pagerState.currentPage
 
     var hasFinished by remember { mutableStateOf(false) }
     var pagerWidthPx by remember { mutableStateOf(1f) }
@@ -90,7 +94,7 @@ internal fun OnboardingContent(
         scope.launch {
             val clamped = targetPage.coerceIn(0, ONBOARDING_PAGE_COUNT - 1)
             if (reduceMotion) {
-                pagerState.scrollToPage(clamped)
+                reducedPage = clamped
             } else {
                 pagerState.animateScrollToPage(
                     page = clamped,
@@ -100,11 +104,11 @@ internal fun OnboardingContent(
         }
     }
 
-    BackHandler(enabled = pagerState.currentPage > 0) {
-        moveToPage(pagerState.currentPage - 1)
+    BackHandler(enabled = currentPage > 0) {
+        moveToPage(currentPage - 1)
     }
 
-    val position = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 3f)
+    val position = if (reduceMotion) reducedPage.toFloat() else (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 3f)
     val sharedActive = !reduceMotion && position < 2.999f && abs(position - position.toInt()) > 0.001f
 
     Box(
@@ -128,7 +132,7 @@ internal fun OnboardingContent(
             ) {
                 if (reduceMotion) {
                     Crossfade(
-                        targetState = pagerState.currentPage,
+                        targetState = reducedPage,
                         animationSpec = tween(durationMillis = 200),
                         label = "onboarding_reduced_crossfade",
                     ) { page ->
@@ -182,7 +186,7 @@ internal fun OnboardingContent(
                 usageAccess = state.usageAccess,
                 notifications = state.notifications,
                 onPrimaryClick = {
-                    val page = pagerState.currentPage
+                    val page = currentPage
                     if (page < ONBOARDING_PAGE_COUNT - 1) {
                         moveToPage(page + 1)
                     } else {
@@ -193,7 +197,7 @@ internal fun OnboardingContent(
                         }
                     }
                 },
-                onBackClick = { moveToPage(pagerState.currentPage - 1) },
+                onBackClick = { moveToPage(currentPage - 1) },
                 onSkipClick = { completeOnce() },
             )
         }
