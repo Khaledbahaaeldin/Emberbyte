@@ -3,6 +3,7 @@ package io.github.khaledbahaaeldin.emberbyte.settings
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings as AndroidSettings
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.khaledbahaaeldin.emberbyte.nav.requestIgnoreBatteryOptimizations
 import io.github.khaledbahaaeldin.emberbyte.data.ThemeMode
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
 import io.github.khaledbahaaeldin.emberbyte.settings.hub.SettingsHub
@@ -77,13 +79,7 @@ fun SettingsScreen(
 
     val handleHealthAction: (HealthAction) -> Unit = { action ->
         when (action) {
-            HealthAction.FixBattery -> {
-                val intent = Intent(
-                    AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                    Uri.parse("package:${context.packageName}"),
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                runCatching { context.startActivity(intent) }
-            }
+            HealthAction.FixBattery -> context.requestIgnoreBatteryOptimizations()
             HealthAction.TurnOnLive -> {
                 viewModel.update { it.copy(liveNotificationEnabled = true) }
             }
@@ -93,6 +89,11 @@ fun SettingsScreen(
                 runCatching { context.startActivity(intent) }
             }
         }
+    }
+
+    // System back inside an area or the search closes that first; without this it left Settings for Home.
+    BackHandler(enabled = searchOpen || activeAreaName != null) {
+        if (searchOpen) searchOpen = false else activeAreaName = null
     }
 
     val openArea: (SettingsArea, String?) -> Unit = { area, highlight ->
