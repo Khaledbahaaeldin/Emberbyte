@@ -127,7 +127,7 @@ class SettingsViewModelTest {
             workContext = dispatcher,
             settings = settingsRepo,
         )
-        vm.createBackup(Uri.parse("content://test/backup"), "passphrase1".toCharArray())
+        vm.createBackup(Uri.EMPTY, "passphrase1".toCharArray())
         advanceUntilIdle()
         assertEquals(now, settingsRepo.observe().first().lastBackupAt)
     }
@@ -143,7 +143,7 @@ class SettingsViewModelTest {
             workContext = dispatcher,
             settings = settingsRepo,
         )
-        vm.createBackup(Uri.parse("content://test/backup"), "passphrase1".toCharArray())
+        vm.createBackup(Uri.EMPTY, "passphrase1".toCharArray())
         advanceUntilIdle()
         assertEquals(null, settingsRepo.observe().first().lastBackupAt)
     }

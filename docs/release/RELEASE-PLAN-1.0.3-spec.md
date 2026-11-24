@@ -48,7 +48,7 @@
 | T22 App detail redesign | Khaled | not started |
 | T23 History redesign | Khaled | not started |
 | T24 Plans page redesign, archive removed | Khaled | done |
-| T25 Settings hub redesign | Khaled | not started |
+| T25 Settings hub redesign | Khaled | done |
 | T26 Onboarding redesign and permission bug fix | Khaled | not started |
 | T15 Release 1.0.3 | Khaled | not started |
 

@@ -1,77 +1,56 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
 import android.net.Uri
-import androidx.compose.runtime.saveable.SaveableStateRegistry
-import androidx.compose.runtime.saveable.SaverScope
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
+import io.github.khaledbahaaeldin.emberbyte.data.backup.BackupService
+import io.github.khaledbahaaeldin.emberbyte.data.backup.RestoreSummary
+import io.github.khaledbahaaeldin.emberbyte.data.export.ExportService
+import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
+import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class SettingsPendingStateTest {
-
-    private val dummyScope = SaverScope { true }
+    private fun makeDataVm(): DataViewModel = DataViewModel(
+        export = object : ExportService {
+            override suspend fun exportCsv(range: DateRange, out: OutputStream) = Outcome.Success(Unit)
+            override suspend fun exportJson(out: OutputStream) = Outcome.Success(Unit)
+        },
+        backup = object : BackupService {
+            override suspend fun createBackup(out: OutputStream, passphrase: CharArray) = Outcome.Success(Unit)
+            override suspend fun restoreBackup(input: InputStream, passphrase: CharArray) =
+                Outcome.Success(RestoreSummary(0, 0, 0, 0))
+        },
+        opener = object : StreamOpener {
+            override fun output(uri: Uri) = ByteArrayOutputStream()
+            override fun input(uri: Uri) = ByteArrayInputStream(ByteArray(0))
+        },
+    )
 
     @Test
-    fun pending_state_survives_saveable_state_registry_round_trip() {
-        val original = SettingsPendingState(
-            initialRange = ExportRange.ALL,
-            initialRestoreUri = Uri.parse("content://downloads/backup.emberbyte"),
-        )
-        original.pendingCreatePassphrase = "secretPassphrase".toCharArray()
+    fun held_passphrase_is_cleared_after_take_or_discard() {
+        val vm = makeDataVm()
+        val secret = "secretPassphrase".toCharArray()
+        vm.holdPassphrase(secret)
 
-        val registry = SaveableStateRegistry(emptyMap()) { true }
-        registry.registerProvider("pending_state") {
-            with(dummyScope) {
-                with(SettingsPendingState.Saver) {
-                    save(original)
-                }
-            }
-        }
-
-        val savedData = registry.performSave()
-        assertNotNull(savedData["pending_state"])
-
-        val restoredRegistry = SaveableStateRegistry(savedData) { true }
-        val raw = restoredRegistry.consumeRestored("pending_state")
-        @Suppress("UNCHECKED_CAST")
-        val restoredMap = (raw as? List<*>)?.firstOrNull() as? Map<String, Any?> ?: raw as? Map<String, Any?>
-        assertNotNull(restoredMap)
-
-        val restored = with(SettingsPendingState.Saver) {
-            restore(restoredMap!!)
-        }
-        assertNotNull(restored)
-        assertEquals(ExportRange.ALL, restored!!.pendingRange)
-        assertEquals(Uri.parse("content://downloads/backup.emberbyte"), restored.pendingRestoreUri)
-        // Passphrase must NOT be restored across recreation
-        assertNull(restored.pendingCreatePassphrase)
+        val taken = vm.takeHeldPassphrase()
+        assertArrayEquals("secretPassphrase".toCharArray(), taken)
+        assertNull(vm.takeHeldPassphrase())
     }
 
     @Test
-    fun no_passphrase_is_ever_saved() {
-        val state = SettingsPendingState(
-            initialRange = ExportRange.LAST_30_DAYS,
-            initialRestoreUri = Uri.parse("content://downloads/test.emberbyte"),
-        )
-        state.pendingCreatePassphrase = "superSecretPassword123".toCharArray()
+    fun discarding_held_passphrase_zeroes_and_clears_it() {
+        val vm = makeDataVm()
+        val secret = "superSecretPassword123".toCharArray()
+        vm.holdPassphrase(secret)
+        vm.discardHeldPassphrase()
 
-        @Suppress("UNCHECKED_CAST")
-        val savedMap = with(dummyScope) {
-            with(SettingsPendingState.Saver) {
-                save(state)
-            }
-        } as Map<String, Any?>
-
-        // Assert that no key or value contains the passphrase
-        assertFalse(savedMap.containsKey("passphrase"))
-        assertFalse(savedMap.containsKey("pendingCreatePassphrase"))
-        assertFalse(savedMap.values.any { it?.toString()?.contains("superSecretPassword123") == true })
+        assertTrue(secret.all { it == '\u0000' })
+        assertNull(vm.takeHeldPassphrase())
     }
 }

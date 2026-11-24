@@ -116,20 +116,18 @@ class AmoledTest {
     fun amoled_row_matches_between_settings_and_appearance_and_swatches_include_selected_theme() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec(presetId = "kanagawa", darkTheme = false)) {
-                SettingsContent(
-                    settings = Settings(themeId = "kanagawa", themeMode = ThemeMode.LIGHT),
-                    onUpdate = {},
+                AppearanceContent(
+                    uiState = AppearanceUiState(themeId = "kanagawa", themeMode = ThemeMode.LIGHT),
+                    onEvent = {},
                     onBack = {},
-                    versionName = "1.0.2",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
+                    isDark = false,
                 )
             }
         }
 
         rule.onNodeWithText("Pure black (AMOLED)").assertIsDisplayed()
         rule.onNodeWithText("Dark mode only").assertIsDisplayed()
-        rule.onNodeWithTag("appearance_hero_swatch_kanagawa", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("theme_card_kanagawa").assertIsDisplayed()
     }
 
     @Test
