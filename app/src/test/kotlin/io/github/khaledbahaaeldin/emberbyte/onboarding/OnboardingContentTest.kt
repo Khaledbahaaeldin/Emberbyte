@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.onboarding
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -38,50 +39,65 @@ class OnboardingContentTest {
         }
     }
 
-    @Test fun explains_that_everything_stays_on_the_device() {
+    private fun advanceToStep4() {
+        rule.onNodeWithText("Get started").performClick()
+        rule.onNodeWithText("Continue").performClick()
+        rule.onNodeWithText("Continue").performClick()
+    }
+
+    @Test
+    fun explains_that_everything_stays_on_the_device() {
         show(OnboardingUiState())
-        rule.onNodeWithText("Nothing ever leaves your phone", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Your mobile and Wi-Fi numbers are measured right here, and they never leave.")
+            .assertIsDisplayed()
     }
 
-    @Test fun both_step_buttons_report_their_actions() {
-        var usage = 0; var notifications = 0
+    @Test
+    fun both_step_buttons_report_their_actions() {
+        var usage = 0
+        var notifications = 0
         show(OnboardingUiState(), usage = { usage++ }, notifications = { notifications++ })
-        rule.onNodeWithText("Skip").performClick()
-        rule.onNodeWithText("Open settings").performScrollTo().performClick()
-        rule.onNodeWithText("Allow notifications").performScrollTo().performClick()
-        assertEquals(1, usage); assertEquals(1, notifications)
+        advanceToStep4()
+        rule.onNodeWithTag("usage_card_button").performScrollTo().performClick()
+        rule.onNodeWithTag("notifications_card_button").performScrollTo().performClick()
+        assertEquals(1, usage)
+        assertEquals(1, notifications)
     }
 
-    @Test fun granted_steps_show_allowed_instead_of_a_button() {
+    @Test
+    fun granted_steps_show_allowed_instead_of_a_button() {
         show(OnboardingUiState(usageAccess = true, notifications = true))
-        rule.onNodeWithText("Skip").performClick()
+        advanceToStep4()
         rule.onNodeWithText("Usage access allowed").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Notifications allowed").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun continue_and_skip_both_finish() {
+    @Test
+    fun done_and_skip_both_finish() {
         var finished = 0
-        show(OnboardingUiState(usageAccess = true), finish = { finished++ })
-        rule.onNodeWithText("Skip").performClick()
-        rule.onNodeWithText("Continue").assertIsDisplayed()
+        show(OnboardingUiState(usageAccess = true, notifications = true), finish = { finished++ })
+        advanceToStep4()
+        rule.onNodeWithText("Done").assertIsDisplayed()
         rule.onNodeWithText("Skip for now").performClick()
         assertEquals(1, finished)
     }
 
-    @Test fun the_plan_step_offers_to_set_up_a_plan() {
+    @Test
+    fun the_plan_step_offers_to_set_up_a_plan() {
         var setUpPlanCalled = false
         show(OnboardingUiState(), setUpPlan = { setUpPlanCalled = true })
-        rule.onNodeWithText("Next").performClick()
-        rule.onNodeWithText("Next").performClick()
-        rule.onNodeWithText("Your data plan").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Get started").performClick()
+        rule.onNodeWithText("Continue").performClick()
+        rule.onNodeWithText("Stay under your cap").assertIsDisplayed()
         rule.onNodeWithText("Set up a plan").performScrollTo().performClick()
         assertTrue(setUpPlanCalled)
     }
 
-    @Test fun a_plan_that_exists_shows_plan_added() {
+    @Test
+    fun a_plan_that_exists_shows_plan_added() {
         show(OnboardingUiState(hasPlan = true))
-        rule.onNodeWithText("Next").performClick()
-        rule.onNodeWithText("Next").performClick()
+        rule.onNodeWithText("Get started").performClick()
+        rule.onNodeWithText("Continue").performClick()
         rule.onNodeWithText("Plan added").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Set up a plan").assertDoesNotExist()
     }
