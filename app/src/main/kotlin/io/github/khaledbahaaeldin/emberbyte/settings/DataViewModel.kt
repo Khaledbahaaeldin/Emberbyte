@@ -3,6 +3,7 @@ package io.github.khaledbahaaeldin.emberbyte.settings
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.backup.BackupService
 import io.github.khaledbahaaeldin.emberbyte.data.backup.RestoreSummary
 import io.github.khaledbahaaeldin.emberbyte.data.export.ExportService
@@ -26,7 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class ExportRange { LAST_7_DAYS, LAST_30_DAYS, ALL }
+enum class ExportRange { LAST_7_DAYS, LAST_30_DAYS, LAST_90_DAYS, ALL }
 
 data class DataUiState(
     val busy: Boolean = false,
@@ -40,6 +41,7 @@ class DataViewModel(
     val opener: StreamOpener,
     val clock: Clock = SystemZoneClock(),
     private val workContext: CoroutineContext = Dispatchers.Default,
+    private val settings: SettingsRepository? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DataUiState())
@@ -95,6 +97,10 @@ class DataViewModel(
                 )
                 ExportRange.LAST_30_DAYS -> DateRange(
                     from = today.minusDays(30).atStartOfDay(zone).toInstant(),
+                    to = now.plusSeconds(3600),
+                )
+                ExportRange.LAST_90_DAYS -> DateRange(
+                    from = today.minusDays(90).atStartOfDay(zone).toInstant(),
                     to = now.plusSeconds(3600),
                 )
                 ExportRange.ALL -> DateRange(
@@ -159,6 +165,7 @@ class DataViewModel(
                 stream.use { out ->
                     when (val outcome = backup.createBackup(out, passphrase)) {
                         is Outcome.Success -> {
+                            settings?.update { it.copy(lastBackupAt = clock.instant()) }
                             _uiState.update { it.copy(busy = false, message = "Backup saved", isError = false) }
                         }
                         is Outcome.Failure -> {

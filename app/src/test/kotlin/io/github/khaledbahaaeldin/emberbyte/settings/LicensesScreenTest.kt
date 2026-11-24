@@ -30,14 +30,15 @@ class LicensesScreenTest {
         var openedLicenses = false
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                SettingsContent(
-                    settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(),
-                    onUpdate = {},
-                    onBack = {},
+                AboutScreen(
                     versionName = "0.1.0",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
-                    onOpenLicenses = { openedLicenses = true },
+                    updateSource = UpdateSource.Unknown,
+                    isDark = false,
+                    amoled = false,
+                    hasWhatsNew = false,
+                    onOpenWhatsNew = {},
+                    onOpenLicences = { openedLicenses = true },
+                    onBack = {},
                 )
             }
         }

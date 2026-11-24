@@ -15,8 +15,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.settings.DataUiState
-import io.github.khaledbahaaeldin.emberbyte.settings.SettingsContent
+import io.github.khaledbahaaeldin.emberbyte.settings.AboutScreen
 import io.github.khaledbahaaeldin.emberbyte.settings.UpdateSource
 import io.github.khaledbahaaeldin.emberbyte.settings.UpdatesRow
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
@@ -220,16 +219,15 @@ class WhatsNewSheetTest {
         var opened = 0
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                SettingsContent(
-                    settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(),
-                    onUpdate = {},
-                    onBack = {},
+                AboutScreen(
                     versionName = "1.0.2",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
-                    dataUiState = DataUiState(),
-                    onOpenWhatsNew = { opened++ },
+                    updateSource = UpdateSource.Unknown,
+                    isDark = false,
+                    amoled = false,
                     hasWhatsNew = true,
+                    onOpenWhatsNew = { opened++ },
+                    onOpenLicences = {},
+                    onBack = {},
                 )
             }
         }

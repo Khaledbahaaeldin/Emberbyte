@@ -62,14 +62,14 @@ class DialogFocusAccessibilityTest {
     fun settings_restore_backup_dialog_moves_focus_in_and_returns_focus_to_trigger_on_dismiss() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                io.github.khaledbahaaeldin.emberbyte.settings.SettingsContent(
-                    settings = io.github.khaledbahaaeldin.emberbyte.data.Settings(),
-                    onUpdate = {},
-                    onBack = {},
-                    versionName = "1.0.0",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
-                    dataUiState = io.github.khaledbahaaeldin.emberbyte.settings.DataUiState(),
+                io.github.khaledbahaaeldin.emberbyte.settings.DataSection(
+                    uiState = io.github.khaledbahaaeldin.emberbyte.settings.DataUiState(),
+                    onExportCsv = {},
+                    onExportJson = {},
+                    onCreateBackup = {},
+                    onRestoreChosen = {},
+                    onRestoreBackup = {},
+                    onClearMessage = {},
                 )
             }
         }

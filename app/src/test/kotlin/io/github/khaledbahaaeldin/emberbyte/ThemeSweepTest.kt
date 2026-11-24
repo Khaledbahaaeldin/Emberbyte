@@ -25,7 +25,8 @@ import io.github.khaledbahaaeldin.emberbyte.plans.PlanEditorUiState
 import io.github.khaledbahaaeldin.emberbyte.plans.PlansContent
 import io.github.khaledbahaaeldin.emberbyte.plans.PlansUiState
 import io.github.khaledbahaaeldin.emberbyte.settings.DataUiState
-import io.github.khaledbahaaeldin.emberbyte.settings.SettingsContent
+import io.github.khaledbahaaeldin.emberbyte.settings.SettingsHubState
+import io.github.khaledbahaaeldin.emberbyte.settings.hub.SettingsHub
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
@@ -160,23 +161,18 @@ class ThemeSweepTest {
     @Test
     fun settings_screen_renders_in_all_twelve_themes_dark_and_light() {
         sweep {
-            SettingsContent(
-                settings = Settings(),
-                onUpdate = {},
+            SettingsHub(
+                state = SettingsHubState(),
+                listState = androidx.compose.foundation.lazy.rememberLazyListState(),
+                clock = java.time.Clock.systemUTC(),
+                versionName = "1.0.3",
+                updateStatus = "Up to date",
                 onBack = {},
-                versionName = "1.0.0",
-                onOpenSource = {},
-                onOpenBatterySettings = {},
-                onOpenAppearance = {},
-                dataUiState = DataUiState(),
-                onExportCsv = {},
-                onExportJson = {},
-                onCreateBackup = {},
-                onRestoreChosen = {},
-                onRestoreBackup = {},
-                onClearDataMessage = {},
-                restoreFileChosen = false,
-                onDismissRestorePassphrase = {},
+                onOpenSearch = {},
+                onOpenArea = {},
+                onHealthAction = {},
+                onToggleSwitch = {},
+                onSelectThemeMode = {},
             )
         }
     }
