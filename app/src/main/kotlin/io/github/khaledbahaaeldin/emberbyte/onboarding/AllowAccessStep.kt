@@ -16,8 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -59,6 +61,10 @@ internal fun AllowAccessStep(
     onOpenUsageAccess: () -> Unit,
     onRequestNotifications: () -> Unit,
     modifier: Modifier = Modifier,
+    phoneState: Boolean = true,
+    batteryUnrestricted: Boolean = true,
+    onRequestPhone: () -> Unit = {},
+    onRequestBattery: () -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     Column(
@@ -83,7 +89,7 @@ internal fun AllowAccessStep(
 
         val r1 = reveal(1)
         Text(
-            text = "Allow usage access to get per-app numbers. Skip it and you still see your totals.",
+            text = "Four quick things keep the numbers complete. Skip any and you still see your totals.",
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = OnboardingType.LeadBody),
             color = palette.muted,
             modifier = Modifier.graphicsLayer {
@@ -135,6 +141,44 @@ internal fun AllowAccessStep(
                     translationY = (1f - r2) * 14.dp.toPx()
                 }
                 .testTag("notifications_permission_card"),
+        )
+
+        val r3 = reveal(3)
+        PermissionCard(
+            icon = Icons.Rounded.PhoneAndroid,
+            title = "Phone",
+            subtitle = "Tells your SIMs apart. Calls and numbers are never read.",
+            allowed = phoneState,
+            allowedLabel = "Phone access allowed",
+            buttonLabel = "Allow phone access",
+            smallCorner = Corner.BottomEnd,
+            onAction = onRequestPhone,
+            buttonTag = "phone_card_button",
+            modifier = Modifier
+                .graphicsLayer {
+                    alpha = r3
+                    translationY = (1f - r3) * 14.dp.toPx()
+                }
+                .testTag("phone_permission_card"),
+        )
+
+        val r4 = reveal(4)
+        PermissionCard(
+            icon = Icons.Rounded.BatteryChargingFull,
+            title = "Battery",
+            subtitle = "Do not let the system stop measuring in the background.",
+            allowed = batteryUnrestricted,
+            allowedLabel = "Battery limits removed",
+            buttonLabel = "Stop battery limits",
+            smallCorner = Corner.TopStart,
+            onAction = onRequestBattery,
+            buttonTag = "battery_card_button",
+            modifier = Modifier
+                .graphicsLayer {
+                    alpha = r4
+                    translationY = (1f - r4) * 14.dp.toPx()
+                }
+                .testTag("battery_permission_card"),
         )
     }
 }

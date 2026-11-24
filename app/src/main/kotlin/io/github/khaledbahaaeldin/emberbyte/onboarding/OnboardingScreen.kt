@@ -49,6 +49,8 @@ fun OnboardingScreen(
         state = state,
         onOpenUsageAccess = actions.openUsageAccess,
         onRequestNotifications = actions.requestNotifications,
+        onRequestPhone = actions.requestPhoneState,
+        onRequestBattery = actions.requestBatteryUnrestricted,
         onSetUpPlan = onSetUpPlan,
         onFinish = onFinish,
         modifier = modifier,
@@ -63,6 +65,8 @@ internal fun OnboardingContent(
     onSetUpPlan: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
+    onRequestPhone: () -> Unit = {},
+    onRequestBattery: () -> Unit = {},
 ) {
     val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
@@ -145,6 +149,8 @@ internal fun OnboardingContent(
                             onSetUpPlan = onSetUpPlan,
                             onOpenUsageAccess = onOpenUsageAccess,
                             onRequestNotifications = onRequestNotifications,
+                            onRequestPhone = onRequestPhone,
+                            onRequestBattery = onRequestBattery,
                         )
                     }
                 } else {
@@ -172,6 +178,8 @@ internal fun OnboardingContent(
                             onSetUpPlan = onSetUpPlan,
                             onOpenUsageAccess = onOpenUsageAccess,
                             onRequestNotifications = onRequestNotifications,
+                            onRequestPhone = onRequestPhone,
+                            onRequestBattery = onRequestBattery,
                             modifier = Modifier.graphicsLayer {
                                 this.alpha = alpha
                                 translationX = offsetPx
@@ -185,14 +193,18 @@ internal fun OnboardingContent(
                 position = position,
                 usageAccess = state.usageAccess,
                 notifications = state.notifications,
+                phoneState = state.phoneState,
+                batteryUnrestricted = state.batteryUnrestricted,
                 onPrimaryClick = {
                     val page = currentPage
                     if (page < ONBOARDING_PAGE_COUNT - 1) {
                         moveToPage(page + 1)
                     } else {
-                        when (nextPermissionAction(state.usageAccess, state.notifications)) {
+                        when (nextPermissionAction(state.usageAccess, state.notifications, state.phoneState, state.batteryUnrestricted)) {
                             PermissionAction.Usage -> onOpenUsageAccess()
                             PermissionAction.Notifications -> onRequestNotifications()
+                            PermissionAction.Phone -> onRequestPhone()
+                            PermissionAction.Battery -> onRequestBattery()
                             PermissionAction.Done -> completeOnce()
                         }
                     }
@@ -222,6 +234,8 @@ private fun OnboardingStepPage(
     onSetUpPlan: () -> Unit,
     onOpenUsageAccess: () -> Unit,
     onRequestNotifications: () -> Unit,
+    onRequestPhone: () -> Unit,
+    onRequestBattery: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (page) {
@@ -253,6 +267,10 @@ private fun OnboardingStepPage(
             onAnchorRect = onAnchorRect,
             onOpenUsageAccess = onOpenUsageAccess,
             onRequestNotifications = onRequestNotifications,
+            phoneState = state.phoneState,
+            batteryUnrestricted = state.batteryUnrestricted,
+            onRequestPhone = onRequestPhone,
+            onRequestBattery = onRequestBattery,
             modifier = modifier,
         )
     }

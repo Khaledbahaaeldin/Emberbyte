@@ -18,6 +18,10 @@ class OnboardingMotionTest {
         assertEquals(PermissionAction.Usage, nextPermissionAction(usageAccess = false, notifications = false))
         assertEquals(PermissionAction.Notifications, nextPermissionAction(usageAccess = true, notifications = false))
         assertEquals(PermissionAction.Done, nextPermissionAction(usageAccess = true, notifications = true))
+        assertEquals(PermissionAction.Phone, nextPermissionAction(true, true, phoneState = false, batteryUnrestricted = false))
+        assertEquals(PermissionAction.Battery, nextPermissionAction(true, true, phoneState = true, batteryUnrestricted = false))
+        assertEquals("Allow phone access", ctaLabel(3, true, true, phoneState = false))
+        assertEquals("Stop battery limits", ctaLabel(3, true, true, phoneState = true, batteryUnrestricted = false))
     }
 
     @Test

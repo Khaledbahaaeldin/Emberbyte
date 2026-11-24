@@ -75,7 +75,10 @@ class OnboardingContentTest {
     @Test
     fun done_and_skip_both_finish() {
         var finished = 0
-        show(OnboardingUiState(usageAccess = true, notifications = true), finish = { finished++ })
+        show(
+            OnboardingUiState(usageAccess = true, notifications = true, phoneState = true, batteryUnrestricted = true),
+            finish = { finished++ },
+        )
         advanceToStep4()
         rule.onNodeWithText("Done").assertIsDisplayed()
         rule.onNodeWithText("Skip for now").performClick()

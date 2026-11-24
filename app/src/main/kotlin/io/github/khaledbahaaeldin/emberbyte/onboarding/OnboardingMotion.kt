@@ -6,6 +6,8 @@ import kotlin.math.floor
 internal enum class PermissionAction {
     Usage,
     Notifications,
+    Phone,
+    Battery,
     Done,
 }
 
@@ -28,18 +30,33 @@ internal data class LayerState(
     val visible: Boolean,
 )
 
-internal fun nextPermissionAction(usageAccess: Boolean, notifications: Boolean): PermissionAction = when {
+internal fun nextPermissionAction(
+    usageAccess: Boolean,
+    notifications: Boolean,
+    phoneState: Boolean = true,
+    batteryUnrestricted: Boolean = true,
+): PermissionAction = when {
     !usageAccess -> PermissionAction.Usage
     !notifications -> PermissionAction.Notifications
+    !phoneState -> PermissionAction.Phone
+    !batteryUnrestricted -> PermissionAction.Battery
     else -> PermissionAction.Done
 }
 
-internal fun ctaLabel(page: Int, usageAccess: Boolean, notifications: Boolean): String = when (page) {
+internal fun ctaLabel(
+    page: Int,
+    usageAccess: Boolean,
+    notifications: Boolean,
+    phoneState: Boolean = true,
+    batteryUnrestricted: Boolean = true,
+): String = when (page) {
     0 -> "Get started"
     1, 2 -> "Continue"
-    else -> when (nextPermissionAction(usageAccess, notifications)) {
+    else -> when (nextPermissionAction(usageAccess, notifications, phoneState, batteryUnrestricted)) {
         PermissionAction.Usage -> "Allow usage access"
         PermissionAction.Notifications -> "Allow notifications"
+        PermissionAction.Phone -> "Allow phone access"
+        PermissionAction.Battery -> "Stop battery limits"
         PermissionAction.Done -> "Done"
     }
 }

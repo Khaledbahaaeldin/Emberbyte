@@ -76,6 +76,8 @@ internal fun OnboardingActionBar(
     position: Float,
     usageAccess: Boolean,
     notifications: Boolean,
+    phoneState: Boolean = true,
+    batteryUnrestricted: Boolean = true,
     onPrimaryClick: () -> Unit,
     onBackClick: () -> Unit,
     onSkipClick: () -> Unit,
@@ -88,8 +90,8 @@ internal fun OnboardingActionBar(
     val highPage = ceil(p).toInt().coerceIn(0, 3)
     val frac = (p - lowPage).coerceIn(0f, 1f)
 
-    val lowLabel = ctaLabel(lowPage, usageAccess, notifications)
-    val highLabel = ctaLabel(highPage, usageAccess, notifications)
+    val lowLabel = ctaLabel(lowPage, usageAccess, notifications, phoneState, batteryUnrestricted)
+    val highLabel = ctaLabel(highPage, usageAccess, notifications, phoneState, batteryUnrestricted)
     val showHigh = !reduceMotion && lowPage != highPage && frac >= 0.5f
     val primaryText = if (showHigh) highLabel else lowLabel
     val primaryAlpha = when {

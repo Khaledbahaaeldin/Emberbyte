@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 data class OnboardingUiState(
     val usageAccess: Boolean = false,
     val notifications: Boolean = false,
+    val phoneState: Boolean = false,
+    val batteryUnrestricted: Boolean = false,
     val hasPlan: Boolean = false,
 )
 
@@ -27,7 +29,7 @@ class OnboardingViewModel(
 
     val uiState: StateFlow<OnboardingUiState> =
         combine(permissions.observe(), plans.observePlans()) { p, list ->
-            OnboardingUiState(p.usageAccess, p.notifications, list.isNotEmpty())
+            OnboardingUiState(p.usageAccess, p.notifications, p.phoneState, p.batteryUnrestricted, list.isNotEmpty())
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OnboardingUiState())
 
     /** Marks the first-run flow as done exactly once, then calls [onDone] (on the main thread). */

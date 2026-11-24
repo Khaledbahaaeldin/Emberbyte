@@ -115,10 +115,47 @@ class OnboardingRedesignTest {
         rule.onAllNodesWithText("Allow notifications")[1].assertIsDisplayed()
         assertEquals(0, finishCount)
 
-        state = OnboardingUiState(usageAccess = true, notifications = true)
+        state = OnboardingUiState(usageAccess = true, notifications = true, phoneState = false)
+        rule.waitForIdle()
+        rule.onAllNodesWithText("Allow phone access").assertCountEquals(2)
+        rule.onAllNodesWithText("Allow phone access")[1].assertIsDisplayed()
+        assertEquals(0, finishCount)
+
+        state = OnboardingUiState(usageAccess = true, notifications = true, phoneState = true, batteryUnrestricted = false)
+        rule.waitForIdle()
+        rule.onAllNodesWithText("Stop battery limits").assertCountEquals(2)
+        rule.onAllNodesWithText("Stop battery limits")[1].assertIsDisplayed()
+        assertEquals(0, finishCount)
+
+        state = OnboardingUiState(usageAccess = true, notifications = true, phoneState = true, batteryUnrestricted = true)
         rule.waitForIdle()
         rule.onNodeWithText("Done").performClick()
         assertEquals(1, finishCount)
+    }
+
+    @Test
+    fun step_four_lists_all_four_permissions_and_each_button_asks_for_its_own() {
+        var asked = mutableListOf<String>()
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                OnboardingContent(
+                    state = OnboardingUiState(),
+                    onOpenUsageAccess = { asked += "usage" },
+                    onRequestNotifications = { asked += "notifications" },
+                    onSetUpPlan = {},
+                    onFinish = {},
+                    onRequestPhone = { asked += "phone" },
+                    onRequestBattery = { asked += "battery" },
+                )
+            }
+        }
+        rule.onNodeWithText("Get started").performClick()
+        rule.onNodeWithText("Continue").performClick()
+        rule.onNodeWithText("Continue").performClick()
+        listOf("usage_card_button", "notifications_card_button", "phone_card_button", "battery_card_button").forEach {
+            rule.onNodeWithTag(it).performScrollTo().performClick()
+        }
+        assertEquals(listOf("usage", "notifications", "phone", "battery"), asked)
     }
 
     @Test

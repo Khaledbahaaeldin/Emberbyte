@@ -157,7 +157,7 @@ class OnboardingScreenTest {
         assertEquals(0, finishCount)
         rule.onNodeWithContentDescription("Step 4 of 4").assertIsDisplayed()
 
-        uiState = OnboardingUiState(usageAccess = true, notifications = true)
+        uiState = OnboardingUiState(usageAccess = true, notifications = true, phoneState = true, batteryUnrestricted = true)
         rule.waitForIdle()
         assertEquals(0, finishCount)
 
