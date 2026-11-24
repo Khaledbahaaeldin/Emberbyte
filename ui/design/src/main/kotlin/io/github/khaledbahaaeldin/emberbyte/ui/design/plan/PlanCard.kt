@@ -78,6 +78,7 @@ fun PlanCard(
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
+                    modifier = Modifier.padding(end = 40.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -133,7 +134,19 @@ fun PlanCard(
                     Text(note, style = MaterialTheme.typography.labelSmall, color = palette.muted)
                 }
                 if (model.isEstimated) EstimatedBadge()
-                if (model.archived) Text("Archived", style = MaterialTheme.typography.labelMedium, color = palette.muted)
+                if (model.archived) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = palette.surface,
+                    ) {
+                        Text(
+                            text = "Archived",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = palette.muted,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 if (model.chips.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         model.chips.forEach { AssistChip(onClick = {}, label = { Text(it, maxLines = 1) }) }

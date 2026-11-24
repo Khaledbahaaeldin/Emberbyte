@@ -74,36 +74,23 @@ fun PlanTile(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 40.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false),
-                ) {
-                    Text(
-                        text = model.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (model.isDormant) palette.muted else palette.text,
-                    )
-                    if (model.pinned) {
-                        Icon(
-                            imageVector = Icons.Rounded.PushPin,
-                            contentDescription = "Pinned",
-                            tint = palette.primary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-                if (!model.isDormant) {
-                    BudgetRing(
-                        fraction = model.fraction,
-                        state = model.ringState,
-                        percentText = model.percentText,
-                        delayMillis = delayMillis,
-                        onAnimatedSweepChanged = onAnimatedSweepChanged,
+                Text(
+                    text = model.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (model.isDormant) palette.muted else palette.text,
+                )
+                if (model.pinned) {
+                    Icon(
+                        imageVector = Icons.Rounded.PushPin,
+                        contentDescription = "Pinned",
+                        tint = palette.primary,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
@@ -114,12 +101,34 @@ fun PlanTile(
                     color = palette.muted,
                 )
             } else {
-                ForceLtr {
-                    Text(
-                        text = model.remainingText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.text,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BudgetRing(
+                        fraction = model.fraction,
+                        state = model.ringState,
+                        percentText = model.percentText,
+                        delayMillis = delayMillis,
+                        onAnimatedSweepChanged = onAnimatedSweepChanged,
                     )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        ForceLtr {
+                            Text(
+                                text = model.remainingText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.text,
+                            )
+                        }
+                        ForceLtr {
+                            Text(
+                                text = model.daysLeftText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = palette.muted,
+                            )
+                        }
+                    }
                 }
             }
             model.enteredNote?.let { note ->

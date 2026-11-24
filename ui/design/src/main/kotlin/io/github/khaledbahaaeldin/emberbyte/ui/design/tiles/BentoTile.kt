@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
@@ -85,6 +87,7 @@ fun BentoTile(
     corner: Corner? = null,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    headingTitle: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -99,6 +102,7 @@ fun BentoTile(
     } else {
         modifier.testTag("bento_tile_${container.name.lowercase()}")
     }
+    val titleModifier = if (headingTitle) Modifier.semantics { heading() } else Modifier
     val body: @Composable () -> Unit = {
         Column(Modifier.padding(16.dp)) {
             if (trailing != null) {
@@ -111,14 +115,16 @@ fun BentoTile(
                         title,
                         style = MaterialTheme.typography.labelLarge,
                         color = foreground.copy(alpha = TILE_TITLE_ALPHA),
+                        modifier = titleModifier,
                     )
                     trailing()
                 }
-            } else {
+            } else if (title.isNotEmpty()) {
                 Text(
                     title,
                     style = MaterialTheme.typography.labelLarge,
                     color = foreground.copy(alpha = TILE_TITLE_ALPHA),
+                    modifier = titleModifier,
                 )
             }
             content()
