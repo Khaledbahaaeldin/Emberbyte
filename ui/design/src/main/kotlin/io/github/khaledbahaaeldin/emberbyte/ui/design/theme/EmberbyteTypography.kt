@@ -201,3 +201,16 @@ object SettingsType {
     val Caption: TextUnit = 12.sp
     val Micro: TextUnit = 11.sp
 }
+
+/** Text sizes for the redesigned New-plan flow and Plan editor. */
+object PlanFlowType {
+    val Title: TextUnit = 34.sp
+    val RingHero: TextUnit = 92.sp
+    val RingHeroCompact: TextUnit = 56.sp
+    val SectionTitle: TextUnit = 18.sp
+    val CardTitle: TextUnit = 16.sp
+    val Body: TextUnit = 15.sp
+    val Button: TextUnit = 16.sp
+    val Caption: TextUnit = 13.sp
+    val Micro: TextUnit = 12.sp
+}

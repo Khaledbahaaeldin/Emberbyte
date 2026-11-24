@@ -50,7 +50,7 @@
 | T24 Plans page redesign, archive removed | Khaled | done |
 | T25 Settings hub redesign | Khaled | done |
 | T26 Onboarding redesign and permission bug fix | Khaled | done |
-| T27 New-plan flow redesign | Khaled | not started |
+| T27 New-plan flow redesign | Khaled | done |
 | T28 Plan editor redesign | Khaled | not started |
 | T15 Release 1.0.3 | Khaled | not started |
 

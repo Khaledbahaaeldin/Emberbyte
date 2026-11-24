@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.plans.flow
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
@@ -7,7 +8,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -66,7 +70,7 @@ class PlanFlowScreenTest {
                 )
             }
         }
-        rule.onNodeWithText("Step 1 of 5").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 1 of 5").assertIsDisplayed()
     }
 
     @Test
@@ -155,7 +159,7 @@ class PlanFlowScreenTest {
                 }
             }
         }
-        rule.onNodeWithText("Step 3 of 5").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 3 of 5").assertIsDisplayed()
     }
 
     @Test
@@ -165,37 +169,45 @@ class PlanFlowScreenTest {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 if (!showStep4.value) {
-                    Step2Cap(
+                    AmountStep(
                         state = PlanFlowState(
                             step = 2,
                             totalSteps = 5,
                             capText = "10",
+                            fieldError = PlanFlowError.CapPositive,
                         ),
-                        onEvent = { lastEvent = it },
+                        reveal = { 1f },
+                        onSetCap = {},
+                        onSetCapUnit = {},
+                        onSetRollover = {},
                     )
                 } else {
-                    Step4ThisCycle(
+                    ThisCycleStep(
                         state = PlanFlowState(
                             step = 4,
                             totalSteps = 5,
                             firstCycleChoice = FirstCycleChoice.Entered,
                             enteredAmount = "3",
                         ),
-                        onEvent = { lastEvent = it },
+                        clock = clock,
+                        reveal = { 1f },
+                        onSelectChoice = { lastEvent = PlanFlowEvent.SetFirstCycleChoice(it) },
+                        onSetEnteredAmount = {},
+                        onSetEnteredUnit = {},
                     )
                 }
             }
         }
-        val allowanceBounds = rule.onNodeWithText("10").fetchSemanticsNode().boundsInRoot
+        val allowanceBounds = rule.onNodeWithTag("amount_exact_field").fetchSemanticsNode().boundsInRoot
         assertTrue("Data allowance field should not be squished, was ${allowanceBounds.width}", allowanceBounds.width > 150f)
 
         showStep4.value = true
         rule.waitForIdle()
 
-        val usedBounds = rule.onNodeWithText("3").fetchSemanticsNode().boundsInRoot
+        val usedBounds = rule.onNodeWithTag("this_cycle_entered_field").fetchSemanticsNode().boundsInRoot
         assertTrue("Used so far field should not be squished, was ${usedBounds.width}", usedBounds.width > 150f)
 
-        rule.onNodeWithText("Start next cycle").performClick()
+        rule.onNodeWithText("Start with the next cycle").performClick()
         assertEquals(PlanFlowEvent.SetFirstCycleChoice(FirstCycleChoice.StartNextCycle), lastEvent)
     }
 
@@ -221,16 +233,16 @@ class PlanFlowScreenTest {
         )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                StepReview(
+                ReviewStep(
                     state = state,
-                    onEvent = {},
+                    reveal = { 1f },
+                    onToggleAlert = {},
                 )
             }
         }
         rule.onNodeWithText("Vodafone Main").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("20 GB").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("SIM 1 · Vodafone").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Renews 17 Dec").performScrollTo().assertIsDisplayed()
+        rule.onAllNodesWithText("20 GB").onFirst().performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Resets on the 17th of every month").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -249,8 +261,8 @@ class PlanFlowScreenTest {
                 )
             }
         }
-        rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_filled_continue")).assertIsDisplayed().assertIsEnabled()
-        rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_text_back")).assertIsDisplayed().assertIsEnabled()
+        rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_primary_button")).assertIsDisplayed().assertIsEnabled()
+        rule.onNode(androidx.compose.ui.test.hasContentDescription("Close")).assertIsDisplayed().assertIsEnabled()
     }
 
     @Test
@@ -272,18 +284,10 @@ class PlanFlowScreenTest {
         state.value = state.value.copy(step = 2)
         androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
         rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeBy(64)
+        rule.mainClock.advanceTimeBy(600)
 
-        val wavyNode = rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_wavy_progress")).fetchSemanticsNode()
-        val rangeInfo = wavyNode.config[androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo]
-        val animatedMid = wavyNode.config[PlanFlowAnimatedProgressKey]
-        assertEquals(0.4f, rangeInfo.current, 0.001f)
-        assertTrue("Expected in-between animated progress between 0.2 and 0.4, got $animatedMid", animatedMid > 0.2f && animatedMid < 0.4f)
-
-        rule.mainClock.advanceTimeBy(1500)
-        val settled = rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_wavy_progress"))
-            .fetchSemanticsNode().config[PlanFlowAnimatedProgressKey]
-        assertEquals(0.4f, settled, 0.005f)
+        rule.onNodeWithTag("plan_flow_progress_pill").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 2 of 5").assertIsDisplayed()
     }
 
     @Test
@@ -312,9 +316,7 @@ class PlanFlowScreenTest {
         rule.mainClock.advanceTimeByFrame()
         rule.mainClock.advanceTimeByFrame()
 
-        val snapped = rule.onNode(androidx.compose.ui.test.hasTestTag("plan_flow_wavy_progress"))
-            .fetchSemanticsNode().config[PlanFlowAnimatedProgressKey]
-        assertEquals(0.4f, snapped, 0.001f)
+        rule.onNodeWithContentDescription("Step 2 of 5").assertIsDisplayed()
     }
 
     @Test
@@ -333,19 +335,15 @@ class PlanFlowScreenTest {
             }
         }
         rule.mainClock.advanceTimeBy(500)
-        rule.onNodeWithText("Step 1 of 5").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 1 of 5").assertIsDisplayed()
 
         state.value = state.value.copy(step = 2)
         androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
         rule.mainClock.advanceTimeByFrame()
         rule.mainClock.advanceTimeBy(64)
 
-        // Mid-crossfade: both outgoing and incoming step labels exist simultaneously.
-        rule.onNodeWithText("Step 1 of 5").assertIsDisplayed()
-        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
-
         rule.mainClock.advanceTimeBy(600)
-        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 2 of 5").assertIsDisplayed()
     }
 
     @Test
@@ -373,11 +371,12 @@ class PlanFlowScreenTest {
         rule.mainClock.advanceTimeByFrame()
         rule.mainClock.advanceTimeByFrame()
 
-        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
-        rule.onNodeWithText("Step 1 of 5").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Step 2 of 5").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 1 of 5").assertDoesNotExist()
     }
 
     @Test
+    @org.robolectric.annotation.Config(qualifiers = "h1200dp")
     fun all_steps_respect_48dp_targets_and_bounds_across_widths_font_scales_and_themes() {
         val themeSpecs = listOf(
             EmberbyteThemeSpec(presetId = "dusk", darkTheme = false, amoled = false),
@@ -402,9 +401,9 @@ class PlanFlowScreenTest {
                         io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion provides true,
                     ) {
                         androidx.compose.foundation.layout.Box(
-                            modifier = androidx.compose.ui.Modifier.width(
-                                androidx.compose.ui.unit.Dp(currentWidth.value.toFloat()),
-                            ),
+                            modifier = androidx.compose.ui.Modifier
+                                .width(androidx.compose.ui.unit.Dp(currentWidth.value.toFloat()))
+                                .height(androidx.compose.ui.unit.Dp(1200f)),
                         ) {
                             PlanFlowContent(
                                 state = PlanFlowState(

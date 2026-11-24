@@ -14,6 +14,7 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.Rollover
 import io.github.khaledbahaaeldin.emberbyte.engine.plan.CycleCalculator
 import io.github.khaledbahaaeldin.emberbyte.plans.CapUnit
 import io.github.khaledbahaaeldin.emberbyte.plans.CycleKind
+import io.github.khaledbahaaeldin.emberbyte.plans.RolloverKind
 import io.github.khaledbahaaeldin.emberbyte.plans.SimOptionUi
 import io.github.khaledbahaaeldin.emberbyte.plans.bytesOf
 import java.time.Clock
@@ -126,6 +127,9 @@ data class PlanFlowState(
     val createdPlanId: Long? = null,
     val fieldError: PlanFlowError? = null,
     val validationAttempt: Int = 0,
+    val alertThresholds: Set<Int> = DEFAULT_PLAN_ALERT_THRESHOLDS,
+    val rollover: RolloverKind = RolloverKind.None,
+    val saveError: String? = null,
 ) {
     fun stepValidationError(): PlanFlowError? = when (step) {
         1 -> when {
@@ -183,6 +187,8 @@ sealed interface PlanFlowEvent {
     data class SetFirstCycleChoice(val choice: FirstCycleChoice) : PlanFlowEvent
     data class SetEnteredAmount(val amount: String) : PlanFlowEvent
     data class SetEnteredUnit(val unit: CapUnit) : PlanFlowEvent
+    data class ToggleAlert(val percent: Int) : PlanFlowEvent
+    data class SetRollover(val rollover: RolloverKind) : PlanFlowEvent
     data object NextStep : PlanFlowEvent
     data object PreviousStep : PlanFlowEvent
     data object CreatePlan : PlanFlowEvent
@@ -458,6 +464,19 @@ class PlanFlowViewModel(
                 }
                 recomputeCycleDates(updateStepStructure = false)
             }
+            is PlanFlowEvent.ToggleAlert -> {
+                _uiState.update { current ->
+                    val next = if (event.percent in current.alertThresholds) {
+                        current.alertThresholds - event.percent
+                    } else {
+                        current.alertThresholds + event.percent
+                    }
+                    current.copy(alertThresholds = next)
+                }
+            }
+            is PlanFlowEvent.SetRollover -> {
+                _uiState.update { it.copy(rollover = event.rollover) }
+            }
             PlanFlowEvent.NextStep -> {
                 val current = _uiState.value
                 val error = current.stepValidationError()
@@ -533,13 +552,18 @@ class PlanFlowViewModel(
             }
         }
 
+        val rollover = when (s.rollover) {
+            RolloverKind.None -> Rollover.None
+            RolloverKind.Full -> Rollover.Full
+            RolloverKind.Capped -> Rollover.Capped(capBytes)
+        }
         val plan = Plan(
             id = 0L,
             name = s.name.trim(),
             subscriptionId = s.subscriptionId,
             capBytes = capBytes,
             cycle = cycle,
-            rollover = Rollover.None,
+            rollover = rollover,
             archived = false,
             firstCycle = firstCycle,
         )
@@ -548,12 +572,12 @@ class PlanFlowViewModel(
             plan = plan,
             addOns = emptyList(),
             freeRules = emptyList(),
-            alertThresholds = DEFAULT_PLAN_ALERT_THRESHOLDS,
+            alertThresholds = s.alertThresholds,
         )
         if (outcome is Outcome.Success) {
-            _uiState.update { it.copy(createdPlanId = outcome.value, isSaving = false) }
+            _uiState.update { it.copy(createdPlanId = outcome.value, isSaving = false, saveError = null) }
         } else {
-            _uiState.update { it.copy(isSaving = false) }
+            _uiState.update { it.copy(isSaving = false, saveError = "Could not save plan. Please try again.") }
         }
     }
 }

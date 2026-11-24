@@ -320,5 +320,42 @@
     <string name="plan_renewals_title">Renewals</string>
     <string name="plan_empty_redesign_title">Nothing to track yet</string>
     <string name="plan_deleted_snackbar">%1$s deleted</string>
+
+    <!-- T27: New-plan flow redesign -->
+    <string name="plan_flow_step_desc">Step %1$d of %2$d</string>
+    <string name="plan_flow_close_desc">Close</string>
+    <string name="plan_flow_discard_plan_title">Discard this plan?</string>
+    <string name="plan_flow_discard_plan_body">Your entered details will not be saved.</string>
+    <string name="plan_flow_discard_keep">Keep editing</string>
+    <string name="plan_flow_name_title">What should we call it?</string>
+    <string name="plan_flow_name_hint">Plan name</string>
+    <string name="plan_flow_name_preview_sub">Amount comes next</string>
+    <string name="plan_flow_sim_permission_chip">Allow phone access to tell your SIMs apart</string>
+    <string name="plan_flow_amount_title">How much data do you get?</string>
+    <string name="plan_flow_units_decimal">Counted in decimal units (1 GB = 1,000 MB), as set in Settings</string>
+    <string name="plan_flow_units_binary">Counted in binary units (1 GiB = 1,024 MiB), as set in Settings</string>
+    <string name="plan_flow_rollover_lost">Unused data: Lost at renewal</string>
+    <string name="plan_flow_rollover_full">Unused data: Carried forward</string>
+    <string name="plan_flow_rollover_capped">Unused data: Capped rollover</string>
+    <string name="plan_flow_reset_title">When does it reset?</string>
+    <string name="plan_flow_cycle_monthly">Monthly</string>
+    <string name="plan_flow_cycle_weekly">Weekly</string>
+    <string name="plan_flow_cycle_custom">Custom</string>
+    <string name="plan_flow_last_day_chip">Last day of the month</string>
+    <string name="plan_flow_custom_days_label">Every (days)</string>
+    <string name="plan_flow_custom_anchor_label">Starting from</string>
+    <string name="plan_flow_this_cycle_title">Today is the %1$s. How do we count this cycle?</string>
+    <string name="plan_flow_choice_phone">Use what this phone recorded</string>
+    <string name="plan_flow_choice_phone_tag">Estimated</string>
+    <string name="plan_flow_v2_choice_phone_sub">Uses traffic Emberbyte measured since the cycle began.</string>
+    <string name="plan_flow_choice_entered">I will enter what I have used</string>
+    <string name="plan_flow_v2_choice_entered_sub">Type the amount already used in this cycle.</string>
+    <string name="plan_flow_choice_next">Start with the next cycle</string>
+    <string name="plan_flow_v2_choice_next_sub">Nothing is counted and no warnings are sent until %1$s</string>
+    <string name="plan_flow_this_cycle_footnote">You can change this later in the plan, for the first cycle only.</string>
+    <string name="plan_flow_warn_title">Warn me before it runs out</string>
+    <string name="plan_flow_looks_right">Looks right?</string>
+    <string name="plan_flow_alerts_off">Alerts off</string>
+    <string name="plan_flow_alerts_at">Alerts at %1$s</string>
 </resources>
 
