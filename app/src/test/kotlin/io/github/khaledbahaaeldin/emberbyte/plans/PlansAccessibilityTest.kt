@@ -1,12 +1,8 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -16,7 +12,6 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h6000dp")
 class PlansAccessibilityTest {
     @get:Rule val rule = createComposeRule()
 
@@ -41,7 +36,8 @@ class PlansAccessibilityTest {
         forecastText = null,
         isEstimated = false,
         chips = emptyList(),
-        archived = false,
+        renewsText = "Renews 28 Nov",
+        capText = "10.0 GB",
     )
 
     private fun show(state: PlansUiState) {
@@ -62,9 +58,8 @@ class PlansAccessibilityTest {
         show(
             PlansUiState(
                 loaded = true,
-                cards = listOf(samplePlanCard, samplePlanCard.copy(id = 2L, name = "Second Plan")),
-                archivedCards = listOf(samplePlanCard.copy(id = 3L, archived = true)),
-                showArchived = true,
+                front = samplePlanCard,
+                tiles = listOf(samplePlanCard.copy(id = 2L, name = "Second Plan")),
             ),
         )
         assertNoTouchTargetSmallerThan48dp(rule)
@@ -76,32 +71,23 @@ class PlansAccessibilityTest {
         show(
             PlansUiState(
                 loaded = true,
-                cards = listOf(samplePlanCard, secondPlan),
+                front = samplePlanCard,
+                tiles = listOf(secondPlan),
             ),
         )
 
         val cardMenuButton = rule.onNodeWithContentDescription("Plan options for ${samplePlanCard.name}")
-        cardMenuButton
-            .assertIsDisplayed()
-            .performTouchInput { down(center); up() }
+        cardMenuButton.assertIsDisplayed().performTouchInput { down(center); up() }
 
         val tileMenuButton = rule.onNodeWithContentDescription("Plan options for ${secondPlan.name}")
-        tileMenuButton
-            .assertIsDisplayed()
-            .performTouchInput { down(center); up() }
+        tileMenuButton.assertIsDisplayed().performTouchInput { down(center); up() }
 
         assertNoTouchTargetSmallerThan48dp(rule)
     }
 
     @Test
     fun plans_screen_touch_targets_are_at_least_48dp_empty_state() {
-        show(
-            PlansUiState(
-                loaded = true,
-                cards = emptyList(),
-                archivedCards = emptyList(),
-            ),
-        )
+        show(PlansUiState(loaded = true))
         assertNoTouchTargetSmallerThan48dp(rule)
     }
 
@@ -110,17 +96,12 @@ class PlansAccessibilityTest {
         show(
             PlansUiState(
                 loaded = true,
-                cards = listOf(samplePlanCard),
-                archivedCards = listOf(samplePlanCard.copy(id = 2L, archived = true)),
+                front = samplePlanCard,
             ),
         )
 
         val newPlanNode = rule.onNodeWithText("New plan")
         newPlanNode.assertIsDisplayed()
         newPlanNode.assert(hasClickAction())
-
-        val archivedNode = rule.onNodeWithText("Show archived (1)")
-        archivedNode.assertIsDisplayed()
-        archivedNode.assert(hasClickAction())
     }
 }

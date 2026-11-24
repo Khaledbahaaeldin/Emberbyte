@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.data.plan
 
+import io.github.khaledbahaaeldin.emberbyte.data.PlanSnapshot
 import io.github.khaledbahaaeldin.emberbyte.data.db.*
 import io.github.khaledbahaaeldin.emberbyte.engine.model.*
 import java.time.DayOfWeek
@@ -92,12 +93,49 @@ internal fun AlertRuleEntity.toDomain() = AlertRule(id, planId, thresholdPercent
 
 class RoomPlanStore(private val db: EmberbyteDatabase) : PlanStore {
     private val dao = db.planDao()
+    private val insightDao = db.insightDao()
 
     override fun observePlans(): Flow<List<Plan>> = dao.observePlans().map { list -> list.mapNotNull { it.toDomainOrNull() } }
     override fun observePlan(id: Long): Flow<Plan?> = dao.observePlan(id).map { it?.toDomainOrNull() }
     override suspend fun plan(id: Long): Plan? = dao.plan(id)?.toDomainOrNull()
     override suspend fun upsertPlan(plan: Plan): Long = dao.putPlan(plan.toEntity())
     override suspend fun setArchived(id: Long, archived: Boolean): Boolean = dao.setArchived(id, archived) > 0
+    override suspend fun restoreArchivedPlans(): Int = dao.restoreAllArchived()
+
+    override suspend fun deletePlanWithSnapshot(id: Long): PlanSnapshot? = db.withTransaction {
+        val plan = dao.plan(id)?.toDomainOrNull() ?: return@withTransaction null
+        val addOns = dao.addOns(id).map { it.toDomain() }
+        val freeRules = dao.freeRules(id).map { it.toDomain() }
+        val alertThresholds = dao.alertRules(id).filter { it.enabled }.map { it.thresholdPercent }.toSet()
+        val budgetIds = insightDao.budgetIdsForPlan(id)
+        if (budgetIds.isNotEmpty()) {
+            insightDao.clearPlanIdFromBudgets(id)
+        }
+        dao.deleteAddOnsForPlan(id)
+        dao.deleteFreeRulesForPlan(id)
+        dao.deleteAlertRulesForPlan(id)
+        dao.deleteAlertFiredForPlan(id)
+        dao.deletePlanRow(id)
+        PlanSnapshot(
+            plan = plan,
+            addOns = addOns,
+            freeRules = freeRules,
+            alertThresholds = alertThresholds,
+            budgetIdsWithPlan = budgetIds,
+        )
+    }
+
+    override suspend fun restorePlanFromSnapshot(snapshot: PlanSnapshot): Unit = db.withTransaction {
+        val id = dao.putPlan(snapshot.plan.copy(archived = false).toEntity())
+        snapshot.addOns.forEach { dao.putAddOn(it.copy(planId = id).toEntity()) }
+        snapshot.freeRules.forEach { dao.putFreeRule(it.copy(planId = id).toEntity()) }
+        snapshot.alertThresholds.forEach { pct ->
+            dao.putAlertRule(AlertRuleEntity(planId = id, thresholdPercent = pct, enabled = true))
+        }
+        if (snapshot.budgetIdsWithPlan.isNotEmpty()) {
+            insightDao.setPlanIdForBudgets(id, snapshot.budgetIdsWithPlan)
+        }
+    }
     override suspend fun setPinned(id: Long, pinned: Boolean): Boolean = db.withTransaction {
         if (dao.plan(id) == null) return@withTransaction false
         if (pinned) {

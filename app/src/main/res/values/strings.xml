@@ -294,5 +294,31 @@
     <string name="whatsnew_settings_subtitle">Changes in %1$s</string>
     <string name="whatsnew_settings_empty">No changes recorded</string>
     <string name="whatsnew_updates_link">See what\'s new</string>
+
+    <!-- Plans redesign (T24) -->
+    <string name="plan_front_chip">Front plan</string>
+    <string name="plan_ring_used_format">%1$s used</string>
+    <string name="plan_status_will_last">Will last the cycle</string>
+    <string name="plan_status_runs_out_early">Runs out %1$s (%2$s)</string>
+    <string name="plan_status_runs_out_date">Runs out %1$s</string>
+    <string name="plan_status_over_cap">Over the cap</string>
+    <string name="plan_status_on_track">On track</string>
+    <string name="plan_track_time">Time</string>
+    <string name="plan_track_time_sub">day %1$d of %2$d</string>
+    <string name="plan_track_data">Data</string>
+    <string name="plan_chart_7_days_ago">7 days ago</string>
+    <string name="plan_chart_today">today</string>
+    <string name="plan_details_what_if">Details and what if</string>
+    <string name="plan_what_if_none">None</string>
+    <string name="plan_what_if_plus_gb">+%1$d GB</string>
+    <string name="plan_tile_pin_a11y">Bring to the front</string>
+    <string name="plan_menu_pin_front">Pin to front</string>
+    <string name="plan_insight_ahead">%1$s is running ahead. At this pace it ends %2$d days early.</string>
+    <string name="plan_insight_keep_to">Keep to %1$s a day to make it last.</string>
+    <string name="plan_insight_open_forecast">Open the forecast</string>
+    <string name="plan_insight_all_on_track">All plans are on track. Nothing runs out before it renews.</string>
+    <string name="plan_renewals_title">Renewals</string>
+    <string name="plan_empty_redesign_title">Nothing to track yet</string>
+    <string name="plan_deleted_snackbar">%1$s deleted</string>
 </resources>
 

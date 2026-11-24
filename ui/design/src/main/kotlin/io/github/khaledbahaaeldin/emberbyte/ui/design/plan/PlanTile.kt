@@ -53,9 +53,6 @@ fun PlanTile(
         if (model.isEstimated) {
             append(", estimated")
         }
-        if (model.archived) {
-            append(", archived")
-        }
     }
 
     Surface(

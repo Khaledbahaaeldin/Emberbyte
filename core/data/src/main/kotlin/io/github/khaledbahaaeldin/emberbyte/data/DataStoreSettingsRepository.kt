@@ -34,6 +34,7 @@ internal object SettingsKeys {
     val PROMOTED_DISMISSED_ON = stringPreferencesKey("promoted_dismissed_on")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     val LAST_SEEN_WHATS_NEW_VERSION_CODE = intPreferencesKey("last_seen_whats_new_version_code")
+    val ARCHIVED_PLANS_RESTORED = booleanPreferencesKey("archived_plans_restored")
     val LEGACY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
 }
 
@@ -173,3 +174,17 @@ class DataStoreWhatsNewPrefsRepository(private val store: DataStore<Preferences>
 }
 
 private object StopCollectException : CancellationException("Done reading single value")
+
+interface ArchivedPlansRestoreRepository {
+    suspend fun isRestored(): Boolean
+    suspend fun markRestored()
+}
+
+class DataStoreArchivedPlansRestoreRepository(private val store: DataStore<Preferences>) : ArchivedPlansRestoreRepository {
+    override suspend fun isRestored(): Boolean =
+        store.data.safe().map { it[SettingsKeys.ARCHIVED_PLANS_RESTORED] ?: false }.first()
+
+    override suspend fun markRestored() {
+        store.edit { it[SettingsKeys.ARCHIVED_PLANS_RESTORED] = true }
+    }
+}

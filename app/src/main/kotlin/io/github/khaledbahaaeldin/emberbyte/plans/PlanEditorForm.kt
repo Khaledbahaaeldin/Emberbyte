@@ -63,7 +63,6 @@ data class PlanEditorUiState(
     val form: PlanEditorForm = PlanEditorForm(),
     val planId: Long = 0,
     val isNew: Boolean = true,
-    val isArchived: Boolean = false,
     val loading: Boolean = true,
     val notFound: Boolean = false,
     val sims: List<SimOptionUi> = emptyList(),
@@ -104,7 +103,5 @@ sealed interface PlanEditorEvent {
     data class RemoveFreeRule(val index: Int) : PlanEditorEvent
     data class ToggleThreshold(val percent: Int) : PlanEditorEvent
     data object Save : PlanEditorEvent
-    data object Archive : PlanEditorEvent
-    data object Unarchive : PlanEditorEvent
     data object Delete : PlanEditorEvent
 }

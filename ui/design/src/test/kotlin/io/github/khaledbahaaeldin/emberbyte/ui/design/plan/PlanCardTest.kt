@@ -30,7 +30,7 @@ class PlanCardTest {
     private val model = PlanCardUi(
         id = 3, name = "Main SIM", simLabel = "SIM 1 · Alpha", fraction = 0.62f, ringState = BudgetStateUi.Ok,
         percentText = "62%", usedText = "6.20 GB of 10.0 GB", remainingText = "3.80 GB left", daysLeftText = "9 days left",
-        forecastText = "runs out Thu (±1 day)", isEstimated = false, chips = listOf("Boost +2.00 GB"), archived = false,
+        forecastText = "runs out Thu (±1 day)", isEstimated = false, chips = listOf("Boost +2.00 GB"),
     )
     private fun show(m: PlanCardUi = model, onClick: () -> Unit = {}) = rule.setContent {
         EmberbyteTheme(EmberbyteThemeSpec.Default) { PlanCard(m, onClick) }
@@ -65,9 +65,9 @@ class PlanCardTest {
         rule.onNodeWithContentDescription("Main SIM, 62 percent used, 3.80 GB left, 9 days left").assertExists()
     }
 
-    @Test fun an_archived_plan_is_labelled_archived() {
-        show(model.copy(archived = true))
-        rule.onNodeWithText("Archived").assertIsDisplayed()
+    @Test fun pinned_shows_indicator() {
+        show(model.copy(pinned = true))
+        rule.onNodeWithContentDescription("Pinned", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test fun large_font_scale_keeps_percent_single_line_and_days_left_within_two_lines() {

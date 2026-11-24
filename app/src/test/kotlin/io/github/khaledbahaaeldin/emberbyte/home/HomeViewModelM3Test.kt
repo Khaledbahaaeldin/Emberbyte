@@ -92,8 +92,8 @@ class HomeViewModelM3Test {
         assertFalse(vm.uiState.value.planChips[1].selected)
 
         // (e) with no plan hasPlan is false and planChips empty
-        plans.archivePlan(1L)
-        plans.archivePlan(2L)
+        plans.deletePlan(1L)
+        plans.deletePlan(2L)
         advanceUntilIdle()
         assertFalse(vm.uiState.value.hasPlan)
         assertTrue(vm.uiState.value.planChips.isEmpty())

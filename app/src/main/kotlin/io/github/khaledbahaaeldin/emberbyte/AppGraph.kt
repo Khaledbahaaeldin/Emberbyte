@@ -73,6 +73,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Hand-written dependency graph (no DI framework). One instance per process, owned by [EmberbyteApplication].
@@ -86,6 +87,8 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     val settings: SettingsRepository = preferences.settings
     val onboarding: OnboardingRepository = preferences.onboarding
     val whatsNewPrefs: io.github.khaledbahaaeldin.emberbyte.data.WhatsNewPrefsRepository = preferences.whatsNew
+    val archivedPlansRestore = preferences.archivedPlansRestore
+    val plansSession = io.github.khaledbahaaeldin.emberbyte.plans.PlansSessionCoordinator()
     val permissions: PermissionRepository = AndroidPermissionRepository(appContext)
     val simInfo: SimInfoSource = AndroidSimInfoSource(appContext)
     internal val planStore = PlanStores.create(appContext)
@@ -108,6 +111,16 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     val appIcons: AppIconProvider = AppIconProvider(appContext)
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        appScope.launch {
+            io.github.khaledbahaaeldin.emberbyte.plans.runArchivedPlansRestoreOnce(
+                plans = plans,
+                restoreRepo = archivedPlansRestore,
+                coordinator = plansSession,
+            )
+        }
+    }
 
     /** Hot cache of the onboarding flag. `null` only until the first read; collecting it never restarts the underlying flow. */
     val onboardingCompleted: StateFlow<Boolean?> =
@@ -216,7 +229,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun plansViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { PlansViewModel(plans, settings, simInfo, clock) }
+        initializer { PlansViewModel(plans, settings, simInfo, clock, session = plansSession) }
     }
 
     fun planEditorViewModelFactory(planId: Long): ViewModelProvider.Factory = viewModelFactory {
@@ -232,6 +245,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 savedStateHandle = createSavedStateHandle(),
                 usage = usage,
                 labelOf = ::appLabel,
+                session = plansSession,
             )
         }
     }

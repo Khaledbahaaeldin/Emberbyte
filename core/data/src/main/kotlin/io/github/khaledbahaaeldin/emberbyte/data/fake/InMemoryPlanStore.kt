@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.data.fake
 
+import io.github.khaledbahaaeldin.emberbyte.data.PlanSnapshot
 import io.github.khaledbahaaeldin.emberbyte.data.plan.PlanStore
 import io.github.khaledbahaaeldin.emberbyte.engine.model.*
 import java.time.Instant
@@ -34,6 +35,51 @@ class InMemoryPlanStore : PlanStore {
         if (plans.value.none { it.id == id }) return false
         plans.update { list -> list.map { if (it.id == id) it.copy(archived = archived, pinned = if (archived) false else it.pinned) else it } }
         return true
+    }
+    override suspend fun restoreArchivedPlans(): Int {
+        var count = 0
+        plans.update { list ->
+            list.map {
+                if (it.archived) {
+                    count++
+                    it.copy(archived = false)
+                } else {
+                    it
+                }
+            }
+        }
+        return count
+    }
+    override suspend fun deletePlanWithSnapshot(id: Long): PlanSnapshot? = synchronized(this) {
+        val plan = plans.value.firstOrNull { it.id == id } ?: return@synchronized null
+        val planAddOns = addOns.value.filter { it.planId == id }
+        val planRules = freeRules.value.filter { it.planId == id }
+        val planThresholds = alertRules.value.filter { it.planId == id && it.enabled }.map { it.thresholdPercent }.toSet()
+        plans.update { list -> list.filter { it.id != id } }
+        addOns.update { list -> list.filter { it.planId != id } }
+        freeRules.update { list -> list.filter { it.planId != id } }
+        alertRules.update { list -> list.filter { it.planId != id } }
+        PlanSnapshot(plan, planAddOns, planRules, planThresholds, emptyList())
+    }
+    override suspend fun restorePlanFromSnapshot(snapshot: PlanSnapshot): Unit = synchronized(this) {
+        val id = upsertPlanBlocking(snapshot.plan.copy(archived = false))
+        snapshot.addOns.forEach { a ->
+            val aid = if (a.id == 0L) addOnIds.incrementAndGet() else a.id
+            addOns.update { list -> list.filter { it.id != aid } + a.copy(id = aid, planId = id) }
+        }
+        snapshot.freeRules.forEach { r ->
+            val rid = if (r.id == 0L) freeRuleIds.incrementAndGet() else r.id
+            freeRules.update { list -> list.filter { it.id != rid } + r.copy(id = rid, planId = id) }
+        }
+        snapshot.alertThresholds.forEach { pct ->
+            val ruleId = alertRuleIds.incrementAndGet()
+            alertRules.update { list -> list + AlertRule(ruleId, id, pct, enabled = true) }
+        }
+    }
+    private fun upsertPlanBlocking(plan: Plan): Long {
+        val real = if (plan.id == 0L) planIds.incrementAndGet() else plan.id
+        plans.update { list -> list.filter { it.id != real } + plan.copy(id = real) }
+        return real
     }
     override suspend fun setPinned(id: Long, pinned: Boolean): Boolean {
         if (plans.value.none { it.id == id }) return false

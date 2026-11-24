@@ -95,7 +95,7 @@ class PlanEditorViewModelTest {
         assertEquals(setOf("name", "capBytes"), vm.uiState.value.errors.keys)
         vm.onEvent(PlanEditorEvent.SetCap("10")); vm.onEvent(PlanEditorEvent.Save); advanceUntilIdle()   // the name is still blank: the repository says so
         assertEquals("name", vm.uiState.value.errors.keys.single())
-        assertTrue(plans.observePlans(true).first().isEmpty())
+        assertTrue(plans.observePlans().first().isEmpty())
         assertFalse(vm.uiState.value.saved)
         job.cancel()
     }
@@ -110,7 +110,7 @@ class PlanEditorViewModelTest {
         advanceUntilIdle()
 
         assertEquals(setOf("name", "capBytes", "cycle.dayOfMonth"), vm.uiState.value.errors.keys)
-        assertTrue(plans.observePlans(true).first().isEmpty())
+        assertTrue(plans.observePlans().first().isEmpty())
         assertFalse(vm.uiState.value.saved)
         job.cancel()
     }
@@ -211,11 +211,11 @@ class PlanEditorViewModelTest {
         vm.onEvent(PlanEditorEvent.AddFreeRule)
         vm.onEvent(PlanEditorEvent.UpdateFreeRule(0, vm.uiState.value.form.freeRules[0].copy(label = "Night", days = emptySet())))
         vm.onEvent(PlanEditorEvent.Save); advanceUntilIdle()
-        assertTrue(plans.observePlans(true).first().isEmpty())
+        assertTrue(plans.observePlans().first().isEmpty())
         assertEquals(setOf("freeRule.0.days"), vm.uiState.value.errors.keys)
         // A second save does not duplicate or save
         vm.onEvent(PlanEditorEvent.Save); advanceUntilIdle()
-        assertTrue(plans.observePlans(true).first().isEmpty())
+        assertTrue(plans.observePlans().first().isEmpty())
         job.cancel()
     }
 
@@ -257,7 +257,7 @@ class PlanEditorViewModelTest {
             validUntil = today.minusDays(5), // invalid
         )))
         vm.onEvent(PlanEditorEvent.Save); advanceUntilIdle()
-        val stored = plans.observePlans(true).first().single { it.id == id }
+        val stored = plans.observePlans().first().single { it.id == id }
         assertEquals(Rollover.Full, stored.rollover) // remains unchanged
         job.cancel()
     }
@@ -319,12 +319,15 @@ class PlanEditorViewModelTest {
         job.cancel()
     }
 
-    @Test fun archiving_an_existing_plan_marks_saved() = runTest(dispatcher) {
+    @Test fun deleting_an_existing_plan_deletes_and_queues_undo_snapshot() = runTest(dispatcher) {
+        val session = PlansSessionCoordinator()
         val id = (plans.upsertPlan(Plan(0, "Old", null, 5_000_000_000L, Cycle.MonthlyOnDay(3, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)) as Outcome.Success).value
-        val vm = vm(id); val job = started(vm)
-        vm.onEvent(PlanEditorEvent.Archive); advanceUntilIdle()
+        val vm = PlanEditorViewModel(id, plans, alerts, settings, permissions, sims, clock, Locale.ENGLISH, previewDebounceMillis = 0L, savedStateHandle = SavedStateHandle(), session = session)
+        val job = started(vm)
+        vm.onEvent(PlanEditorEvent.Delete); advanceUntilIdle()
         assertTrue(vm.uiState.value.saved)
-        assertTrue(plans.observePlans(false).first().isEmpty())
+        assertTrue(plans.observePlans().first().isEmpty())
+        assertEquals("Old", session.pendingDelete.value?.plan?.name)
         job.cancel()
     }
 
@@ -380,7 +383,7 @@ class PlanEditorViewModelTest {
         // Second save should succeed and not create a second plan
         vm.onEvent(PlanEditorEvent.Save); advanceUntilIdle()
         assertTrue(vm.uiState.value.saved)
-        assertEquals(1, plans.observePlans(true).first().size)
+        assertEquals(1, plans.observePlans().first().size)
         job.cancel()
     }
 
@@ -531,14 +534,14 @@ class PlanEditorViewModelTest {
     @Test fun what_if_never_writes_to_plan_store() = runTest(dispatcher) {
         fillHistory()
         val id = savePlan()
-        val beforePlans = plans.observePlans(true).first()
+        val beforePlans = plans.observePlans().first()
         val vm = vm(id)
         val job = started(vm)
         vm.onEvent(PlanEditorEvent.SetWhatIfAmount("500"))
         vm.onEvent(PlanEditorEvent.SetWhatIfUnit(CapUnit.GB))
         advanceUntilIdle()
 
-        val afterPlans = plans.observePlans(true).first()
+        val afterPlans = plans.observePlans().first()
         assertEquals(beforePlans, afterPlans)
         job.cancel()
     }

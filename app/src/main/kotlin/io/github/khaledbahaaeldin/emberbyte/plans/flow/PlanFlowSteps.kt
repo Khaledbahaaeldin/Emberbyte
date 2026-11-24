@@ -603,7 +603,6 @@ internal fun buildReviewPreviewCard(
         forecastText = null,
         isEstimated = state.isMidCycleApplicable && state.firstCycleChoice == FirstCycleChoice.PhoneRecord,
         chips = emptyList(),
-        archived = false,
         isDormant = isDormant,
         startsAtText = if (isDormant) startsAtText else null,
         enteredNote = null,

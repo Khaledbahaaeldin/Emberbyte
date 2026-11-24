@@ -60,17 +60,17 @@ class PlanEditorContentTest {
         rule.onNodeWithText("New plan").assertIsDisplayed()
     }
 
-    @Test fun an_existing_plan_says_edit_and_offers_archive() {
+    @Test fun an_existing_plan_says_edit_and_offers_delete() {
         val events = mutableListOf<PlanEditorEvent>()
         show(state.copy(isNew = false, planId = 3), onEvent = { events += it })
         rule.onNodeWithText("Edit plan").assertIsDisplayed()
-        rule.onNodeWithText("Archive plan").performScrollTo().performClick()
-        assertEquals(listOf<PlanEditorEvent>(PlanEditorEvent.Archive), events)
+        rule.onNodeWithText("Archive plan").assertDoesNotExist()
+        rule.onNodeWithText("Delete plan").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun a_new_plan_has_no_archive_button() {
+    @Test fun a_new_plan_has_no_delete_button() {
         show(state.copy(isNew = true))
-        rule.onNodeWithText("Archive plan").assertDoesNotExist()
+        rule.onNodeWithText("Delete plan").assertDoesNotExist()
     }
 
     @Test fun typing_the_name_and_the_cap_sends_events() {
@@ -171,7 +171,7 @@ class PlanEditorContentTest {
     }
 
     @Test fun the_preview_card_is_shown_when_there_is_one() {
-        val card = PlanCardUi(1, "Main", null, 0.1f, BudgetStateUi.Ok, "10%", "1.00 GB of 10.0 GB", "9.00 GB left", "16 days left", null, false, emptyList(), false)
+        val card = PlanCardUi(1, "Main", null, 0.1f, BudgetStateUi.Ok, "10%", "1.00 GB of 10.0 GB", "9.00 GB left", "16 days left", null, false, emptyList())
         show(state.copy(preview = card))
         rule.onNodeWithText("Preview").assertIsDisplayed()
         rule.onNodeWithText("1.00 GB of 10.0 GB").assertIsDisplayed()

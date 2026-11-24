@@ -75,7 +75,7 @@ class RoomPlanRepositoryTest {
         val bad = repo.upsertPlan(draft(name = " ")) as Outcome.Failure
         assertEquals("name", (bad.error as EmberbyteError.Invalid).field)
         assertEquals("capBytes", ((repo.upsertPlan(draft(cap = 0)) as Outcome.Failure).error as EmberbyteError.Invalid).field)
-        assertTrue(repo.observePlans(includeArchived = true).first().isEmpty())
+        assertTrue(repo.observePlans().first().isEmpty())
     }
 
     @Test fun the_name_is_trimmed() = runBlocking {
@@ -110,14 +110,24 @@ class RoomPlanRepositoryTest {
         assertEquals(1_000_000_000L, repo.observePlanState(id).first()!!.freeBytes)
     }
 
-    @Test fun archived_plans_leave_the_active_list() = runBlocking {
+    @Test fun restore_archived_plans_unarchives_all_and_is_idempotent() = runBlocking {
+        val id1 = save(draft(name = "A").copy(archived = true))
+        val id2 = save(draft(name = "B").copy(archived = true, pinned = true))
+        assertEquals(2, (repo.restoreArchivedPlans() as Outcome.Success).value)
+        assertEquals(0, (repo.restoreArchivedPlans() as Outcome.Success).value)
+        val all = repo.observePlans().first().associateBy { it.id }
+        assertEquals(false, all[id1]!!.archived)
+        assertEquals(false, all[id2]!!.archived)
+        assertEquals(true, all[id2]!!.pinned)
+    }
+
+    @Test fun delete_plan_removes_it_and_restore_round_trips() = runBlocking {
         val id = save()
-        assertEquals(1, repo.observeActivePlanStates().first().size)
-        assertTrue(repo.archivePlan(id) is Outcome.Success)
-        assertTrue(repo.observePlans(includeArchived = false).first().isEmpty())
-        assertEquals(1, repo.observePlans(includeArchived = true).first().size)
-        assertTrue(repo.observeActivePlanStates().first().isEmpty())
-        assertEquals(EmberbyteError.NotFound, (repo.archivePlan(99) as Outcome.Failure).error)
+        val snap = (repo.deletePlan(id) as Outcome.Success).value
+        assertTrue(repo.observePlans().first().isEmpty())
+        assertEquals(EmberbyteError.NotFound, (repo.deletePlan(99) as Outcome.Failure).error)
+        assertTrue(repo.restorePlan(snap) is Outcome.Success)
+        assertEquals(1, repo.observePlans().first().size)
     }
 
     @Test fun rollover_uses_the_previous_cycle() = runBlocking {
@@ -178,7 +188,7 @@ class RoomPlanRepositoryTest {
         assertNotNull(ok.value.forecast)
         val bad = repo.previewState(draft(cap = 0), emptyList(), emptyList()) as Outcome.Failure
         assertEquals("capBytes", (bad.error as EmberbyteError.Invalid).field)
-        assertTrue(repo.observePlans(includeArchived = true).first().isEmpty())     // nothing was persisted
+        assertTrue(repo.observePlans().first().isEmpty())     // nothing was persisted
     }
 
     @Test fun what_if_extra_usage_brings_the_run_out_forward_and_a_missing_plan_is_not_found() = runBlocking {
@@ -201,7 +211,7 @@ class RoomPlanRepositoryTest {
         val badRule = FreeRule(0, 0, "Night", emptySet(), LocalTime.of(0, 0), LocalTime.of(6, 0), null)
         val errors = repo.validateDraft(badPlan, listOf(badAddOn), listOf(badRule))
         assertEquals(setOf("name", "addOn.0.bytes", "freeRule.0.days"), errors.keys)
-        assertTrue(repo.observePlans(includeArchived = true).first().isEmpty())
+        assertTrue(repo.observePlans().first().isEmpty())
     }
 
     @Test fun validate_draft_returns_all_plan_level_errors_at_once() {
@@ -219,7 +229,7 @@ class RoomPlanRepositoryTest {
         val badAddOn = AddOn(0, 0, "Boost", 0L, from, from.plusSeconds(60))
         val res = repo.savePlan(badPlan, listOf(badAddOn), emptyList(), setOf(80))
         assertTrue(res is Outcome.Failure)
-        assertTrue(repo.observePlans(includeArchived = true).first().isEmpty())
+        assertTrue(repo.observePlans().first().isEmpty())
     }
 
     @Test fun saving_a_valid_draft_returns_the_id_and_the_state_reflects_the_children() = runBlocking {

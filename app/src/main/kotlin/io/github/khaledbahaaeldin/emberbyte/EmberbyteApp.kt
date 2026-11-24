@@ -402,14 +402,6 @@ private fun AppScaffold(graph: AppGraph, startOnboarding: Boolean, hapticsEnable
             visible = visibility.visible && isTopLevel,
             onDiagnostic = NavDiagnostics::record,
             hapticsEnabled = hapticsEnabled,
-            trailing = if (route == Destination.Plans.route) {
-                {
-                    PlusButton(
-                        onClick = { navController.navigate(Routes.PLAN_NEW) },
-                        contentDescription = "New plan",
-                    )
-                }
-            } else null,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .contentWidth()

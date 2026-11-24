@@ -10,15 +10,25 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
+data class PlanSnapshot(
+    val plan: Plan,
+    val addOns: List<AddOn>,
+    val freeRules: List<FreeRule>,
+    val alertThresholds: Set<Int>,
+    val budgetIdsWithPlan: List<Long>,
+)
+
 interface PlanRepository {
-    fun observePlans(includeArchived: Boolean = false): Flow<List<Plan>>
+    fun observePlans(): Flow<List<Plan>>
     fun observePlanState(planId: Long): Flow<PlanState?>
     fun observeActivePlanStates(): Flow<List<PlanState>>
     fun observeForecast(planId: Long): Flow<Forecast?>
     fun observeAddOns(planId: Long): Flow<List<AddOn>>
     fun observeFreeRules(planId: Long): Flow<List<FreeRule>>
     suspend fun upsertPlan(plan: Plan): Outcome<Long>
-    suspend fun archivePlan(planId: Long): Outcome<Unit>
+    suspend fun restoreArchivedPlans(): Outcome<Int>
+    suspend fun deletePlan(planId: Long): Outcome<PlanSnapshot>
+    suspend fun restorePlan(snapshot: PlanSnapshot): Outcome<Unit>
     suspend fun setPinned(id: Long, pinned: Boolean): Outcome<Unit>
     suspend fun upsertAddOn(addOn: AddOn): Outcome<Long>
     suspend fun deleteAddOn(id: Long): Outcome<Unit>
@@ -27,6 +37,9 @@ interface PlanRepository {
 
     /** Forecast with extra daily usage added from [from] onward. Not persisted. */
     suspend fun whatIf(planId: Long, extraBytesPerDay: Long, from: Instant): Outcome<Forecast>
+
+    /** Forecast with extra cap added for the current cycle. Not persisted. */
+    suspend fun forecastWithExtraCap(planId: Long, extraBytes: Long): Outcome<Forecast>
 
     /** State and forecast of an unsaved draft, not persisted. */
     suspend fun previewState(plan: Plan, addOns: List<AddOn>, freeRules: List<FreeRule>): Outcome<PlanPreview>

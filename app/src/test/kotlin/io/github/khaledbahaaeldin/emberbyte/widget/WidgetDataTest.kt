@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -38,6 +39,11 @@ import org.robolectric.annotation.Config
 class WidgetDataTest {
     private val app: Application get() = ApplicationProvider.getApplicationContext()
     private val clock = Clock.fixed(Instant.parse("2026-10-10T12:00:00Z"), ZoneOffset.UTC)
+
+    @After fun cleanupPlans() = runBlocking {
+        val graph = AppGraph(app, clock)
+        graph.plans.observePlans().first().forEach { graph.plans.deletePlan(it.id) }
+    }
 
     private class FakeUsageRepo(
         private val today: DayUsage = DayUsage(LocalDate.of(2026, 10, 10), 100, 0),
@@ -121,10 +127,10 @@ class WidgetDataTest {
         val now = Instant.parse("2026-10-10T12:00:00Z")
         val graph = AppGraph(app, Clock.fixed(now, ZoneOffset.UTC))
 
-        // Archive any existing plans to ensure only the dormant plan is active
-        val existingPlans = graph.planStore.observePlans().first()
+        // Remove any existing plans to ensure only the dormant plan is active
+        val existingPlans = graph.plans.observePlans().first()
         for (p in existingPlans) {
-            graph.planStore.setArchived(p.id, true)
+            graph.plans.deletePlan(p.id)
         }
 
         val cycle = Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC)

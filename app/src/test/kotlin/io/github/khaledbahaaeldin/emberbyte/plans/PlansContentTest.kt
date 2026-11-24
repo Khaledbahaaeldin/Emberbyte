@@ -17,11 +17,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h6000dp")
 class PlansContentTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun sampleCard(id: Long = 1L, name: String = "Main SIM", archived: Boolean = false) = PlanCardUi(
+    private fun sampleCard(id: Long = 1L, name: String = "Main SIM") = PlanCardUi(
         id = id,
         name = name,
         simLabel = "SIM 1 · Alpha",
@@ -34,7 +34,6 @@ class PlansContentTest {
         forecastText = null,
         isEstimated = false,
         chips = emptyList(),
-        archived = archived,
     )
 
     private fun show(
@@ -53,11 +52,11 @@ class PlansContentTest {
         }
     }
 
-    @Test fun cards_render_and_tapping_calls_on_open_plan() {
+    @Test fun cards_render_and_tapping_front_opens_plan() {
         var openedId: Long? = null
         val card = sampleCard(id = 42L, name = "Primary SIM")
         show(
-            state = PlansUiState(cards = listOf(card), loaded = true),
+            state = PlansUiState(front = card, loaded = true),
             onOpenPlan = { openedId = it },
         )
 
@@ -78,77 +77,33 @@ class PlansContentTest {
         assertEquals(true, newPlanCalled)
     }
 
-    @Test fun archived_toggle_button_exists_and_sends_toggle_event() {
-        var eventReceived: PlansEvent? = null
-        val archived = sampleCard(id = 99L, name = "Old SIM", archived = true)
-        show(
-            state = PlansUiState(
-                cards = emptyList(),
-                archivedCards = listOf(archived),
-                showArchived = false,
-                loaded = true,
-            ),
-            onEvent = { eventReceived = it },
-        )
-
-        rule.onNodeWithText("Show archived (1)").assertIsDisplayed()
-        rule.onNodeWithText("Show archived (1)").performClick()
-        assertEquals(PlansEvent.ToggleArchived, eventReceived)
-    }
-
     @Test fun empty_state_shows_when_no_cards_and_loaded_true() {
         var newPlanCalled = false
         show(
-            state = PlansUiState(cards = emptyList(), archivedCards = emptyList(), loaded = true),
+            state = PlansUiState(loaded = true),
             onNewPlan = { newPlanCalled = true },
         )
 
-        rule.onNodeWithText("No plans yet").assertIsDisplayed()
-        rule.onNodeWithText("Add your cap and renewal day to see what is left and when it runs out.").assertIsDisplayed()
-        rule.onNodeWithText("Set up your first plan").assertIsDisplayed()
-        rule.onNodeWithText("Set up your first plan").performClick()
+        rule.onNodeWithText("Nothing to track yet").assertIsDisplayed()
+        rule.onNodeWithText("Set up your first plan").assertIsDisplayed().performClick()
         assertEquals(true, newPlanCalled)
     }
 
     @Test fun empty_state_does_not_show_when_loaded_false() {
-        show(
-            state = PlansUiState(cards = emptyList(), archivedCards = emptyList(), loaded = false),
-        )
-
-        rule.onNodeWithText("No plans yet").assertDoesNotExist()
+        show(state = PlansUiState(loaded = false))
+        rule.onNodeWithText("Nothing to track yet").assertDoesNotExist()
         rule.onNodeWithText("Set up your first plan").assertDoesNotExist()
     }
 
     @Test fun loading_state_shows_when_loaded_false() {
-        show(
-            state = PlansUiState(cards = emptyList(), archivedCards = emptyList(), loaded = false),
-        )
-
+        show(state = PlansUiState(loaded = false))
         rule.onNodeWithContentDescription("Loading plans").assertIsDisplayed()
     }
 
-
-    @Test fun archived_cards_render_when_show_archived_true() {
-        val archived = sampleCard(id = 99L, name = "Archived Plan", archived = true)
-        show(
-            state = PlansUiState(
-                cards = emptyList(),
-                archivedCards = listOf(archived),
-                showArchived = true,
-                loaded = true,
-            ),
-        )
-
-        rule.onNodeWithText("Hide archived").assertIsDisplayed()
-        rule.onNodeWithText("Archived Plan").assertIsDisplayed()
-    }
-
-    @Test fun multiple_cards_render_in_plans_bento() {
+    @Test fun front_and_tiles_render_together() {
         val card1 = sampleCard(id = 1L, name = "Primary SIM")
         val card2 = sampleCard(id = 2L, name = "Secondary SIM")
-        show(
-            state = PlansUiState(cards = listOf(card1, card2), loaded = true),
-        )
+        show(state = PlansUiState(front = card1, tiles = listOf(card2), loaded = true))
 
         rule.onNodeWithText("Primary SIM").assertIsDisplayed()
         rule.onNodeWithText("Secondary SIM").assertIsDisplayed()
