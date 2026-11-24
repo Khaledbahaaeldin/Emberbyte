@@ -50,6 +50,8 @@
 | T24 Plans page redesign, archive removed | Khaled | done |
 | T25 Settings hub redesign | Khaled | done |
 | T26 Onboarding redesign and permission bug fix | Khaled | done |
+| T27 New-plan flow redesign | Khaled | not started |
+| T28 Plan editor redesign | Khaled | not started |
 | T15 Release 1.0.3 | Khaled | not started |
 
 ---
@@ -70,8 +72,8 @@
 | Khaled | T12a tokens (typography, shapes, theme wiring) | `t12a-theme-tokens` | now |
 | Khaled | T13 navbar (incl. Plus exit) | `t13-navbar` | after S1 |
 | Khaled | T12b migration sweep | `t12b-token-migration` | after S2 (everyone merged) |
-| Khaled | T14 localisation and cleanup | `t14-localisation` | after T26 merges (it needs the final strings of T17 to T26) |
-| Khaled | T15 release | `t15-release` | last, after T14 (so after T26) |
+| Khaled | T14 localisation and cleanup | `t14-localisation` | after T28 merges (it needs the final strings of T17 to T28) |
+| Khaled | T15 release | `t15-release` | last, after T14 (so after T28) |
 | Omar | T5 data and History | `t5-data-history` | now |
 | Omar | T11 press morph and back cancel | `t11-press-back` | now |
 | Omar | T4 loading states | `t4-loading` | after S1 |
@@ -86,6 +88,8 @@
 | Khaled | T24 Plans page redesign (front plan, tiles, what-if, real delete, archive removed) | `t24-plans` | after T23, and Omar's T4, T5, T10 and T11 merge |
 | Khaled | T25 Settings hub redesign (pulse card, shape switches, cards, search, screens) | `t25-settings` | after T24, T12b, and Omar's T4, T5, T10 and T11 merge |
 | Khaled | T26 Onboarding redesign (shared-element flow, permission bug fix) | `t26-onboarding` | after T25, and Omar's T4, T5, T10 and T11 merge; the bug fix commit can land earlier |
+| Khaled | T27 New-plan flow redesign (five calm steps, alerts in the review) | `t27-plan-flow` | after T26 merges |
+| Khaled | T28 Plan editor redesign (section cards, pinned preview, pin switch) | `t28-plan-editor` | after T27 merges |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -958,6 +962,79 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
 7. A user who skipped onboarding earlier and has permissions already granted never sees step 4's buttons as actions (both cards allowed, the button reads "Done").
 
 **Acceptance.** On a device onboarding is four steps with a progress pill that stretches between them and one primary button that changes label with the step; swiping tracks the finger, a flick carries momentum, a grab reverses cleanly, and a single shape travels from the mark to the Today card to the plan disc to the first permission card; the incoming page follows the finger while the outgoing page lags behind; on the last step granting usage access keeps you there and the button moves on to Notifications, then Done; Skip intro and Skip for now work; with animations off the steps simply cross-fade.
+
+---
+
+**T26 update (2026-11-24, done as a hotfix before T27).** Step 4 of onboarding now lists **four** permission cards, not two: Usage access, Notifications, **Phone** ("Tells your SIMs apart. Calls and numbers are never read.", asks for `READ_PHONE_STATE`) and **Battery** ("Do not let the system stop measuring in the background.", shows the system prompt to stop battery optimisation through `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`). The action bar walks them in that order (`PermissionAction { Usage, Notifications, Phone, Battery, Done }`; labels "Allow usage access", "Allow notifications", "Allow phone access", "Stop battery limits", "Done"); `PermissionState.batteryUnrestricted` carries the battery state. Settings > Keep measuring "Fix" shows the same prompt (it fell back silently before because the permission was missing from the manifest). System back inside a Settings area now returns to the Settings hub.
+
+---
+
+## T27. New-plan flow redesign: five calm steps
+
+**Closes:** maintainer request of 2026-11-24 (the new-plan flow was fixed by T6 but never redesigned). **Owner:** Khaled. **Branch:** `t27-plan-flow`, started **after T26 merges** (it reuses T26's progress pill, action bar and step motion, T24's tokens and T12b's colour tokens). **Files:** `app/.../plans/flow/PlanFlowScreen.kt`, `PlanFlowSteps.kt` (split into `NameStep.kt`, `AmountStep.kt`, `ResetStep.kt`, `ThisCycleStep.kt`, `ReviewStep.kt` plus `FlowChrome.kt`), `PlanFlowMotion.kt`, `PlanFlowViewModel.kt` (alerts only, see below), `PlanFlowStepsTest` and the existing `PlanFlowScreenTest` / `PlanFlowInputTest`. **Tests next to each.**
+
+**Mockup (the source of every layout below):** https://claude.ai/artifact/BaRxY4Z2eakSSRnPWwLXmg , the five boards in the first row. Approved by the maintainer on 2026-11-24 ("looks awesome").
+
+**What stays exactly as it is (do not rewrite).** The state machine and validation of `PlanFlowViewModel`: the step count is fixed when the user passes step 3 (4 steps, or 5 when today is not the cycle's first day), it never changes while typing (D2); the error texts and `stepValidationError()`; the mid-cycle model (`FirstCycle.PhoneRecord`, entered amount, next cycle); the SIM binding rules; the locale decimal separator handling. T27 changes how steps look and move, and adds only the alert choice to the last step.
+
+**Decisions (locked).**
+1. **One language with onboarding.** Same chrome as T26: a **progress pill** at the top (the active dot 28 dp, the others 8 dp, `Step n of N` as its description), a close button at the start (it asks "Discard this plan?" through the shared dialog only when something was typed), and an **action bar** at the bottom: `Back` (tonal) and `Continue` (filled, the only filled control on screen). Pages move with the same parallax and stagger as onboarding (outgoing page at 30 percent, text blocks rising in order); reduced motion uses a 200 ms cross-fade and an immediate step change. Titles are Space Grotesk 34 sp bold, tracking -0.035 em; every spacing, radius and size comes from tokens (`PlanFlowType`, `PlanFlowShapes` in the token files); no raw `.sp` or `RoundedCornerShape(`.
+2. **Step 1, Name it.** Title "What should we call it?"; one text field (60 dp, 2 dp primary outline when focused); suggestion chips ("Home SIM", "Work", "Travel eSIM", "Hotspot") that fill the field when tapped; the **SIM choice** (existing behaviour) appears under the field as a connected group **only when two or more active SIMs are readable**, and as a single "Allow phone access to tell your SIMs apart" chip when the phone permission is missing (it asks through `PermissionActions.requestPhoneState`); a **live preview card** pinned above the action bar (ghost wavy ring, the name, "Amount comes next"). The colour picker shown in the mockup is **not built**: plan colours already carry meaning (calm mint, amber nearly out, coral over the cap), so a user colour would contradict them. Remove the colour row from the board when the mockup is next touched.
+3. **Step 2, How much data.** Title "How much data do you get?"; a 236 dp **wavy ring** (existing `WavyRing`, ghost mode, 0 percent) holding the amount at 92 sp with a cookie unit badge (`UnitBadge`); a connected group **MB | GB | TB**; stepper chips **-5, -1, +1, +5, +10** that change the typed amount (they respect the locale separator and the unit); tapping the number opens the keyboard for exact input (a decimal field with the T6 validation); the caption "Counted in decimal units (1 GB = 1,000 MB), as set in Settings" follows the units setting (it says binary when the user chose binary). Rollover (None, Full, Capped) stays on this step as a collapsed row "Unused data: Lost at renewal" that expands to the three choices.
+4. **Step 3, When it resets.** Title "When does it reset?"; connected group **Monthly | Weekly | Custom** (Custom = every N days from a date, the existing `EveryNDays`); for Monthly a 7-column **day grid** (1 to 28) plus a "Last day of the month" chip (the existing clamp rule); for Weekly seven weekday chips; for Custom a number field and a date button. A tonal summary card at the bottom: "Resets on the 1st of every month" and "Next reset: Tue 1 December" (computed by the existing cycle code, never by the UI).
+5. **Step 4, This cycle so far (only when the cycle began before today).** Title "Today is the 15th. How do we count this cycle?" (the day is today's); three **radio cards** with the existing semantics and defaults: "Use what this phone recorded" (default, with the **Estimated** tag), "I will enter what I have used" (reveals an amount field on selection), "Start with the next cycle" ("Nothing is counted and no warnings are sent until 1 December"). A footnote: "You can change this later in the plan, for the first cycle only."
+6. **Step 5 (4 when step 4 is absent), Warn me, then review.** Title "Warn me before it runs out"; **alert chips** 50 / 80 / 90 / 100 percent (multi-select; defaults 80 and 100, from `DEFAULT_PLAN_ALERT_THRESHOLDS`; at least none is allowed, which turns alerts off); a **summary card** (96 dp ring, name, amount, reset day, counting method, the chosen alert levels) titled "Looks right?"; the primary button reads **Create plan** with a check icon. This is the only new data the flow collects: `PlanFlowUiState.alertThresholds: Set<Int>` and `PlanFlowEvent.ToggleAlert(percent)`, saved with the plan through the existing alert-rule path.
+7. **Create.** Pressing Create saves once (a second press is ignored), shows the T24 "Plan created" confirmation on the Plans page and returns there; a failure keeps the user on the last step with the existing error text and a retry. Back from step 1 and the close button leave the flow; the system back gesture goes one step back (a `BackHandler` that is enabled above step 1).
+8. **Reduced motion, accessibility, text size.** Every action is reachable by buttons (no gesture-only step change); each title is a heading; each radio card announces "selected" and its tag; the day grid cells are at least 44 dp with the day as description ("1st of the month, selected"); at font scale 2.0 the page scrolls and nothing is clipped; RTL mirrors the chrome.
+9. **Performance.** No per-frame state reads in composition: the ring preview and entrance values are read inside `graphicsLayer {}` / draw lambdas; at most 6 staggered entrances per page; typing does not recompose the whole page (hoist the field state, read derived values lazily).
+
+**Interfaces.** `PlanFlowUiState.alertThresholds: Set<Int> = DEFAULT_PLAN_ALERT_THRESHOLDS`; `PlanFlowEvent.ToggleAlert(percent: Int)`; a pure `internal fun nextResetDescription(cycle: Cycle, today: LocalDate, locale: Locale): String` in `PlanFlowMotion.kt` or a new `PlanFlowText.kt` (unit-tested); everything else keeps its current signature.
+
+**Steps (RED then GREEN, one commit per step).**
+1. RED `PlanFlowAlertsTest`: `alerts_default_to_80_and_100`, `toggling_a_level_adds_and_removes_it`, `no_levels_means_alerts_off`, `the_chosen_levels_are_saved_with_the_plan`. GREEN: state, event, save path.
+2. RED `PlanFlowChromeTest`: `pill_reads_step_n_of_total`, `continue_is_the_only_filled_button`, `close_asks_to_discard_only_after_typing`, `system_back_goes_one_step_back_then_leaves`, `reduced_motion_changes_steps_without_travel`. GREEN: `FlowChrome.kt`.
+3. RED one test class per step (`NameStepTest`, `AmountStepTest`, `ResetStepTest`, `ThisCycleStepTest`, `ReviewStepTest`) that pins the texts above, the defaults, the validation messages, the SIM group appearing only with two or more SIMs, the day grid contents and the last-day chip, the mid-cycle cards and the entered-amount field, and the review summary. GREEN: the step files.
+4. RED `PlanFlowFlowTest`: a full pass 4-step and a full pass 5-step creating a plan through a fake repository; the step count never changes while typing; double Create saves once; failure keeps the user on the last step. GREEN: wiring.
+5. RED `PlanFlowAccessibilityTest` (48 dp targets, headings, font scale 2.0 no clipping, RTL) and `PlanFlowMotionTest` (in-between frames, reduced motion static). GREEN: polish.
+6. Gate: whole project tests, lint, debug and release builds, `NoRawRadiiTest` and `NoRawFontSizesTest` with empty allow-lists.
+
+**Acceptance.** The five steps look like the mockup in light, dark and AMOLED; behaviour of every existing flow test is preserved or deliberately replaced with a commit message saying why; no new network, permission or database change.
+
+---
+
+## T28. Plan editor redesign: one scrolling form with the preview always visible
+
+**Closes:** maintainer request of 2026-11-24 (the editor was fixed by T7 but never redesigned). **Owner:** Khaled. **Branch:** `t28-plan-editor`, started **after T27 merges** (it reuses T27's field, chip, connected-group and summary components). **Files:** `app/.../plans/PlanEditorScreen.kt` (split: `EditorHeader.kt`, `EditorPreview.kt`, `PlanSection.kt`, `DataSection.kt`, `CycleSection.kt`, `ThisCycleSection.kt`, `WhatIfCard.kt`, `ExtrasSection.kt` (add-ons and free windows), `AlertsSection.kt`, `DangerZone.kt`), `EditorFields.kt`, `WhatIf.kt`, `PlanEditorViewModel.kt` (small, see below), tests next to each. **Tests next to each.**
+
+**Mockup:** https://claude.ai/artifact/BaRxY4Z2eakSSRnPWwLXmg , the four boards in the second row. Approved on 2026-11-24.
+
+**What stays exactly as it is.** The editor's data model and save rules (`PlanEditorForm`, validation, the unsaved-changes guard "Discard changes?", first-cycle correction, add-on and free-window dialogs, SIM binding, `PendingPlanUndo`, the T24 delete with Undo). T28 reorganises the screen, restyles it and adds the pin switch.
+
+**Decisions (locked).**
+1. **Layout.** A top bar (back, "Edit plan", overflow menu: Duplicate is out of scope, so the menu holds only "Delete plan", which scrolls to the danger zone) over a single scrolling column of **section cards**: Plan, Data, Cycle, This cycle (first cycle only), What if, Extras (add-ons and free windows, collapsed to a count when empty), Alerts, On Home, Danger zone. Section titles are small caps labels; cards use the T24 mixed-corner shape (one sharp corner) and tonal surfaces, never saturated blocks.
+2. **Pinned preview.** At the top, the **preview card** (120 dp wavy ring with the percentage, "12.4 GB of 20 GB", days left, a forecast sentence and the **Estimated** tag when it applies) reflects the unsaved form live (changing the amount, cycle or first-cycle number moves the ring at once, using the same engine as Plans through a pure `previewFor(form, usage, now)`). When the user scrolls it **collapses into a slim bar** under the top bar (44 dp ring, name, "12.4 of 20 GB, 62%"), so the effect of every edit stays visible. The collapse is driven by scroll state read in a layer, not by recomposition.
+3. **Plan and Data.** Name field; amount per cycle with -1 and +1 chips and the **MB | GB | TB** group (same input rules as T27 step 2). No colour picker (see T27 decision 2).
+4. **Cycle.** Monthly | Weekly | Custom group and a "Resets on" row with a Change chip that opens the day grid in a bottom sheet (same component as T27 step 3); rollover choice lives here as "Unused data".
+5. **This cycle.** Only while the plan is in its first cycle: "Counted so far 12.4 GB" with the **Estimated** tag, the explanation, and an "Enter an amount" chip; the next cycle starts from zero (existing rule). Hidden afterwards.
+6. **What if** (mint card, `TileContainer` accent at 40 percent tint so text stays 4.5:1): a slider for extra data (0 to 4 times the amount per cycle, 1 GB steps in GB, snapping), "Now: Runs out Dec 3" next to "With +5 GB: Lasts to Dec 9" computed by the existing `forecastWithExtraCap`; the result texts are announced to accessibility when the slider settles, not on every pixel.
+7. **Alerts.** A "Notify me" switch and the 50 / 80 / 90 / 100 chips (existing alert rules); the sentence "Sent from this phone, never from a server".
+8. **On Home: Pin to the front.** A switch bound to `Plan.pinned` (the field and `PlanUrgency` already exist; this is the first UI for it): "Show this plan first, even when another is closer to its limit". Only one plan can be pinned: pinning another asks "Unpin Work and pin Home SIM?" through the dialog family.
+9. **Danger zone.** An outlined coral card with the Delete button; Delete opens the confirm dialog from the mockup (title "Delete Home SIM?", body "This removes the plan, its add-ons and its alerts. Your recorded usage is kept, and you can undo this for a few seconds.") and then the existing delete with the **Undo snackbar** on the Plans page. The archive option stays removed (T24).
+10. **Save.** A floating **Save** pill at the bottom end, enabled only when the form is valid and changed; back with unsaved changes shows the shared "Discard changes?" dialog; saving shows the existing confirmation and returns. Keyboard: the floating button moves above the IME.
+11. **Reduced motion, accessibility, text size, RTL.** Sections reveal once per visit with `revealOnce` (snap under reduced motion); every control is at least 48 dp; the preview card is one accessibility node reading the figures; the danger zone is last in focus order; at font scale 2.0 the preview collapses earlier and nothing clips; the form survives rotation and process death (`rememberSaveable`/`StateRestorationTester`).
+12. **Performance.** One `LazyColumn` with stable keys; the ring and collapse read animated values in layers; no nested scrolling containers; the what-if computation runs off the main thread and is debounced (150 ms).
+
+**Interfaces.** `internal fun previewFor(form: PlanEditorForm, usage: List<UsagePoint>, now: Instant, zone: ZoneId): PlanPreview` (pure, unit-tested; shared with T27's review card); `PlanEditorEvent.SetPinned(Boolean)` with the unpin-other rule in the view-model; the existing events unchanged.
+
+**Steps (RED then GREEN, one commit per step).**
+1. RED `PlanPreviewTest` (before any UI): `preview_moves_with_the_amount`, `preview_uses_the_entered_first_cycle_number`, `preview_marks_estimated_when_the_phone_record_is_used`, `preview_of_a_dormant_plan_shows_the_start_date`. GREEN: `previewFor`.
+2. RED `PinPlanTest`: `pinning_sets_the_flag`, `pinning_another_plan_asks_before_unpinning_the_first`, `the_front_card_follows_the_pin`. GREEN: event and rule.
+3. RED one test class per section (`PlanSectionTest`, `DataSectionTest`, `CycleSectionTest`, `ThisCycleSectionTest`, `WhatIfCardTest`, `ExtrasSectionTest`, `AlertsSectionTest`, `DangerZoneTest`) pinning the texts, the first-cycle-only visibility, the slider results, the empty and filled Extras, and the delete dialog text. GREEN: the section files.
+4. RED `EditorScrollTest`: the preview collapses into the slim bar after scrolling past it and comes back at the top; `EditorFlowTest`: edit, preview follows, Save enabled only when valid and changed, back with changes asks, Save returns; delete shows the dialog and then the Undo snackbar. GREEN: wiring.
+5. RED `EditorAccessibilityTest` (48 dp, headings, one node for the preview, font scale 2.0, RTL), `EditorRestorationTest` (rotation and process death keep the unsaved form) and `EditorMotionTest` (reduced motion static). GREEN: polish.
+6. Gate: whole project tests, lint, debug and release builds, token scan tests green with empty allow-lists.
+
+**Acceptance.** The four editor boards are reproduced in light, dark and AMOLED; every capability of the old editor is still reachable (add-ons, free windows, SIM, first-cycle correction, alerts, delete); the unsaved-changes guard and the Undo behave as before; no database migration.
 
 ---
 
