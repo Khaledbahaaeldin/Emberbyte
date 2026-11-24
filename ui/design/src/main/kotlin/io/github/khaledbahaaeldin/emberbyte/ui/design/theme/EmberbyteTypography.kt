@@ -161,6 +161,17 @@ object OnboardingType {
     val HeroValue: TextUnit = 76.sp
     val Action: TextUnit = 15.sp
     val Button: TextUnit = 16.sp
+    val WelcomeTitle: TextUnit = 44.sp
+    val StepTitle: TextUnit = 40.sp
+    val MarkGlyph: TextUnit = 34.sp
+    val TodayFigure: TextUnit = 96.sp
+    val TodayUnit: TextUnit = 32.sp
+    val DiscValue: TextUnit = 60.sp
+    val LeadBody: TextUnit = 17.sp
+    val CardTitle: TextUnit = 18.sp
+    val CardBody: TextUnit = 14.5f.sp
+    val Caption: TextUnit = 13.sp
+    val Tag: TextUnit = 12.5f.sp
 }
 
 /** Text sizes for home-screen Glance widgets. Tokens live here so widgets carry no raw `.sp` literals. */
