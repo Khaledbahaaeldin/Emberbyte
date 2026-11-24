@@ -10,10 +10,15 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -67,8 +72,9 @@ class PlanEditorScreenTest {
                 )
             }
         }
-        rule.onNodeWithText("This cycle").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("I've used some already").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("THIS CYCLE"))
+        rule.onNodeWithText("THIS CYCLE").assertIsDisplayed()
+        rule.onNodeWithText("Enter an amount").assertIsDisplayed()
     }
 
     @Test
@@ -88,10 +94,11 @@ class PlanEditorScreenTest {
                 )
             }
         }
-        rule.onNodeWithText("Delete plan").performScrollTo().assertIsDisplayed().performClick()
-        rule.onNodeWithText("Delete plan?").assertIsDisplayed()
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("Delete plan"))
+        rule.onNodeWithText("Delete plan").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Delete Test Plan?").assertIsDisplayed()
         assertEquals(false, deleteCalled)
-        rule.onNodeWithText("Delete").assertIsDisplayed().performClick()
+        rule.onAllNodesWithText("Delete").onLast().assertIsDisplayed().performClick()
         assertEquals(true, deleteCalled)
     }
 
@@ -107,13 +114,14 @@ class PlanEditorScreenTest {
                 )
             }
         }
-        val expectedHeadings = listOf("Basics", "Cap and cycle", "This cycle", "Alerts", "Danger zone")
+        val expectedHeadings = listOf("PLAN", "DATA", "CYCLE", "THIS CYCLE", "ALERTS", "ON HOME", "DANGER ZONE")
         for (heading in expectedHeadings) {
-            val node = rule.onNode(
-                SemanticsMatcher.expectValue(SemanticsProperties.Text, listOf(androidx.compose.ui.text.AnnotatedString(heading)))
-                    .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
-            )
-            node.performScrollTo().assertIsDisplayed()
+            val matcher = SemanticsMatcher.expectValue(
+                SemanticsProperties.Text,
+                listOf(androidx.compose.ui.text.AnnotatedString(heading)),
+            ).and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            rule.onNodeWithTag("editor_lazy_list").performScrollToNode(matcher)
+            rule.onNode(matcher).assertIsDisplayed()
         }
     }
 

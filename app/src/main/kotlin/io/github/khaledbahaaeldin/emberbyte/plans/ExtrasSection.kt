@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
@@ -59,6 +61,7 @@ internal fun ExtrasSection(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
+    val locale = LocalConfiguration.current.locales[0] ?: Locale.ENGLISH
     val totalCount = addOns.size + freeRules.size
     var expanded by remember(totalCount > 0) { mutableStateOf(totalCount > 0) }
 
@@ -117,7 +120,7 @@ internal fun ExtrasSection(
                                 onClick = { onRemoveAddOn(index) },
                                 modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                             ) {
-                                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remove add-on")
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remove add-on pack")
                             }
                         }
                         OutlinedTextField(
@@ -192,7 +195,10 @@ internal fun ExtrasSection(
                                 Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remove free window")
                             }
                         }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(
+                            modifier = Modifier.testTag("free_window_days_multi_select"),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
                             DayOfWeek.entries.forEach { day ->
                                 FilterChip(
                                     selected = day in draft.days,
@@ -200,7 +206,7 @@ internal fun ExtrasSection(
                                         val next = if (day in draft.days) draft.days - day else draft.days + day
                                         onUpdateFreeRule(index, draft.copy(days = next))
                                     },
-                                    label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) },
+                                    label = { Text(day.getDisplayName(TextStyle.SHORT, locale)) },
                                     modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                                 )
                             }
@@ -216,12 +222,37 @@ internal fun ExtrasSection(
                             onChange = { onUpdateFreeRule(index, draft.copy(end = it)) },
                         )
                         if (availableApps.isNotEmpty()) {
+                            var appMenuOpen by remember { mutableStateOf(false) }
                             val currentApp = availableApps.firstOrNull { it.packageName == draft.packageName }?.label ?: "All apps"
-                            Text(
-                                text = "App: $currentApp",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = PlanFlowType.Caption),
-                                color = palette.muted,
-                            )
+                            androidx.compose.foundation.layout.Box {
+                                OutlinedButton(
+                                    onClick = { appMenuOpen = true },
+                                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                                ) {
+                                    Text("App: $currentApp")
+                                }
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = appMenuOpen,
+                                    onDismissRequest = { appMenuOpen = false },
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("All apps") },
+                                        onClick = {
+                                            appMenuOpen = false
+                                            onUpdateFreeRule(index, draft.copy(packageName = null))
+                                        },
+                                    )
+                                    availableApps.forEach { app ->
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = { Text(app.label) },
+                                            onClick = {
+                                                appMenuOpen = false
+                                                onUpdateFreeRule(index, draft.copy(packageName = app.packageName))
+                                            },
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

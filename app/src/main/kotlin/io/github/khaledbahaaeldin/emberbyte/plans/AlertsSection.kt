@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -14,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
@@ -31,10 +34,19 @@ internal fun AlertsSection(
     val enabled = thresholds.isNotEmpty()
 
     EditorSectionCard(title = "Alerts", modifier = modifier) {
+        val toggleAll = { on: Boolean ->
+            if (on && thresholds.isEmpty()) {
+                onToggleThreshold(80)
+                onToggleThreshold(100)
+            } else if (!on) {
+                thresholds.toList().forEach(onToggleThreshold)
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 48.dp),
+                .defaultMinSize(minHeight = 48.dp)
+                .toggleable(value = enabled, role = Role.Switch, onValueChange = toggleAll),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -45,19 +57,14 @@ internal fun AlertsSection(
             )
             Switch(
                 checked = enabled,
-                onCheckedChange = { on ->
-                    if (on && thresholds.isEmpty()) {
-                        onToggleThreshold(80)
-                        onToggleThreshold(100)
-                    } else if (!on) {
-                        thresholds.toList().forEach(onToggleThreshold)
-                    }
-                },
+                onCheckedChange = null,
             )
         }
 
         FlowRow(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("alerts_multi_select"),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             levels.forEach { pct ->
@@ -89,7 +96,8 @@ internal fun OnHomeSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 48.dp),
+                .defaultMinSize(minHeight = 48.dp)
+                .toggleable(value = pinned, role = Role.Switch, onValueChange = onSetPinned),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -110,7 +118,7 @@ internal fun OnHomeSection(
             }
             Switch(
                 checked = pinned,
-                onCheckedChange = onSetPinned,
+                onCheckedChange = null,
             )
         }
     }

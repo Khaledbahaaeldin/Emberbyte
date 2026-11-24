@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,7 @@ import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
 import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
 import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.PlanFlowType
@@ -77,6 +80,7 @@ internal fun PlanEditorContent(
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val backRequester = remember { FocusRequester() }
 
     val showSlimPreview by remember {
         derivedStateOf { listState.firstVisibleItemIndex > 0 }
@@ -99,6 +103,7 @@ internal fun PlanEditorContent(
     GuardedBack(
         dirty = state.isDirty,
         onConfirmLeave = onBack,
+        onDismiss = { runCatching { backRequester.requestFocus() } },
     ) { shrink ->
         Box(
             modifier = modifier
@@ -121,6 +126,7 @@ internal fun PlanEditorContent(
                             listState.animateScrollToItem(9)
                         }
                     },
+                    backFocusRequester = backRequester,
                 )
 
                 LazyColumn(
@@ -131,6 +137,31 @@ internal fun PlanEditorContent(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
+                    if (state.loading) {
+                        item(key = "loading") {
+                            LoadingState(
+                                label = "Loading plan",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(vertical = 48.dp),
+                            )
+                        }
+                        return@LazyColumn
+                    }
+
+                    if (state.notFound) {
+                        item(key = "not_found") {
+                            EditorSectionCard(title = "Plan") {
+                                Text(
+                                    text = "This plan no longer exists",
+                                    style = EmberbyteType.heading(PlanFlowType.Body),
+                                    color = palette.text,
+                                )
+                            }
+                        }
+                        return@LazyColumn
+                    }
+
                     if (state.preview != null) {
                         item(key = "preview") {
                             EditorPreviewCard(preview = state.preview)
@@ -146,7 +177,7 @@ internal fun PlanEditorContent(
                             needsPhonePermission = state.needsPhonePermission,
                             onSetName = { onEvent(PlanEditorEvent.SetName(it)) },
                             onSetSim = { onEvent(PlanEditorEvent.SetSim(it)) },
-                            onRequestPhonePermission = { onPrompt("phone") },
+                            onRequestPhonePermission = { onPrompt("phone_state") },
                         )
                     }
 
@@ -172,15 +203,17 @@ internal fun PlanEditorContent(
                             rolloverCapText = state.form.rolloverCapText,
                             rolloverCapUnit = state.form.rolloverCapUnit,
                             unitSystem = state.unitSystem,
-                            daysError = state.errors["everyDays"],
+                            daysError = state.errors["cycle.days"] ?: state.errors["everyDays"],
                             rolloverError = state.errors["rollover.maxBytes"],
                             onSetCycleKind = { onEvent(PlanEditorEvent.SetCycleKind(it)) },
                             onSetDayOfMonth = { onEvent(PlanEditorEvent.SetDayOfMonth(it)) },
                             onSetEveryDays = { onEvent(PlanEditorEvent.SetEveryDays(it)) },
                             onSetAnchor = { onEvent(PlanEditorEvent.SetAnchor(it)) },
+                            onSetRenewalTime = { onEvent(PlanEditorEvent.SetRenewalTime(it)) },
                             onSetRolloverKind = { onEvent(PlanEditorEvent.SetRolloverKind(it)) },
                             onSetRolloverCap = { onEvent(PlanEditorEvent.SetRolloverCap(it)) },
                             onSetRolloverUnit = { onEvent(PlanEditorEvent.SetRolloverUnit(it)) },
+                            modifier = Modifier.testTag("editor_cycle_section"),
                         )
                     }
 
@@ -258,6 +291,29 @@ internal fun PlanEditorContent(
                                 planName = state.form.name,
                                 onDeleteConfirmed = { onEvent(PlanEditorEvent.Delete) },
                             )
+                        }
+                    }
+
+                    val extraErrors = state.errors.filterKeys { key ->
+                        key != "name" &&
+                            key != "capBytes" &&
+                            key != "cycle.days" &&
+                            key != "everyDays" &&
+                            key != "rollover.maxBytes" &&
+                            key != "enteredAmount" &&
+                            !(key.startsWith("addOn.") && key.endsWith(".bytes"))
+                    }
+                    if (extraErrors.isNotEmpty()) {
+                        item(key = "extra_errors") {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                extraErrors.values.forEach { msg ->
+                                    Text(
+                                        text = msg,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = palette.danger,
+                                    )
+                                }
+                            }
                         }
                     }
 

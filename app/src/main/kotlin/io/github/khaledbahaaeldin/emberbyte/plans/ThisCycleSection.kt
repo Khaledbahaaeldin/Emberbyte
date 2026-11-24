@@ -73,29 +73,17 @@ internal fun ThisCycleSection(
             color = palette.muted,
         )
 
-        FlowRow(
+        val choices = listOf(
+            FirstCycleChoice.PhoneRecord to "Phone record",
+            FirstCycleChoice.Entered to "Enter an amount",
+            FirstCycleChoice.StartNextCycle to "Next cycle",
+        )
+        ConnectedButtonGroup(
+            options = choices.map { it.second },
+            selectedIndex = choices.indexOfFirst { it.first == firstCycleChoice }.coerceAtLeast(0),
+            onSelect = { idx -> onSelectChoice(choices[idx].first) },
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = firstCycleChoice == FirstCycleChoice.PhoneRecord,
-                onClick = { onSelectChoice(FirstCycleChoice.PhoneRecord) },
-                label = { Text("Phone record") },
-                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
-            )
-            FilterChip(
-                selected = firstCycleChoice == FirstCycleChoice.Entered,
-                onClick = { onSelectChoice(FirstCycleChoice.Entered) },
-                label = { Text("Enter an amount") },
-                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
-            )
-            FilterChip(
-                selected = firstCycleChoice == FirstCycleChoice.StartNextCycle,
-                onClick = { onSelectChoice(FirstCycleChoice.StartNextCycle) },
-                label = { Text("Next cycle") },
-                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
-            )
-        }
+        )
 
         if (firstCycleChoice == FirstCycleChoice.Entered) {
             OutlinedTextField(

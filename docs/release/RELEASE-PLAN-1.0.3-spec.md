@@ -51,7 +51,7 @@
 | T25 Settings hub redesign | Khaled | done |
 | T26 Onboarding redesign and permission bug fix | Khaled | done |
 | T27 New-plan flow redesign | Khaled | done |
-| T28 Plan editor redesign | Khaled | not started |
+| T28 Plan editor redesign | Khaled | done |
 | T15 Release 1.0.3 | Khaled | not started |
 
 ---

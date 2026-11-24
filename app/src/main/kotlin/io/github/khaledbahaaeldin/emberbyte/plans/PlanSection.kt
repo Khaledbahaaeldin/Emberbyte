@@ -1,5 +1,6 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -25,6 +27,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.PlanFlowType
 
 @Composable
@@ -34,8 +37,11 @@ internal fun EditorSectionCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val palette = LocalEmberbytePalette.current
+    val reduceMotion = LocalReduceMotion.current
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (reduceMotion) Modifier else Modifier.animateContentSize()),
         shape = mixedCorners(large = 28.dp, small = 10.dp, smallCorner = Corner.BottomEnd),
         color = palette.surface2,
     ) {
@@ -79,10 +85,11 @@ internal fun PlanSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = 60.dp)
+                .semantics { if (nameError != null) error(nameError) }
                 .testTag("editor_name_field"),
         )
 
-        if (sims.size > 2) {
+        if (sims.size >= 2) {
             val selectedIndex = sims.indexOfFirst { it.subscriptionId == subscriptionId }.coerceAtLeast(0)
             ConnectedButtonGroup(
                 options = sims.map { it.label },
@@ -90,7 +97,8 @@ internal fun PlanSection(
                 onSelect = { idx -> onSetSim(sims[idx].subscriptionId) },
                 modifier = Modifier.fillMaxWidth(),
             )
-        } else if (needsPhonePermission) {
+        }
+        if (needsPhonePermission) {
             AssistChip(
                 onClick = onRequestPhonePermission,
                 label = { Text("Allow phone access to tell your SIMs apart") },

@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
@@ -46,6 +48,7 @@ internal fun DataSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = 60.dp)
+                .semantics { if (capError != null) error(capError) }
                 .testTag("editor_cap_field"),
         )
 
@@ -55,17 +58,17 @@ internal fun DataSection(
         ) {
             listOf(-1, 1).forEach { delta ->
                 val label = if (delta > 0) "+$delta" else "$delta"
-                FilterChip(
-                    selected = false,
+                FilledTonalButton(
                     onClick = {
                         val current = capText.trim().replace(',', '.').toBigDecimalOrNull() ?: BigDecimal.ZERO
                         val next = (current + BigDecimal.valueOf(delta.toLong())).max(BigDecimal.ONE)
                         val formatted = next.stripTrailingZeros().toPlainString().replace('.', decimalSeparator)
                         onSetCap(formatted)
                     },
-                    label = { Text(label) },
                     modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
-                )
+                ) {
+                    Text(label)
+                }
             }
         }
 

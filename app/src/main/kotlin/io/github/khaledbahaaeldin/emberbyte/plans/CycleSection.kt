@@ -59,6 +59,7 @@ internal fun CycleSection(
     onSetDayOfMonth: (Int) -> Unit,
     onSetEveryDays: (Int) -> Unit,
     onSetAnchor: (LocalDate) -> Unit,
+    onSetRenewalTime: (LocalTime) -> Unit = {},
     onSetRolloverKind: (RolloverKind) -> Unit,
     onSetRolloverCap: (String) -> Unit,
     onSetRolloverUnit: (CapUnit) -> Unit,
@@ -147,28 +148,23 @@ internal fun CycleSection(
             )
         }
 
+        TimeField(
+            label = "Renews at",
+            time = renewalTime,
+            onChange = onSetRenewalTime,
+        )
+
         Text(
             text = "Unused data",
             style = EmberbyteType.heading(PlanFlowType.Caption),
             color = palette.muted,
         )
-        FlowRow(
+        ConnectedButtonGroup(
+            options = listOf("Lost at renewal", "Carried forward", "Capped"),
+            selectedIndex = rolloverKind.ordinal,
+            onSelect = { idx -> onSetRolloverKind(RolloverKind.entries[idx]) },
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            listOf(
-                RolloverKind.None to "Lost at renewal",
-                RolloverKind.Full to "Carried forward",
-                RolloverKind.Capped to "Capped",
-            ).forEach { (kind, label) ->
-                FilterChip(
-                    selected = rolloverKind == kind,
-                    onClick = { onSetRolloverKind(kind) },
-                    label = { Text(label) },
-                    modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
-                )
-            }
-        }
+        )
 
         if (rolloverKind == RolloverKind.Capped) {
             OutlinedTextField(

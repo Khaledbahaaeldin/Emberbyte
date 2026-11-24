@@ -30,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -51,6 +53,7 @@ internal fun EditorHeader(
     onBack: () -> Unit,
     onJumpToDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    backFocusRequester: FocusRequester = remember { FocusRequester() },
 ) {
     val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
@@ -74,7 +77,9 @@ internal fun EditorHeader(
             ) {
                 IconButton(
                     onClick = onBack,
-                    modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .focusRequester(backFocusRequester),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
