@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "versionCode": 3,
+      "versionName": "1.0.2",
+      "date": "2026-11-12",
+      "highlights": [
+        {
+          "kind": "added",
+          "text": "Updates row in Settings points to your app store or GitHub releases, still completely offline."
+        },
+        {
+          "kind": "added",
+          "text": "Long-press the version in Settings to copy an in-memory navigation log for bug reports."
+        },
+        {
+          "kind": "changed",
+          "text": "Smooth predictive back gesture, expressive unit pickers, and animated list transitions."
+        },
+        {
+          "kind": "changed",
+          "text": "Refined loading indicator, icon button press morphs, and smoother navigation bar motion."
+        },
+        {
+          "kind": "fixed",
+          "text": "Fixed tab switching animations, drifted tab taps on Apps, and duplicate back-stack tabs."
+        }
+      ]
+    }
+  ]
+}
