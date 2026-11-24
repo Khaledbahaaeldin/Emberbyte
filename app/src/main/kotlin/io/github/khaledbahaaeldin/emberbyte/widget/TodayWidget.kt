@@ -5,7 +5,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.WidgetType
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -165,12 +165,12 @@ private fun CompactTodayBlock(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = formattedToday.value,
-                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.HeroToday, fontWeight = FontWeight.Bold)
                 )
                 Spacer(GlanceModifier.width(4.dp))
                 Text(
                     text = formattedToday.unit,
-                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.UnitSmall, fontWeight = FontWeight.Bold)
                 )
             }
         }
