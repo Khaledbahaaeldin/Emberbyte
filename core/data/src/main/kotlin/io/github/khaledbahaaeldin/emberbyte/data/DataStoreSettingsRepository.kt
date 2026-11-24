@@ -7,10 +7,12 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.khaledbahaaeldin.emberbyte.engine.model.EmberbyteError
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import java.io.IOException
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -35,6 +37,7 @@ internal object SettingsKeys {
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     val LAST_SEEN_WHATS_NEW_VERSION_CODE = intPreferencesKey("last_seen_whats_new_version_code")
     val ARCHIVED_PLANS_RESTORED = booleanPreferencesKey("archived_plans_restored")
+    val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
     val LEGACY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
 }
 
@@ -53,6 +56,7 @@ internal fun Preferences.toSettings(): Settings {
             ?.let { name -> runCatching { UnitSystem.valueOf(name) }.getOrNull() } ?: d.unitSystem,
         hapticsEnabled = this[SettingsKeys.HAPTICS] ?: d.hapticsEnabled,
         promotedDismissedOn = this[SettingsKeys.PROMOTED_DISMISSED_ON],
+        lastBackupAt = this[SettingsKeys.LAST_BACKUP_AT]?.let(Instant::ofEpochMilli),
     )
 }
 
@@ -70,6 +74,11 @@ internal fun MutablePreferences.write(settings: Settings) {
         this[SettingsKeys.PROMOTED_DISMISSED_ON] = settings.promotedDismissedOn
     } else {
         this.remove(SettingsKeys.PROMOTED_DISMISSED_ON)
+    }
+    if (settings.lastBackupAt != null) {
+        this[SettingsKeys.LAST_BACKUP_AT] = settings.lastBackupAt.toEpochMilli()
+    } else {
+        this.remove(SettingsKeys.LAST_BACKUP_AT)
     }
 }
 

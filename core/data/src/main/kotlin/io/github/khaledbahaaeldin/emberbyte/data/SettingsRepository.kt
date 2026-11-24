@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.data
 
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 enum class UnitSystem { DECIMAL, BINARY }
@@ -18,6 +19,7 @@ data class Settings(
     val unitSystem: UnitSystem = UnitSystem.DECIMAL,
     val hapticsEnabled: Boolean = true,
     val promotedDismissedOn: String? = null,
+    val lastBackupAt: Instant? = null,
 )
 
 interface SettingsRepository {
