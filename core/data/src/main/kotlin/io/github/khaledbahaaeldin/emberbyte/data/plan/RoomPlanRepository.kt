@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.data.plan
 
 import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
+import io.github.khaledbahaaeldin.emberbyte.data.PlanSnapshot
 import io.github.khaledbahaaeldin.emberbyte.data.store.UsageStore
 import io.github.khaledbahaaeldin.emberbyte.engine.forecast.ForecastEngine
 import io.github.khaledbahaaeldin.emberbyte.engine.forecast.HourCurves
@@ -85,12 +86,11 @@ class RoomPlanRepository(
             hourCurve = snapshot.hourCurve,
         )
 
-    override fun observePlans(includeArchived: Boolean): Flow<List<Plan>> =
-        plans.observePlans().map { list -> if (includeArchived) list else list.filter { !it.archived } }
+    override fun observePlans(): Flow<List<Plan>> = plans.observePlans()
 
     override fun observePlanState(planId: Long): Flow<PlanState?> = snapshots(planId).map { it?.state }
 
-    override fun observeActivePlanStates(): Flow<List<PlanState>> = observePlans(false).flatMapLatest { list ->
+    override fun observeActivePlanStates(): Flow<List<PlanState>> = observePlans().flatMapLatest { list ->
         if (list.isEmpty()) flowOf(emptyList())
         else combine(list.map { observePlanState(it.id) }) { states -> states.filterNotNull() }
     }
@@ -115,13 +115,18 @@ class RoomPlanRepository(
         return guarded { plans.upsertPlan(plan.copy(name = plan.name.trim())) }
     }
 
-    override suspend fun archivePlan(planId: Long): Outcome<Unit> =
-        guarded { plans.setArchived(planId, true) }.let { outcome ->
+    override suspend fun restoreArchivedPlans(): Outcome<Int> = guarded { plans.restoreArchivedPlans() }
+
+    override suspend fun deletePlan(planId: Long): Outcome<PlanSnapshot> =
+        guarded { plans.deletePlanWithSnapshot(planId) }.let { outcome ->
             when (outcome) {
                 is Outcome.Failure -> outcome
-                is Outcome.Success -> if (outcome.value) Outcome.Success(Unit) else Outcome.Failure(EmberbyteError.NotFound)
+                is Outcome.Success -> outcome.value?.let { Outcome.Success(it) } ?: Outcome.Failure(EmberbyteError.NotFound)
             }
         }
+
+    override suspend fun restorePlan(snapshot: PlanSnapshot): Outcome<Unit> =
+        guarded { plans.restorePlanFromSnapshot(snapshot) }
 
     override suspend fun setPinned(id: Long, pinned: Boolean): Outcome<Unit> =
         guarded { plans.setPinned(id, pinned) }.let { outcome ->
@@ -150,6 +155,25 @@ class RoomPlanRepository(
     override suspend fun whatIf(planId: Long, extraBytesPerDay: Long, from: Instant): Outcome<Forecast> {
         if (plans.plan(planId) == null) return Outcome.Failure(EmberbyteError.NotFound)
         return guarded { forecastOf(snapshots(planId).first() ?: error("plan vanished"), extraBytesPerDay, from) }
+    }
+
+    override suspend fun forecastWithExtraCap(planId: Long, extraBytes: Long): Outcome<Forecast> {
+        if (plans.plan(planId) == null) return Outcome.Failure(EmberbyteError.NotFound)
+        return guarded {
+            val snap = snapshots(planId).first() ?: error("plan vanished")
+            val added = extraBytes.coerceAtLeast(0L)
+            val boosted = snap.state.copy(
+                effectiveCapBytes = snap.state.effectiveCapBytes + added,
+                remainingBytes = snap.state.remainingBytes + added,
+            )
+            ForecastEngine.forecast(
+                boosted,
+                snap.history,
+                snap.now,
+                PlanCalculator.zoneOf(boosted.plan.cycle),
+                hourCurve = snap.hourCurve,
+            )
+        }
     }
 
     override suspend fun previewState(plan: Plan, addOns: List<AddOn>, freeRules: List<FreeRule>): Outcome<PlanPreview> {

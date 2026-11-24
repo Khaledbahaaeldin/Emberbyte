@@ -94,12 +94,13 @@ class FakeRepositoriesTest {
         assertEquals(2, repo.observePlans().first().size)
     }
 
-    @Test fun archiving_hides_a_plan_from_the_active_list() = runTest {
+    @Test fun deleting_and_restoring_plan_updates_the_active_list() = runTest {
         val repo = FakePlanRepository(clock)
         val id = repo.observePlans().first().single().id
-        repo.archivePlan(id)
+        val snap = (repo.deletePlan(id) as Outcome.Success).value
         assertTrue(repo.observeActivePlanStates().first().isEmpty())
-        assertEquals(1, repo.observePlans(includeArchived = true).first().size)
+        repo.restorePlan(snap)
+        assertEquals(1, repo.observePlans().first().size)
     }
 
     @Test fun settings_update_is_observed() = runTest {
