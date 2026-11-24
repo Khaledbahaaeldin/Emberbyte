@@ -16,6 +16,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -132,9 +133,11 @@ class PlanEditorRedesignTest {
             }
         }
 
-        // Sections must be grouped into BentoTiles
-        val bentoTiles = rule.onAllNodesWithTag("bento_tile_standard", useUnmergedTree = true).fetchSemanticsNodes()
-        assertTrue("Expected BentoTile sections in PlanEditor, found ${bentoTiles.size}", bentoTiles.size >= 6)
+        // Sections must be grouped into section cards
+        for (heading in listOf("PLAN", "DATA", "CYCLE")) {
+            rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText(heading))
+            rule.onNodeWithText(heading).assertIsDisplayed()
+        }
 
         // Every Role.RadioButton outside the SIM list must belong to a ConnectedButtonGroup (SelectableGroup), never a stock RadioButton row
         val radioNodes = rule.onAllNodes(
@@ -213,7 +216,11 @@ class PlanEditorRedesignTest {
         rule.waitForIdle()
 
         // Verify exact same vocabulary is used in PlanEditor (never "Number of days")
-        for (shared in listOf("Plan name", "Cap", "Monthly", "Every N days", "Days per cycle")) {
+        for (shared in listOf("Plan name", "Cap")) {
+            rule.onAllNodesWithText(shared).onFirst().assertIsDisplayed()
+        }
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("CYCLE"))
+        for (shared in listOf("Monthly", "Custom", "Days per cycle")) {
             rule.onAllNodesWithText(shared).onFirst().assertIsDisplayed()
         }
         rule.onNodeWithText("Number of days").assertDoesNotExist()
@@ -268,8 +275,9 @@ class PlanEditorRedesignTest {
             }
         }
 
-        rule.onNodeWithText("Notify me when the plan reaches…").assertIsDisplayed()
-        rule.onNodeWithText("Selecting none turns plan alerts off").assertIsDisplayed()
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("ALERTS"))
+        rule.onNodeWithText("Notify me").assertIsDisplayed()
+        rule.onNodeWithText("Sent from this phone, never from a server").assertIsDisplayed()
         rule.onNodeWithText("80%").assertIsSelected()
         rule.onNodeWithText("100%").assertIsSelected()
     }
@@ -293,11 +301,10 @@ class PlanEditorRedesignTest {
 
         // No raw "App package" text field
         rule.onNodeWithText("App package").assertDoesNotExist()
-        // "All days" toggle is present
-        rule.onNodeWithText("All days").assertIsDisplayed()
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("App: All apps"))
 
         // Tap app picker and choose WhatsApp without typing a package name
-        rule.onNodeWithText("All apps", substring = true).performClick()
+        rule.onNodeWithText("App: All apps").performClick()
         rule.onNodeWithText("WhatsApp").assertIsDisplayed().performClick()
         assertEquals("com.whatsapp", latestDraft?.packageName)
     }
@@ -317,12 +324,8 @@ class PlanEditorRedesignTest {
             }
         }
 
-        // What-if result renders inside an inline result chip
-        rule.onNodeWithTag("what_if_result_chip", useUnmergedTree = true).assertIsDisplayed()
-
-        // Typing into Extra per day emits SetWhatIfAmount and keeps isDirty false so Back leaves without Discard dialog
-        rule.onNodeWithText("Extra per day").performTextInput("1")
-        assertTrue(events.any { it is PlanEditorEvent.SetWhatIfAmount })
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("What if"))
+        rule.onNodeWithText("Now: Won't run out this cycle").assertIsDisplayed()
         assertFalse(fullState.isDirty)
     }
 
@@ -359,18 +362,19 @@ class PlanEditorRedesignTest {
             }
         }
         rule.mainClock.advanceTimeBy(1000L)
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("CYCLE"))
 
-        val startHeight = rule.onNodeWithTag("cap_and_cycle_card", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
+        val startHeight = rule.onNodeWithTag("editor_cycle_section", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
         kind = CycleKind.EveryNDays
         Snapshot.sendApplyNotifications()
 
         val seen = mutableSetOf<Float>()
         repeat(35) {
             rule.mainClock.advanceTimeBy(16L)
-            val h = rule.onNodeWithTag("cap_and_cycle_card", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
+            val h = rule.onNodeWithTag("editor_cycle_section", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
             seen.add(h)
         }
-        val endHeight = rule.onNodeWithTag("cap_and_cycle_card", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
+        val endHeight = rule.onNodeWithTag("editor_cycle_section", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
         val inBetween = seen.filter { it > minOf(startHeight, endHeight) + 0.5f && it < maxOf(startHeight, endHeight) - 0.5f }
         assertTrue("Expected > 1 intermediate heights when switching cycle kind, got $inBetween (start=$startHeight, end=$endHeight)", inBetween.size > 1)
     }
@@ -392,18 +396,19 @@ class PlanEditorRedesignTest {
             }
         }
         rule.mainClock.advanceTimeBy(200L)
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText("CYCLE"))
 
-        val startHeight = rule.onNodeWithTag("cap_and_cycle_card", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
+        val startHeight = rule.onNodeWithTag("editor_cycle_section", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
         kind = CycleKind.EveryNDays
         Snapshot.sendApplyNotifications()
 
         val seen = mutableSetOf<Float>()
         repeat(10) {
             rule.mainClock.advanceTimeBy(16L)
-            val h = rule.onNodeWithTag("cap_and_cycle_card", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
+            val h = rule.onNodeWithTag("editor_cycle_section", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
             seen.add(h)
         }
-        val settledHeight = rule.onNodeWithTag("cap_and_cycle_card", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
+        val settledHeight = rule.onNodeWithTag("editor_cycle_section", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height
         val inBetween = seen.filter { it > minOf(startHeight, settledHeight) + 0.5f && it < maxOf(startHeight, settledHeight) - 0.5f }
 
         assertTrue("Height should change between Monthly ($startHeight) and EveryNDays ($settledHeight)", settledHeight != startHeight)

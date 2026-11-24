@@ -400,6 +400,30 @@ class PlanEditorViewModel(
                     )
                 }
             }
+            is PlanEditorEvent.SetPinned -> {
+                if (!event.pinned) {
+                    _state.update { it.copy(pendingPinReplacement = null) }
+                    updateForm { it.copy(pinned = false) }
+                } else {
+                    viewModelScope.launch {
+                        val otherPinned = plans.observePlans().first()
+                            .firstOrNull { it.pinned && it.id != _state.value.planId }
+                        if (otherPinned != null) {
+                            _state.update { it.copy(pendingPinReplacement = otherPinned.name) }
+                        } else {
+                            _state.update { it.copy(pendingPinReplacement = null) }
+                            updateForm { it.copy(pinned = true) }
+                        }
+                    }
+                }
+            }
+            PlanEditorEvent.ConfirmPinReplacement -> {
+                _state.update { it.copy(pendingPinReplacement = null) }
+                updateForm { it.copy(pinned = true) }
+            }
+            PlanEditorEvent.DismissPinReplacement -> {
+                _state.update { it.copy(pendingPinReplacement = null) }
+            }
             PlanEditorEvent.Save -> {
                 viewModelScope.launch { save() }
             }
@@ -453,6 +477,9 @@ class PlanEditorViewModel(
 
         when (val res = plans.savePlan(ok.plan, ok.addOns, ok.freeRules, _state.value.form.alertThresholds)) {
             is Outcome.Success -> {
+                if (ok.plan.pinned) {
+                    plans.setPinned(res.value, true)
+                }
                 savedStateHandle.remove<String>(KEY_FORM)
                 isRestoredDirty = false
                 loadedForm = _state.value.form
