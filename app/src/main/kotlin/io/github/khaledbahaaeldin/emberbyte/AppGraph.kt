@@ -229,6 +229,8 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 sims = simInfo,
                 clock = clock,
                 savedStateHandle = createSavedStateHandle(),
+                usage = usage,
+                labelOf = ::appLabel,
             )
         }
     }

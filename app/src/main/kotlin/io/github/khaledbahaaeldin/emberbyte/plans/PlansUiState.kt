@@ -7,10 +7,14 @@ data class PlansUiState(
     val archivedCards: List<PlanCardUi> = emptyList(),
     val showArchived: Boolean = false,
     val loaded: Boolean = false,
+    val undoArchivedPlanId: Long? = null,
 )
 
 sealed interface PlansEvent {
     data object ToggleArchived : PlansEvent
     data class SetPinned(val id: Long, val pinned: Boolean) : PlansEvent
     data class ArchivePlan(val id: Long) : PlansEvent
+    data class UnarchivePlan(val id: Long) : PlansEvent
+    data object UndoArchive : PlansEvent
+    data object DismissArchiveUndo : PlansEvent
 }

@@ -9,6 +9,7 @@ import io.github.khaledbahaaeldin.emberbyte.data.source.SimInfoSource
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AddOn
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Forecast
+import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Plan
 import io.github.khaledbahaaeldin.emberbyte.engine.model.PlanState
 import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -35,6 +37,7 @@ class PlansViewModel(
     private val locale: Locale = Locale.getDefault(),
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
+    private val undoArchivedPlanId = MutableStateFlow<Long?>(null)
 
     private data class Entry(val plan: Plan, val state: PlanState?, val forecast: Forecast?, val addOns: List<AddOn>)
 
@@ -45,7 +48,12 @@ class PlansViewModel(
         }) { it.toList() }
     }
 
-    val uiState: StateFlow<PlansUiState> = combine(entries, settings.observe(), showArchived) { list, s, archivedShown ->
+    val uiState: StateFlow<PlansUiState> = combine(
+        entries,
+        settings.observe(),
+        showArchived,
+        undoArchivedPlanId,
+    ) { list, s, archivedShown, undoId ->
         val units = s.unitSystem.toByteUnits()
         val installed = sims.activeSims()
         val now = clock.instant()
@@ -62,7 +70,7 @@ class PlansViewModel(
             val state = e.state ?: return@mapNotNull null
             planCardUi(state, e.forecast, e.addOns, simLabel(e.plan.subscriptionId, installed), units, now, clock.zone, locale)
         }
-        PlansUiState(activeCards, archivedCards, archivedShown, loaded = true)
+        PlansUiState(activeCards, archivedCards, archivedShown, loaded = true, undoArchivedPlanId = undoId)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlansUiState())
 
     fun onEvent(event: PlansEvent) {
@@ -75,9 +83,34 @@ class PlansViewModel(
             }
             is PlansEvent.ArchivePlan -> {
                 viewModelScope.launch {
-                    plans.archivePlan(event.id)
+                    if (plans.archivePlan(event.id) is Outcome.Success) {
+                        undoArchivedPlanId.value = event.id
+                    }
                 }
             }
+            is PlansEvent.UnarchivePlan -> {
+                viewModelScope.launch {
+                    unarchiveById(event.id)
+                }
+            }
+            PlansEvent.UndoArchive -> {
+                val id = undoArchivedPlanId.value ?: return
+                undoArchivedPlanId.value = null
+                viewModelScope.launch {
+                    unarchiveById(id)
+                }
+            }
+            PlansEvent.DismissArchiveUndo -> {
+                undoArchivedPlanId.value = null
+            }
+        }
+    }
+
+    private suspend fun unarchiveById(id: Long) {
+        val existing = plans.observePlans(includeArchived = true).first().firstOrNull { it.id == id } ?: return
+        plans.upsertPlan(existing.copy(archived = false))
+        if (undoArchivedPlanId.value == id) {
+            undoArchivedPlanId.value = null
         }
     }
 

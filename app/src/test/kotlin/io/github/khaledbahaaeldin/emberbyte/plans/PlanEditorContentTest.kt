@@ -92,7 +92,7 @@ class PlanEditorContentTest {
     @Test fun errors_are_shown_under_their_fields() {
         show(state.copy(errors = mapOf("name" to "Enter a name of up to 40 characters", "capBytes" to "Enter a number greater than zero")))
         rule.onNodeWithText("Enter a name of up to 40 characters").assertIsDisplayed()
-        rule.onNodeWithText("Enter a number greater than zero").assertIsDisplayed()
+        rule.onNodeWithText("Enter a number greater than zero").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun the_sim_choices_are_listed_and_selectable() {
@@ -107,20 +107,20 @@ class PlanEditorContentTest {
         var picked: String? = null
         show(state.copy(needsPhonePermission = true), onPrompt = { picked = it })
         rule.onNodeWithText("Allow phone access").assertIsDisplayed()
-        rule.onNodeWithText("Allow").performClick()
+        rule.onNodeWithText("Allow").performScrollTo().performClick()
         assertEquals("phone_state", picked)
     }
 
     @Test fun the_cycle_fields_follow_the_cycle_kind() {
         show(state.copy(form = state.form.copy(cycleKind = CycleKind.EveryNDays)))
-        rule.onNodeWithText("Number of days").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Days per cycle").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Day of month").assertDoesNotExist()
     }
 
     @Test fun monthly_shows_the_day_of_month() {
         show(state)
         rule.onNodeWithText("Day of month").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Number of days").assertDoesNotExist()
+        rule.onNodeWithText("Days per cycle").assertDoesNotExist()
     }
 
     @Test fun the_rollover_cap_field_only_exists_for_capped() {
@@ -161,13 +161,13 @@ class PlanEditorContentTest {
     @Test fun save_sends_save() {
         val events = mutableListOf<PlanEditorEvent>()
         show(onEvent = { events += it })
-        rule.onNodeWithText("Save").performScrollTo().performClick()
+        rule.onNodeWithText("Save").performClick()
         assertEquals(listOf<PlanEditorEvent>(PlanEditorEvent.Save), events)
     }
 
     @Test fun save_is_disabled_while_saving() {
         show(state.copy(saving = true))
-        rule.onNodeWithText("Save").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
     }
 
     @Test fun the_preview_card_is_shown_when_there_is_one() {

@@ -44,7 +44,11 @@ internal fun planCardUi(
             1 -> "1 day left"
             else -> "${state.daysLeft} days left"
         },
-        forecastText = forecast?.let { forecastSentence(forecastToUi(it, now, zone, locale, state.remainingBytes)) },
+        forecastText = if (state.plan.archived) {
+            null
+        } else {
+            forecast?.let { forecastSentence(forecastToUi(it, now, zone, locale, state.remainingBytes)) }
+        },
         isEstimated = state.isApproximate,
         chips = addOns.filter { it.validFrom < state.window.end && it.validUntil > state.window.start }
             .map { "${it.label} +${plainBytes(it.bytes, units)}" },

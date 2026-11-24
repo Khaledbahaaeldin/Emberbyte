@@ -65,6 +65,7 @@ fun EmberbyteScreenScaffold(
     title: String,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    backModifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
     subtitle: String? = null,
     titleContent: (@Composable () -> Unit)? = null,
@@ -101,7 +102,7 @@ fun EmberbyteScreenScaffold(
                             onClick = onBack,
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
-                            modifier = Modifier
+                            modifier = backModifier
                                 .size(48.dp)
                                 .semantics { contentDescription = "Back" },
                         ) {
