@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,20 +13,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import io.github.khaledbahaaeldin.emberbyte.R
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
@@ -35,9 +36,15 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalett
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.OnboardingType
 import kotlin.math.abs
-import kotlin.math.ceil
-import kotlin.math.floor
 import kotlin.math.roundToInt
+
+/** Page titles: Space Grotesk 600 (never heavier), tracking no tighter than -0.02 em. */
+internal fun onboardingTitleStyle(size: TextUnit): TextStyle =
+    EmberbyteType.grotesk(size, 600).copy(
+        fontFeatureSettings = null,
+        lineHeight = size * 1.1f,
+        letterSpacing = (-0.02).em,
+    )
 
 @Composable
 internal fun OnboardingProgressPill(
@@ -47,16 +54,17 @@ internal fun OnboardingProgressPill(
     val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
     val effectivePos = if (reduceMotion) position.roundToInt().toFloat() else position
-    val stepNum = (position.roundToInt() + 1).coerceIn(1, 4)
+    val stepNum = (position.roundToInt() + 1).coerceIn(1, ONBOARDING_PAGE_COUNT)
+    val description = stringResource(R.string.onb_step_desc, stepNum, ONBOARDING_PAGE_COUNT)
 
     Row(
         modifier = modifier
-            .semantics { contentDescription = "Step $stepNum of 4" }
+            .semantics { contentDescription = description }
             .testTag("onboarding_progress_pill"),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        repeat(4) { index ->
+        repeat(ONBOARDING_PAGE_COUNT) { index ->
             val width = pillWidthDp(index, effectivePos).dp
             val activeFraction = (1f - abs(effectivePos - index)).coerceIn(0f, 1f)
             val color = lerp(palette.surface2, palette.primary, activeFraction)
@@ -72,43 +80,53 @@ internal fun OnboardingProgressPill(
 }
 
 @Composable
-internal fun OnboardingActionBar(
+internal fun OnboardingTopBar(
     position: Float,
-    usageAccess: Boolean,
-    notifications: Boolean,
-    phoneState: Boolean = true,
-    batteryUnrestricted: Boolean = true,
-    onPrimaryClick: () -> Unit,
-    onBackClick: () -> Unit,
-    onSkipClick: () -> Unit,
+    showSkip: Boolean,
+    onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-    val reduceMotion = LocalReduceMotion.current
-    val p = position.coerceIn(0f, 3f)
-    val lowPage = floor(p).toInt().coerceIn(0, 3)
-    val highPage = ceil(p).toInt().coerceIn(0, 3)
-    val frac = (p - lowPage).coerceIn(0f, 1f)
-
-    val lowLabel = ctaLabel(lowPage, usageAccess, notifications, phoneState, batteryUnrestricted)
-    val highLabel = ctaLabel(highPage, usageAccess, notifications, phoneState, batteryUnrestricted)
-    val showHigh = !reduceMotion && lowPage != highPage && frac >= 0.5f
-    val primaryText = if (showHigh) highLabel else lowLabel
-    val primaryAlpha = when {
-        reduceMotion || lowPage == highPage -> 1f
-        frac < 0.5f -> (1f - frac * 2f).coerceIn(0f, 1f)
-        else -> ((frac - 0.5f) * 2f).coerceIn(0f, 1f)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 24.dp, end = 12.dp, top = 8.dp)
+            .height(56.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OnboardingProgressPill(position = position)
+        if (showSkip) {
+            TextButton(
+                onClick = onSkip,
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                    .testTag("onboarding_skip_button"),
+            ) {
+                Text(
+                    text = stringResource(R.string.onb_skip),
+                    style = EmberbyteType.heading(OnboardingType.Quiet),
+                    color = palette.muted,
+                )
+            }
+        }
     }
+}
 
-    val backAlphaVal = backAlpha(p)
-    val backReachable = p >= 0.5f
-    val skipText = skipLabel(p)
-
+@Composable
+internal fun OnboardingActionBar(
+    cta: OnboardingCta,
+    quiet: OnboardingQuiet?,
+    onPrimaryClick: () -> Unit,
+    onQuietClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalEmberbytePalette.current
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Button(
             onClick = onPrimaryClick,
@@ -119,56 +137,35 @@ internal fun OnboardingActionBar(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(60.dp)
                 .testTag("onboarding_primary_button"),
         ) {
             Text(
-                text = primaryText,
+                text = stringResource(ctaLabelRes(cta)),
                 style = EmberbyteType.heading(OnboardingType.Button),
-                modifier = Modifier.alpha(primaryAlpha),
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        // A fixed slot, so the big button never jumps when a page has no quiet action.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            if (backReachable) {
+            if (quiet != null) {
                 TextButton(
-                    onClick = onBackClick,
+                    onClick = onQuietClick,
                     modifier = Modifier
                         .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                        .alpha(backAlphaVal)
-                        .testTag("onboarding_back_button"),
+                        .testTag("onboarding_quiet_button"),
                 ) {
                     Text(
-                        text = "Back",
-                        style = MaterialTheme.typography.labelLarge,
+                        text = stringResource(quietLabelRes(quiet)),
+                        style = EmberbyteType.heading(OnboardingType.Quiet),
                         color = palette.muted,
                     )
                 }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                        .clearAndSetSemantics {},
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            TextButton(
-                onClick = onSkipClick,
-                modifier = Modifier
-                    .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                    .testTag("onboarding_skip_button"),
-            ) {
-                Text(
-                    text = skipText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.muted,
-                )
             }
         }
     }

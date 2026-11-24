@@ -2,116 +2,88 @@ package io.github.khaledbahaaeldin.emberbyte.onboarding
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingMotionTest {
-    private val sampleRects = listOf(
-        LayerRect(24f, 40f, 72f, 72f),
-        LayerRect(24f, 40f, 360f, 220f),
-        LayerRect(96f, 40f, 216f, 216f),
-        LayerRect(24f, 140f, 360f, 160f),
-    )
-
     @Test
-    fun next_action_is_usage_then_notifications_then_done() {
-        assertEquals(PermissionAction.Usage, nextPermissionAction(usageAccess = false, notifications = false))
-        assertEquals(PermissionAction.Notifications, nextPermissionAction(usageAccess = true, notifications = false))
-        assertEquals(PermissionAction.Done, nextPermissionAction(usageAccess = true, notifications = true))
-        assertEquals(PermissionAction.Phone, nextPermissionAction(true, true, phoneState = false, batteryUnrestricted = false))
-        assertEquals(PermissionAction.Battery, nextPermissionAction(true, true, phoneState = true, batteryUnrestricted = false))
-        assertEquals("Allow phone access", ctaLabel(3, true, true, phoneState = false))
-        assertEquals("Stop battery limits", ctaLabel(3, true, true, phoneState = true, batteryUnrestricted = false))
+    fun there_are_three_pages() {
+        assertEquals(3, ONBOARDING_PAGE_COUNT)
     }
 
     @Test
-    fun next_action_skips_notifications_when_already_allowed() {
-        assertEquals(PermissionAction.Usage, nextPermissionAction(usageAccess = false, notifications = true))
-        assertEquals(PermissionAction.Done, nextPermissionAction(usageAccess = true, notifications = true))
+    fun the_permission_order_is_usage_notifications_phone_battery() {
+        assertEquals(PermissionAction.Usage, nextPermissionAction(false, false, false, false))
+        assertEquals(PermissionAction.Notifications, nextPermissionAction(true, false, false, false))
+        assertEquals(PermissionAction.Phone, nextPermissionAction(true, true, false, false))
+        assertEquals(PermissionAction.Battery, nextPermissionAction(true, true, true, false))
+        assertEquals(PermissionAction.Done, nextPermissionAction(true, true, true, true))
     }
 
     @Test
-    fun cta_label_follows_the_permission_state() {
-        assertEquals("Get started", ctaLabel(0, usageAccess = false, notifications = false))
-        assertEquals("Continue", ctaLabel(1, usageAccess = false, notifications = false))
-        assertEquals("Continue", ctaLabel(2, usageAccess = false, notifications = false))
-        assertEquals("Allow usage access", ctaLabel(3, usageAccess = false, notifications = false))
-        assertEquals("Allow notifications", ctaLabel(3, usageAccess = true, notifications = false))
-        assertEquals("Done", ctaLabel(3, usageAccess = true, notifications = true))
+    fun page_one_always_says_get_started() {
+        assertEquals(OnboardingCta.Start, ctaFor(0, false, false, false, false))
+        assertEquals(OnboardingCta.Start, ctaFor(0, true, true, true, true, hasPlan = true))
     }
 
     @Test
-    fun skip_label_changes_from_step_four() {
-        assertEquals("Skip intro", skipLabel(0f))
-        assertEquals("Skip intro", skipLabel(2.4f))
-        assertEquals("Skip for now", skipLabel(2.5f))
-        assertEquals("Skip for now", skipLabel(3f))
+    fun the_access_button_names_the_next_permission_then_continues() {
+        assertEquals(OnboardingCta.Usage, ctaFor(1, false, false, false, false))
+        assertEquals(OnboardingCta.Notifications, ctaFor(1, true, false, false, false))
+        assertEquals(OnboardingCta.Phone, ctaFor(1, true, true, false, false))
+        assertEquals(OnboardingCta.Battery, ctaFor(1, true, true, true, false))
+        assertEquals(OnboardingCta.Continue, ctaFor(1, true, true, true, true))
     }
 
     @Test
-    fun back_alpha_is_zero_on_step_one() {
-        assertEquals(0f, backAlpha(0f), 0.001f)
-        assertEquals(0.5f, backAlpha(0.25f), 0.001f)
-        assertEquals(1f, backAlpha(0.5f), 0.001f)
-        assertEquals(1f, backAlpha(3f), 0.001f)
+    fun the_plan_page_offers_set_up_until_a_plan_exists() {
+        assertEquals(OnboardingCta.SetUpPlan, ctaFor(2, true, true, true, true, hasPlan = false))
+        assertEquals(OnboardingCta.Done, ctaFor(2, true, true, true, true, hasPlan = true))
     }
 
     @Test
-    fun pill_width_stretches_between_steps() {
-        assertEquals(28f, pillWidthDp(0, 0f), 0.01f)
-        assertEquals(8f, pillWidthDp(1, 0f), 0.01f)
-        assertEquals(18f, pillWidthDp(0, 0.5f), 0.01f)
-        assertEquals(18f, pillWidthDp(1, 0.5f), 0.01f)
+    fun the_quiet_button_exists_only_where_something_can_still_be_skipped() {
+        assertNull(quietFor(0, allPermissionsDone = false, hasPlan = false))
+        assertEquals(OnboardingQuiet.NotNow, quietFor(1, allPermissionsDone = false, hasPlan = false))
+        assertNull(quietFor(1, allPermissionsDone = true, hasPlan = false))
+        assertEquals(OnboardingQuiet.NotNowHome, quietFor(2, allPermissionsDone = true, hasPlan = false))
+        assertNull(quietFor(2, allPermissionsDone = true, hasPlan = true))
     }
 
     @Test
-    fun parallax_outgoing_is_thirty_percent() {
-        // Negative d (outgoing left) or positive d when outgoing
-        assertEquals(-30f, parallaxOffset(d = -0.1f, widthPx = 1000f, isOutgoing = true), 0.01f)
-        assertEquals(100f, parallaxOffset(d = 0.1f, widthPx = 1000f, isOutgoing = false), 0.01f)
+    fun skip_shows_on_the_first_two_pages_only() {
+        assertTrue(showsSkip(0))
+        assertTrue(showsSkip(1))
+        assertFalse(showsSkip(2))
     }
 
     @Test
-    fun layer_state_interpolates_between_the_slots() {
-        val mid = layerState(position = 0.5f, rects = sampleRects)
-        assertEquals(216f, mid.rect.w, 0.1f)
-        assertEquals(146f, mid.rect.h, 0.1f)
-        assertEquals(0.5f, mid.primaryMix, 0.01f)
-        assertTrue(mid.visible)
+    fun the_active_pill_is_28dp_wide_and_the_others_8dp() {
+        assertEquals(28f, pillWidthDp(1, 1f), 0.001f)
+        assertEquals(8f, pillWidthDp(0, 1f), 0.001f)
+        assertEquals(8f, pillWidthDp(2, 1f), 0.001f)
+        assertEquals(18f, pillWidthDp(0, 0.5f), 0.001f)
     }
 
     @Test
-    fun layer_state_is_hidden_at_rest_on_step_four() {
-        val rest = layerState(position = 3.0f, rects = sampleRects)
-        assertFalse(rest.visible)
-        val almost = layerState(position = 2.9995f, rects = sampleRects)
-        assertFalse(almost.visible)
+    fun the_outgoing_page_travels_at_30_percent() {
+        assertEquals(-0.3f * 1000f, parallaxOffset(-1f, 1000f, isOutgoing = true), 0.001f)
+        assertEquals(1000f, parallaxOffset(1f, 1000f, isOutgoing = false), 0.001f)
     }
 
     @Test
-    fun layer_content_alphas_cross_fade_at_the_thresholds() {
-        val atZero = layerState(0f, sampleRects)
-        assertEquals(1f, atZero.alphaMark, 0.01f)
-        assertEquals(0f, atZero.alphaCard, 0.01f)
-
-        val at035 = layerState(0.35f, sampleRects)
-        assertEquals(0f, at035.alphaMark, 0.01f)
-
-        val at085 = layerState(0.85f, sampleRects)
-        assertEquals(1f, at085.alphaCard, 0.01f)
-
-        val at190 = layerState(1.9f, sampleRects)
-        assertEquals(1f, at190.alphaDisc, 0.01f)
-
-        val at290 = layerState(2.9f, sampleRects)
-        assertEquals(1f, at290.alphaPermission, 0.01f)
+    fun a_page_fades_out_before_it_leaves_and_in_late() {
+        assertEquals(1f, pageAlpha(0f), 0.001f)
+        assertEquals(0f, pageAlpha(1f), 0.001f)
+        assertEquals(0f, revealFraction(0.2f, 0), 0.001f)
+        assertEquals(1f, revealFraction(1f, 2), 0.001f)
+        assertTrue(revealFraction(0.5f, 0) in 0f..1f)
     }
 
     @Test
-    fun reveal_fraction_is_one_at_rest() {
-        for (j in 0..4) {
-            assertEquals(1f, revealFraction(q = 1f, index = j), 0.001f)
-        }
-        assertEquals(0f, revealFraction(q = 0.1f, index = 0), 0.001f)
+    fun only_three_pieces_are_staggered_per_page() {
+        // Welcome, Access and Plan reveal indices 0..2 only: a fourth would still be hidden at q = 0.9.
+        assertTrue(revealFraction(1f, 2) > 0.99f)
     }
 }

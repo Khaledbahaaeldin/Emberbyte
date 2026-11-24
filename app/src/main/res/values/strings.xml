@@ -432,5 +432,45 @@
     <string name="plan_flow_resets_weekly">Resets every week on %1$s</string>
     <string name="plan_flow_resets_days">Resets every %1$d days</string>
     <string name="plan_flow_next_reset">Next reset: %1$s</string>
+
+    <!-- T29: Onboarding in three steps -->
+    <string name="onb_step_desc">Step %1$d of %2$d</string>
+    <string name="onb_skip">Skip</string>
+    <string name="onb_welcome_title">Your data stays on your phone.</string>
+    <string name="onb_welcome_lead">Emberbyte measures your mobile and Wi-Fi use right here, and nothing ever leaves.</string>
+    <string name="onb_fact_account">No account</string>
+    <string name="onb_fact_cloud">No cloud</string>
+    <string name="onb_fact_open">Open source</string>
+    <string name="onb_access_title">Let it measure in the background.</string>
+    <string name="onb_access_lead">One is needed for exact numbers. The rest only make them better.</string>
+    <string name="onb_usage_title">Usage access</string>
+    <string name="onb_usage_sub">Reads how much data each app used</string>
+    <string name="onb_notif_title">Notifications</string>
+    <string name="onb_notif_sub">Warns you before a plan runs out</string>
+    <string name="onb_phone_title">Phone</string>
+    <string name="onb_phone_sub">Tells your SIMs apart. Calls are never read</string>
+    <string name="onb_battery_title">Battery</string>
+    <string name="onb_battery_sub">Stops the system pausing the measuring</string>
+    <string name="onb_tag_needed">Needed</string>
+    <string name="onb_tag_optional">Optional</string>
+    <string name="onb_tag_allowed">Allowed</string>
+    <string name="onb_row_desc_allowed">%1$s, allowed</string>
+    <string name="onb_row_desc_open">%1$s, %2$s, not allowed yet</string>
+    <string name="onb_cta_start">Get started</string>
+    <string name="onb_cta_usage">Allow usage access</string>
+    <string name="onb_cta_notifications">Allow notifications</string>
+    <string name="onb_cta_phone">Allow phone access</string>
+    <string name="onb_cta_battery">Stop battery limits</string>
+    <string name="onb_cta_continue">Continue</string>
+    <string name="onb_cta_set_up">Set up plan</string>
+    <string name="onb_cta_done">Done</string>
+    <string name="onb_not_now">Not now</string>
+    <string name="onb_not_now_home">Not now, take me to Home</string>
+    <string name="onb_plan_title">Add your data plan.</string>
+    <string name="onb_plan_lead">See what is left and when it runs out. It takes under a minute, and you can do it later from Home.</string>
+    <string name="onb_plan_added_title">Your plan is set.</string>
+    <string name="onb_plan_added_lead">Emberbyte counts against it from now on. You can change it any time in Plans.</string>
+    <string name="onb_plan_ring_caption">of your plan used</string>
+    <string name="onb_plan_ring_added">Plan added</string>
 </resources>
 

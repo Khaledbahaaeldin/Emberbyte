@@ -15,7 +15,7 @@ class SetupCopyGuardTest {
     @Test
     fun widgets_and_onboarding_keep_their_setup_copy() {
         val base = "io/github/khaledbahaaeldin/emberbyte"
-        assertTrue(source("$base/onboarding/StayUnderCapStep.kt").contains("Set up a plan"))
+        assertTrue(source("$base/onboarding/PlanStep.kt").contains("onb_plan_title"))
         val widgetFiles = File("src/main/kotlin/$base/widget").takeIf { it.exists() }
             ?: File("app/src/main/kotlin/$base/widget")
         val widgetText = widgetFiles.walkTopDown().filter { it.extension == "kt" }.joinToString("\n") { it.readText() }

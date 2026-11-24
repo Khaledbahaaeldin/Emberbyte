@@ -52,6 +52,7 @@
 | T26 Onboarding redesign and permission bug fix | Khaled | done |
 | T27 New-plan flow redesign | Khaled | done |
 | T28 Plan editor redesign | Khaled | done |
+| T29 Onboarding in three steps (replaces the T26 pages) | Khaled | done |
 | T15 Release 1.0.3 | Khaled | not started |
 
 ---
@@ -90,6 +91,7 @@
 | Khaled | T26 Onboarding redesign (shared-element flow, permission bug fix) | `t26-onboarding` | after T25, and Omar's T4, T5, T10 and T11 merge; the bug fix commit can land earlier |
 | Khaled | T27 New-plan flow redesign (five calm steps, alerts in the review) | `t27-plan-flow` | after T26 merges |
 | Khaled | T28 Plan editor redesign (section cards, pinned preview, pin switch) | `t28-plan-editor` | after T27 merges |
+| Khaled | T29 Onboarding in three steps (welcome, access, plan) | `t29-onboarding` | after T28; replaces the T26 pages |
 | Joe | T6 new-plan flow (incl. wavy progress) | `t6-plan-flow` | now |
 | Joe | T8 Settings, dialogs, AMOLED (incl. onboarding and Appearance motion) | `t8-settings-dialogs` | now (T1, T2 adoption after S1) |
 | Joe | T7 plan editor, Plans, what-if | `t7-plans-editor` | after S1 (non-dependent items can start now) |
@@ -913,7 +915,7 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
 
 ---
 
-## T26. Onboarding redesign and permission bug fix
+## T26. Onboarding redesign and permission bug fix (pages superseded by T29; the permission fixes stay)
 
 **Closes:** B8 (superseded, see decision 11), the permission-page bug reported by the maintainer on 2026-11-20, and the onboarding redesign request. **Owner:** Khaled. **Branch:** `t26-onboarding`, started **after T25 merges** and after Omar's T4, T5, T10 and T11 and Joe's T8 (Joe's T8 no longer does its onboarding item B8, which this task supersedes; T10 supplies `WavyRing`, T11 `pressMorph`). **Files:** `app/.../onboarding/OnboardingScreen.kt`, `OnboardingPages.kt` (replaced by one file per step: `WelcomeStep.kt`, `SeeYourDataStep.kt`, `StayUnderCapStep.kt`, `AllowAccessStep.kt`), new `OnboardingChrome.kt` (progress pill and action bar), `SharedLayer.kt`, `OnboardingMotion.kt` (pure functions), `OnboardingViewModel.kt`. **Tests next to each.**
 **Mockup (the source of every number below):** https://claude.ai/artifact/RSuHVmBB8Mb9NcLsXG2S38 . Steps 1 and 2 on their own, static, are at https://claude.ai/artifact/6xvwKKeFvjHewA6aRksJYw . Approved by the maintainer on 2026-11-20. (Earlier particle, orbit and glow versions were rejected as over-designed; build none of them.)
@@ -1035,6 +1037,29 @@ The agreed split is under "Team split, sync points and re-homed items" above. Th
 6. Gate: whole project tests, lint, debug and release builds, token scan tests green with empty allow-lists.
 
 **Acceptance.** The four editor boards are reproduced in light, dark and AMOLED; every capability of the old editor is still reachable (add-ons, free windows, SIM, first-cycle correction, alerts, delete); the unsaved-changes guard and the Undo behave as before; no database migration.
+
+---
+
+## T29. Onboarding in three steps
+
+**Closes:** maintainer request of 2026-11-24 (the four T26 pages were heavy, the old plain onboarding was easier on the eye). **Owner:** Khaled. **Branch:** `t29-onboarding`. **Files:** `app/.../onboarding/` (`WelcomeStep.kt`, `AccessStep.kt`, `PlanStep.kt`, `OnboardingChrome.kt`, `OnboardingMotion.kt`, `OnboardingScreen.kt`), `OnboardingType` in `EmberbyteTypography.kt`, strings `onb_*`. **Mockup:** https://claude.ai/artifact/YJikSxixhaT2x5FBUWhFDA (approved 2026-11-24: "looks awesome").
+
+**What goes away.** The "Today" page, the "Stay under your cap" page, the shared-element layer (`SharedLayer.kt`, `layerState`) and the Back text button. The real Home explains what they showed.
+
+**What stays.** `OnboardingViewModel` and its state (`usageAccess`, `notifications`, `phoneState`, `batteryUnrestricted`, `hasPlan`), `OnboardingContent`'s signature, `PermissionActions`, completion through `onFinish` (once), the permission order (usage, notifications, phone, battery), the reduced-motion rule (no pager is composed, a saveable page index drives a 200 ms cross-fade) and the system back gesture (`BackHandler(enabled = currentPage > 0)`).
+
+**Decisions (locked).**
+1. **Three pages, one idea each.** Progress pill of three dots (active 28 dp, others 8 dp, "Step n of 3"), a top-right **Skip** on pages 1 and 2 that leaves onboarding, a big filled button, and a **quiet** text button in a fixed slot under it (the big button never jumps).
+2. **Page 1, Welcome.** A 112 dp cookie badge with an "E" (the cookie turns at 8 degrees per second, read in the graphics layer, lifecycle aware, still under reduced motion), the title "Your data stays on your phone.", one sentence, and three chips: No account, No cloud, Open source. Button: **Get started**.
+3. **Page 2, Access.** "Let it measure in the background." and one list of four rows: Usage access (tag **Needed**), Notifications, Phone, Battery (tag **Optional**). The next missing row is lifted (tonal surface, 2 dp primary outline), granted rows become a mint check with the tag **Allowed**, and tapping a missing row asks for it. The big button always names the next missing permission ("Allow usage access", "Allow notifications", "Allow phone access", "Stop battery limits") and reads **Continue** when all four are granted; the quiet button **Not now** moves on to page 3 and disappears when nothing is missing.
+4. **Page 3, Plan.** A 220 dp ghost wavy ring ("0 of your plan used"), "Add your data plan.", one sentence. **Set up plan** opens the new-plan flow (T27); when it returns with a plan the page reads "Your plan is set." with a check in the ring and the button **Done**. **Not now, take me to Home** finishes without a plan (Home keeps its setup card).
+5. **Type.** Titles are Space Grotesk 600 at 36 sp, line height 1.1, tracking -0.02 em, never heavier and never tighter; text is Roboto Flex 400 and 500; every size is an `OnboardingType` token (no raw `.sp`). No literal UI text in Kotlin: strings are `onb_*` resources.
+6. **Motion.** The pager keeps the 30 percent parallax and a spring (damping 1, stiffness 224); at most three pieces stagger per page (title, sentence, content). Under reduced motion nothing travels, turns or draws.
+7. **Accessibility.** One heading per page, every target at least 48 dp, rows announce "Usage access, allowed" or "Notifications, Warns you before a plan runs out, not allowed yet", the pill reads "Step 2 of 3", the pages scroll at font scale 2.0 and the big button stays reachable, RTL mirrors the chrome.
+
+**Tests (all in `app/src/test/.../onboarding/`).** `OnboardingMotionTest` (pure rules: page count, permission order, button per page, quiet button, skip, pill widths, parallax), `OnboardingFlowTest` (Compose tests: all three pages, the permission walk, row taps, Not now, Set up plan, Done, back, rotation, the animated pager, 48 dp, font scale 2.0, RTL, one heading), `OnboardingSourceGuardTest` (three step files, no old pages, no literal text, no tracking tighter than -0.02 em), `OnboardingViewModelTest` unchanged.
+
+**Acceptance.** The four mockup boards are reproduced; the old four-page flow and its shared layer no longer exist; the gate (tests, lint, `verifyReleaseApk`) is green with empty token allow-lists; no new permission, network code or database change. Device checks left to the maintainer: the cookie turn and the page spring on real hardware, the Android permission dialogs returning to the right row, and the new-plan flow handing back to page 3.
 
 ---
 
