@@ -205,7 +205,33 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun settingsViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { SettingsViewModel(settings) }
+        initializer {
+            val db = io.github.khaledbahaaeldin.emberbyte.data.db.EmberbyteDatabases.get(appContext)
+            SettingsViewModel(
+                settings = settings,
+                usage = usage,
+                batteryUnrestricted = {
+                    val pm = appContext.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                    pm?.isIgnoringBatteryOptimizations(appContext.packageName) ?: true
+                },
+                usageAccess = {
+                    val appOps = appContext.getSystemService(Context.APP_OPS_SERVICE) as? android.app.AppOpsManager
+                    val mode = if (appOps != null) {
+                        @Suppress("DEPRECATION")
+                        appOps.checkOpNoThrow(
+                            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                            android.os.Process.myUid(),
+                            appContext.packageName,
+                        )
+                    } else {
+                        android.app.AppOpsManager.MODE_ALLOWED
+                    }
+                    mode == android.app.AppOpsManager.MODE_ALLOWED
+                },
+                storageStats = io.github.khaledbahaaeldin.emberbyte.data.StorageStats.create(appContext, db),
+                clock = clock,
+            )
+        }
     }
 
     fun appearanceViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
@@ -221,7 +247,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun dataViewModelFactory(opener: StreamOpener): ViewModelProvider.Factory = viewModelFactory {
-        initializer { DataViewModel(exportService, backupService, opener, clock) }
+        initializer { DataViewModel(exportService, backupService, opener, clock, settings = settings) }
     }
 
     fun onboardingViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {

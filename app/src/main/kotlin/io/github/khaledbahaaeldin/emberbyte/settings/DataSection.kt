@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
+import android.net.Uri
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -176,4 +178,16 @@ fun DataSection(
             }
         }
     }
+}
+
+internal sealed interface BackupPickerAction {
+    data class Create(val uri: Uri, val passphrase: CharArray) : BackupPickerAction
+    data class DeleteAndRetry(val uri: Uri) : BackupPickerAction
+    data object Ignore : BackupPickerAction
+}
+
+internal fun backupPickerResult(uri: Uri?, heldPassphrase: CharArray?): BackupPickerAction = when {
+    uri == null -> BackupPickerAction.Ignore
+    heldPassphrase == null -> BackupPickerAction.DeleteAndRetry(uri)
+    else -> BackupPickerAction.Create(uri, heldPassphrase)
 }

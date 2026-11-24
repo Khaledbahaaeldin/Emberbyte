@@ -72,67 +72,6 @@ private fun rememberAnimatedRowAlpha(enabled: Boolean): Float {
 }
 
 @Composable
-fun SettingsGroup(
-    title: String,
-    iconVector: ImageVector,
-    modifier: Modifier = Modifier,
-    iconShape: AppShape = AppShape.Cookie,
-    iconColor: Color = LocalEmberbytePalette.current.primary,
-    onIconColor: Color = LocalEmberbytePalette.current.onPrimary,
-    containerColor: Color = LocalEmberbytePalette.current.surface,
-    contentColor: Color = LocalEmberbytePalette.current.text,
-    shape: Shape = MaterialTheme.shapes.extraLarge,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val palette = LocalEmberbytePalette.current
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        color = containerColor,
-        contentColor = contentColor,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                    .semantics(mergeDescendants = true) { heading() },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(9.dp),
-            ) {
-                ShapedBox(
-                    shape = iconShape.toShape(),
-                    color = iconColor,
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clearAndSetSemantics {},
-                ) {
-                    Icon(
-                        imageVector = iconVector,
-                        contentDescription = null,
-                        tint = onIconColor,
-                        modifier = Modifier
-                            .size(14.dp)
-                            .align(Alignment.Center),
-                    )
-                }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMediumEmphasized,
-                    color = palette.muted,
-                )
-            }
-            content()
-        }
-    }
-}
-
-@Composable
 private fun SettingsLeadingIconSlot(
     iconVector: ImageVector,
     rowAlpha: Float,

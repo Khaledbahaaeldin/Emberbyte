@@ -120,7 +120,7 @@ class SettingsViewModel(
 
     /** Toggles one of the four hub switches; returns a snackbar message if blocked, else null. */
     fun toggleSwitch(id: HubSwitchId, isDark: Boolean): String? {
-        val current = uiState.value
+        val current = hubState.value.settings
         return when (id) {
             HubSwitchId.Live -> {
                 update { it.copy(liveNotificationEnabled = !it.liveNotificationEnabled) }
