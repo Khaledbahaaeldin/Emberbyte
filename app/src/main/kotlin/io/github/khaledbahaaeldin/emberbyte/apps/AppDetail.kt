@@ -244,7 +244,7 @@ class AppDetailViewModel(
         val budgetAndSpikes = combine(
             budgets.observeStatuses(),
             spikes.observeSpikes(includeDismissed = false),
-            plans.observePlans(includeArchived = false),
+            plans.observePlans(),
             editorAndUndo,
         ) { statuses, spikeList, planList, (editorState, showUndo) ->
             BudgetAndSpikesState(statuses, spikeList, planList, editorState, showUndo)

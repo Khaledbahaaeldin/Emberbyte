@@ -59,6 +59,7 @@ class PlanEditorViewModel(
     private val widgetRefresh: suspend () -> Unit = {},
     private val usage: UsageRepository? = null,
     private val labelOf: (String) -> String = { it },
+    private val session: PlansSessionCoordinator = PlansSessionCoordinator(),
 ) : ViewModel() {
     private val hasRestored = savedStateHandle.get<String>(KEY_FORM)?.let { PlanEditorFormJson.decode(it) } != null
     private var isRestoredDirty = hasRestored
@@ -126,7 +127,7 @@ class PlanEditorViewModel(
             }
             return
         }
-        val allPlans = plans.observePlans(includeArchived = true).first()
+        val allPlans = plans.observePlans().first()
         val plan = allPlans.firstOrNull { it.id == planId }
         if (plan == null) {
             _state.update { it.copy(loading = false, notFound = true) }
@@ -213,9 +214,9 @@ class PlanEditorViewModel(
                 pinned = plan.pinned,
             )
             loadedForm = form
-            _state.update { it.copy(form = form, isArchived = plan.archived, loading = false, whatIf = initialWhatIf, isDirty = false) }
+            _state.update { it.copy(form = form, loading = false, whatIf = initialWhatIf, isDirty = false) }
         } else {
-            _state.update { it.copy(isArchived = plan.archived, loading = false, whatIf = initialWhatIf, isDirty = true) }
+            _state.update { it.copy(loading = false, whatIf = initialWhatIf, isDirty = true) }
         }
     }
 
@@ -402,14 +403,8 @@ class PlanEditorViewModel(
             PlanEditorEvent.Save -> {
                 viewModelScope.launch { save() }
             }
-            PlanEditorEvent.Archive -> {
-                viewModelScope.launch { archive() }
-            }
-            PlanEditorEvent.Unarchive -> {
-                viewModelScope.launch { unarchive() }
-            }
             PlanEditorEvent.Delete -> {
-                viewModelScope.launch { archive() }
+                viewModelScope.launch { delete() }
             }
         }
     }
@@ -474,34 +469,19 @@ class PlanEditorViewModel(
         }
     }
 
-    private suspend fun archive() {
+    private suspend fun delete() {
         val currentPlanId = _state.value.planId
         if (currentPlanId == 0L) return
-        when (plans.archivePlan(currentPlanId)) {
+        when (val res = plans.deletePlan(currentPlanId)) {
             is Outcome.Success -> {
+                session.setPendingDelete(res.value)
                 savedStateHandle.remove<String>(KEY_FORM)
                 isRestoredDirty = false
                 loadedForm = _state.value.form
                 _state.update { it.copy(saved = true, isDirty = false) }
                 widgetRefresh()
             }
-            is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not archive. Try again.")) }
-        }
-    }
-
-    private suspend fun unarchive() {
-        val currentPlanId = _state.value.planId
-        if (currentPlanId == 0L) return
-        val existing = plans.observePlans(includeArchived = true).first().firstOrNull { it.id == currentPlanId } ?: return
-        when (plans.upsertPlan(existing.copy(archived = false))) {
-            is Outcome.Success -> {
-                savedStateHandle.remove<String>(KEY_FORM)
-                isRestoredDirty = false
-                loadedForm = _state.value.form
-                _state.update { it.copy(isArchived = false, saved = true, isDirty = false) }
-                widgetRefresh()
-            }
-            is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not unarchive. Try again.")) }
+            is Outcome.Failure -> _state.update { it.copy(errors = mapOf("form" to "Could not delete. Try again.")) }
         }
     }
 

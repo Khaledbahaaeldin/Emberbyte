@@ -1,8 +1,8 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
@@ -10,11 +10,14 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.LayoutDirection
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanStatusKind
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -23,7 +26,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h6000dp")
 class PlansScreenTest {
     @get:Rule val rule = createComposeRule()
 
@@ -46,10 +49,12 @@ class PlansScreenTest {
         forecastText = null,
         isEstimated = false,
         chips = emptyList(),
-        archived = false,
         isDormant = isDormant,
         startsAtText = startsAtText,
         pinned = pinned,
+        statusKind = if (isDormant) PlanStatusKind.Upcoming else PlanStatusKind.OnTrack,
+        renewsText = "Renews 28 Nov",
+        capText = "10 GB",
     )
 
     private fun show(
@@ -74,7 +79,7 @@ class PlansScreenTest {
         val p2 = sampleCard(2, "Second Plan")
         val p3 = sampleCard(3, "Third Plan")
 
-        show(PlansUiState(cards = listOf(p1, p2, p3), loaded = true))
+        show(PlansUiState(front = p1, tiles = listOf(p2, p3), loaded = true))
 
         rule.onNodeWithText("Front Plan").assertIsDisplayed()
         rule.onNodeWithText("Second Plan").assertIsDisplayed()
@@ -82,56 +87,46 @@ class PlansScreenTest {
     }
 
     @Test
-    fun dormant_tile_is_dimmed_and_describes_when_it_starts() {
+    fun upcoming_card_is_shown_with_start_date() {
         val p1 = sampleCard(1, "Active Front")
         val p2 = sampleCard(2, "Dormant Plan", isDormant = true, startsAtText = "Starts 1 Nov")
 
-        show(PlansUiState(cards = listOf(p1, p2), loaded = true))
+        show(PlansUiState(front = p1, upcoming = listOf(p2), loaded = true))
 
         rule.onNodeWithText("Dormant Plan").assertIsDisplayed()
-        rule.onNodeWithText("Starts 1 Nov").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Dormant Plan, Starts 1 Nov").assertIsDisplayed()
+        rule.onNodeWithText("10 GB, Starts 1 Nov").assertIsDisplayed()
     }
 
     @Test
     fun empty_state_has_the_new_plan_action() {
         var newPlanClicked = false
         show(
-            state = PlansUiState(cards = emptyList(), loaded = true),
+            state = PlansUiState(loaded = true),
             onNewPlan = { newPlanClicked = true },
         )
 
-        rule.onNodeWithText("Set up your first plan").assertIsDisplayed()
-        rule.onNodeWithText("Set up your first plan").performClick()
+        rule.onNodeWithText("Set up your first plan").assertIsDisplayed().performClick()
         assertTrue(newPlanClicked)
     }
 
     @Test
-    fun pin_is_available_through_a_custom_accessibility_action() {
-        var pinnedId: Long? = null
-        var isPinned: Boolean? = null
-        val p1 = sampleCard(1, "Front Plan", pinned = false)
+    fun tile_exposes_bring_to_front_action() {
+        val events = mutableListOf<PlansEvent>()
+        val p1 = sampleCard(1, "Front Plan", pinned = true)
+        val p2 = sampleCard(2, "Tile Plan", pinned = false)
 
         show(
-            state = PlansUiState(cards = listOf(p1), loaded = true),
-            onEvent = { event ->
-                if (event is PlansEvent.SetPinned) {
-                    pinnedId = event.id
-                    isPinned = event.pinned
-                }
-            },
+            state = PlansUiState(front = p1, tiles = listOf(p2), loaded = true),
+            onEvent = { events += it },
         )
 
-        // Custom action on PlanCardWithMenu
-        val node = rule.onNodeWithContentDescription("Front Plan, 40 percent used, 6.0 GB left, 12 days left")
-            .fetchSemanticsNode()
-        val actions = node.config.getOrNull(androidx.compose.ui.semantics.SemanticsActions.CustomActions)
-        val pinAction = actions?.firstOrNull { it.label == "Pin" }
-        org.junit.Assert.assertNotNull(pinAction)
+        val tileNode = rule.onNodeWithContentDescription("Bring to the front", substring = true).fetchSemanticsNode()
+        val actions = tileNode.config.getOrNull(SemanticsActions.CustomActions)
+        val pinAction = actions?.firstOrNull { it.label == "Bring to the front" }
+        assertNotNull(pinAction)
         pinAction?.action?.invoke()
 
-        assertEquals(1L, pinnedId)
-        assertEquals(true, isPinned)
+        assertEquals(listOf<PlansEvent>(PlansEvent.SetPinned(2L, true)), events)
     }
 
     @Test
@@ -141,11 +136,11 @@ class PlansScreenTest {
         val p3 = sampleCard(3, "Third Plan")
 
         rule.setContent {
-            val config = androidx.compose.ui.platform.LocalConfiguration.current
+            val config = LocalConfiguration.current
             config.fontScale = 2.0f
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 PlansContent(
-                    state = PlansUiState(cards = listOf(p1, p2, p3), loaded = true),
+                    state = PlansUiState(front = p1, tiles = listOf(p2, p3), loaded = true),
                     onEvent = {},
                     onOpenPlan = {},
                     onNewPlan = {},
@@ -164,12 +159,10 @@ class PlansScreenTest {
         val p2 = sampleCard(2, "Second Plan")
 
         rule.setContent {
-            androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Rtl,
-            ) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 EmberbyteTheme(EmberbyteThemeSpec.Default) {
                     PlansContent(
-                        state = PlansUiState(cards = listOf(p1, p2), loaded = true),
+                        state = PlansUiState(front = p1, tiles = listOf(p2), loaded = true),
                         onEvent = {},
                         onOpenPlan = {},
                         onNewPlan = {},
@@ -180,38 +173,5 @@ class PlansScreenTest {
 
         rule.onNodeWithText("Front Plan").assertIsDisplayed()
         rule.onNodeWithText("Second Plan").assertIsDisplayed()
-    }
-
-    @Test
-    fun removing_an_archived_plan_keeps_the_others_and_does_not_crash() {
-        val a1 = sampleCard(10, "Archived 1")
-        val a2 = sampleCard(20, "Archived 2")
-        var archivedList by mutableStateOf(listOf(a1, a2))
-
-        rule.setContent {
-            EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                PlansContent(
-                    state = PlansUiState(
-                        cards = emptyList(),
-                        archivedCards = archivedList,
-                        showArchived = true,
-                        loaded = true,
-                    ),
-                    onEvent = {},
-                    onOpenPlan = {},
-                    onNewPlan = {},
-                )
-            }
-        }
-
-        rule.onNodeWithText("Archived 1").assertIsDisplayed()
-        rule.onNodeWithText("Archived 2").assertIsDisplayed()
-
-        // Remove Archived 1
-        archivedList = listOf(a2)
-        rule.waitForIdle()
-
-        rule.onNodeWithText("Archived 2").assertIsDisplayed()
-        rule.onNodeWithText("Archived 1").assertDoesNotExist()
     }
 }

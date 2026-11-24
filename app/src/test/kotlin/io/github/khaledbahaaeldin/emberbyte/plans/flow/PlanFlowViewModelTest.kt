@@ -145,7 +145,7 @@ class PlanFlowViewModelTest {
         vm.onEvent(PlanFlowEvent.CreatePlan)
         advanceUntilIdle()
 
-        val created = vm.uiState.value.createdPlanId?.let { id -> repo.observePlans(true).first().firstOrNull { it.id == id } }
+        val created = vm.uiState.value.createdPlanId?.let { id -> repo.observePlans().first().firstOrNull { it.id == id } }
         assertNotNull(created)
         assertTrue(created!!.firstCycle is FirstCycle.Entered)
         val fc = created.firstCycle as FirstCycle.Entered
@@ -172,7 +172,7 @@ class PlanFlowViewModelTest {
         vm.onEvent(PlanFlowEvent.CreatePlan)
         advanceUntilIdle()
 
-        val created = vm.uiState.value.createdPlanId?.let { id -> repo.observePlans(true).first().firstOrNull { it.id == id } }
+        val created = vm.uiState.value.createdPlanId?.let { id -> repo.observePlans().first().firstOrNull { it.id == id } }
         assertNotNull(created)
         assertTrue(created!!.firstCycle is FirstCycle.StartsNextCycle)
         val fc = created.firstCycle as FirstCycle.StartsNextCycle
@@ -238,7 +238,7 @@ class PlanFlowViewModelTest {
         vm.onEvent(PlanFlowEvent.CreatePlan)
         advanceUntilIdle()
 
-        val created = vm.uiState.value.createdPlanId?.let { id -> repo.observePlans(true).first().firstOrNull { it.id == id } }
+        val created = vm.uiState.value.createdPlanId?.let { id -> repo.observePlans().first().firstOrNull { it.id == id } }
         assertNotNull(created)
     }
 }

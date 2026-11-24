@@ -723,7 +723,7 @@ internal fun PlanEditorContent(
                             )
                         }
 
-                        // Danger zone (existing plans only)
+                        // Danger zone (existing plans only; Delete only, archive removed in T24)
                         if (!state.isNew) {
                             BentoTile(
                                 title = stringResource(R.string.plan_section_danger),
@@ -736,22 +736,6 @@ internal fun PlanEditorContent(
                                         .padding(top = 10.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    if (state.isArchived) {
-                                        OutlinedButton(
-                                            onClick = { onEvent(PlanEditorEvent.Unarchive) },
-                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                        ) {
-                                            Text(stringResource(R.string.plan_unarchive_action))
-                                        }
-                                    } else {
-                                        OutlinedButton(
-                                            onClick = { onEvent(PlanEditorEvent.Archive) },
-                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                        ) {
-                                            Text(stringResource(R.string.plan_archive_action))
-                                        }
-                                    }
-
                                     FilledTonalButton(
                                         onClick = { showDeleteDialog = true },
                                         colors = ButtonDefaults.filledTonalButtonColors(

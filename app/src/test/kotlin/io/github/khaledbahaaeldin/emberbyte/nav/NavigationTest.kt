@@ -84,6 +84,6 @@ class NavigationTest {
         }
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("nav_plans").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("nav_plans").performClick()
-        rule.onNodeWithText("Set up your first plan").assertIsDisplayed()
+        rule.onNodeWithText("Nothing to track yet").assertIsDisplayed()
     }
 }

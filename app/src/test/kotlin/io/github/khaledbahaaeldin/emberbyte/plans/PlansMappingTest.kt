@@ -67,7 +67,6 @@ class PlansMappingTest {
         val c = card(state(1, approx = true), addOns = listOf(boost))
         assertEquals(listOf("Boost +2.00 GB"), c.chips)
         assertTrue(c.isEstimated)
-        assertFalse(c.archived)
     }
 
     @Test fun percentage_uses_percent_used_calculation() {
