@@ -85,6 +85,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
 
     val settings: SettingsRepository = preferences.settings
     val onboarding: OnboardingRepository = preferences.onboarding
+    val whatsNewPrefs: io.github.khaledbahaaeldin.emberbyte.data.WhatsNewPrefsRepository = preferences.whatsNew
     val permissions: PermissionRepository = AndroidPermissionRepository(appContext)
     val simInfo: SimInfoSource = AndroidSimInfoSource(appContext)
     internal val planStore = PlanStores.create(appContext)
@@ -242,6 +243,21 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 settings = settings,
                 sims = simInfo,
                 clock = clock,
+            )
+        }
+    }
+
+    fun whatsNewViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
+        initializer {
+            val code = runCatching {
+                appContext.packageManager.getPackageInfo(appContext.packageName, 0).longVersionCode.toInt()
+            }.getOrDefault(0)
+            io.github.khaledbahaaeldin.emberbyte.whatsnew.WhatsNewViewModel(
+                repository = io.github.khaledbahaaeldin.emberbyte.whatsnew.AssetWhatsNewRepository(
+                    context = appContext,
+                    prefs = whatsNewPrefs,
+                ),
+                currentVersionCode = code,
             )
         }
     }

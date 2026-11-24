@@ -279,5 +279,20 @@
     <string name="dialog_budget_warn_label">Warn at</string>
     <string name="dialog_budget_removed">Budget removed</string>
     <string name="dialog_undo">Undo</string>
+
+    <!-- What's new (T16) -->
+    <string name="whatsnew_title">What\'s new in %1$s</string>
+    <string name="whatsnew_subtitle">No account, no internet, still just your data.</string>
+    <string name="whatsnew_kind_added">Added</string>
+    <string name="whatsnew_kind_changed">Changed</string>
+    <string name="whatsnew_kind_fixed">Fixed</string>
+    <string name="whatsnew_kind_summary">%1$s, %2$d items</string>
+    <string name="whatsnew_got_it">Got it</string>
+    <string name="whatsnew_see_all_changes">See all changes</string>
+    <string name="whatsnew_earlier_versions">Earlier versions</string>
+    <string name="whatsnew_settings_title">What\'s new</string>
+    <string name="whatsnew_settings_subtitle">Changes in %1$s</string>
+    <string name="whatsnew_settings_empty">No changes recorded</string>
+    <string name="whatsnew_updates_link">See what\'s new</string>
 </resources>
 
