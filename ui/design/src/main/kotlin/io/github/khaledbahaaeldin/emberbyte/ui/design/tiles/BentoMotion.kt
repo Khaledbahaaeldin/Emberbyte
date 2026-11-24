@@ -49,7 +49,7 @@ fun rememberPlayHomeEntrance(): Boolean {
  * visible and under reduced motion). Read it inside a draw or graphics-layer lambda so nothing recomposes per frame.
  */
 @Composable
-internal fun rememberAmbientSeconds(enabled: Boolean): State<Float> {
+fun rememberAmbientSeconds(enabled: Boolean): State<Float> {
     val reduce = LocalReduceMotion.current
     val running by rememberUpdatedState(enabled && !reduce)
     val seconds = remember { mutableFloatStateOf(0f) }

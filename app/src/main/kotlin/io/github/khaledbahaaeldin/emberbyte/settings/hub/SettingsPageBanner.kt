@@ -44,7 +44,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.settings.hub.rememberSettingsAmbientSeconds
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.rememberAmbientSeconds
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
@@ -66,8 +66,7 @@ internal fun SettingsPageBanner(
 ) {
     val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
-    val seconds by rememberSettingsAmbientSeconds(!reduceMotion)
-    val bobDp = if (reduceMotion) 0f else sin((seconds / 6.0) * 2.0 * PI).toFloat() * 5f
+    val seconds = rememberAmbientSeconds(!reduceMotion)
 
     val baseSurface = if (amoled) palette.surface else palette.surface2
     val topColor = lerp(baseSurface, tint, if (amoled) 0.18f else 0.30f)
@@ -101,7 +100,10 @@ internal fun SettingsPageBanner(
                 Box(
                     modifier = Modifier
                         .size(84.dp)
-                        .graphicsLayer { translationY = bobDp.dp.toPx() }
+                        .graphicsLayer {
+                            val bobDp = if (reduceMotion) 0f else sin((seconds.value / 6.0) * 2.0 * PI).toFloat() * 5f
+                            translationY = bobDp.dp.toPx()
+                        }
                         .clip(MaterialShapes.Cookie9Sided.toShape())
                         .background(tint.copy(alpha = 0.22f)),
                     contentAlignment = Alignment.Center,

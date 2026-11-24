@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
 import io.github.khaledbahaaeldin.emberbyte.settings.StorageBreakdown
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.pressMorph
-import io.github.khaledbahaaeldin.emberbyte.settings.hub.rememberSettingsAmbientSeconds
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.rememberAmbientSeconds
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
@@ -130,8 +130,9 @@ internal fun LookAndFeelCard(
 ) {
     val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
-    val seconds by rememberSettingsAmbientSeconds(!reduceMotion)
-    val rot = if (reduceMotion) 0f else (seconds * 12f) % 360f
+    val seconds = rememberAmbientSeconds(!reduceMotion)
+    // Read inside the layer lambdas so the card never recomposes per frame.
+    val rot: () -> Float = { if (reduceMotion) 0f else (seconds.value * 12f) % 360f }
 
     HubCardContainer(
         title = "Look and feel",
@@ -153,7 +154,7 @@ internal fun LookAndFeelCard(
             Box(
                 modifier = Modifier
                     .size(92.dp)
-                    .graphicsLayer { rotationZ = rot }
+                    .graphicsLayer { rotationZ = rot() }
                     .clip(MaterialShapes.Cookie9Sided.toShape())
                     .background(palette.primary.copy(alpha = 0.24f)),
                 contentAlignment = Alignment.Center,
@@ -162,7 +163,7 @@ internal fun LookAndFeelCard(
                     text = themeName,
                     style = EmberbyteType.heading(SettingsType.PulseBody),
                     color = palette.text,
-                    modifier = Modifier.graphicsLayer { rotationZ = -rot },
+                    modifier = Modifier.graphicsLayer { rotationZ = -rot() },
                 )
             }
             Row(
@@ -420,8 +421,7 @@ internal fun AboutCard(
 ) {
     val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
-    val seconds by rememberSettingsAmbientSeconds(!reduceMotion)
-    val wobble = if (reduceMotion) 0f else sin(seconds * 2.0 * PI / 3.0).toFloat() * 5f
+    val seconds = rememberAmbientSeconds(!reduceMotion)
 
     HubCardContainer(
         title = "About",
@@ -437,7 +437,7 @@ internal fun AboutCard(
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .graphicsLayer { rotationZ = wobble }
+                .graphicsLayer { rotationZ = if (reduceMotion) 0f else sin(seconds.value * 2.0 * PI / 3.0).toFloat() * 5f }
                 .clip(MaterialShapes.Sunny.toShape())
                 .background(palette.primary.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center,
