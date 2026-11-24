@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
@@ -91,6 +92,6 @@ class PlanFlowBackTest {
         rule.waitForIdle()
         assertTrue(events.none { it is PlanFlowEvent.PreviousStep })
         assertEquals(2, state.step)
-        rule.onNodeWithText("Step 2 of 5").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Step 2 of 5").assertIsDisplayed()
     }
 }

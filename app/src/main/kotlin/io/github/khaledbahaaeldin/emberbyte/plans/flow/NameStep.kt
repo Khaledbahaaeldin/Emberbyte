@@ -140,7 +140,7 @@ internal fun NameStep(
                     selected = state.name.trim() == chip,
                     onClick = { onSetName(chip) },
                     label = { Text(chip) },
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                 )
             }
         }

@@ -196,7 +196,7 @@ internal fun AmountStep(
                         onSetCap(formatted)
                     },
                     label = { Text(label) },
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                 )
             }
         }

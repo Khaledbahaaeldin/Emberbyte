@@ -64,6 +64,6 @@ class AmountStepTest {
             }
         }
         rule.onNodeWithText("Counted in binary units (1 GiB = 1,024 MiB), as set in Settings").assertIsDisplayed()
-        rule.onNodeWithText("Enter a positive data allowance").assertIsDisplayed()
+        rule.onNodeWithText("Enter a number greater than zero").assertIsDisplayed()
     }
 }

@@ -88,7 +88,7 @@ internal fun ResetStep(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         val r0 = reveal(0)
@@ -234,7 +234,7 @@ internal fun MonthlyDayGrid(
         for (row in 0 until 4) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 for (col in 1..7) {
                     val day = row * 7 + col
@@ -247,12 +247,13 @@ internal fun MonthlyDayGrid(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .background(if (selected) palette.primary else palette.surface2)
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                             .semantics { contentDescription = desc }
                             .clickable { onSelectDay(day) }
-                            .testTag("day_grid_$day"),
+                            .testTag("day_grid_$day")
+                            .padding(3.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(if (selected) palette.primary else palette.surface2),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -269,7 +270,7 @@ internal fun MonthlyDayGrid(
             onClick = { onSelectDay(31) },
             label = { Text(stringResource(R.string.plan_flow_last_day_chip)) },
             modifier = Modifier
-                .defaultMinSize(minHeight = 48.dp)
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                 .testTag("day_grid_last"),
         )
     }

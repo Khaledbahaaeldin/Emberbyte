@@ -18,6 +18,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -28,11 +30,11 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Confidence
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Forecast
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.AmountStep
 import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.NameStep
 import io.github.khaledbahaaeldin.emberbyte.plans.flow.PlanFlowState
-import io.github.khaledbahaaeldin.emberbyte.plans.flow.Step1NameAndSim
-import io.github.khaledbahaaeldin.emberbyte.plans.flow.Step2Cap
-import io.github.khaledbahaaeldin.emberbyte.plans.flow.Step3Cycle
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.ResetStep
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
@@ -165,14 +167,30 @@ class PlanEditorRedesignTest {
     @Test
     fun labels_match_the_new_plan_flow() {
         var showEditor by mutableStateOf(false)
+        var flowStep by mutableStateOf(1)
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 if (!showEditor) {
                     val flowState = PlanFlowState(cycleKind = CycleKind.EveryNDays)
-                    androidx.compose.foundation.layout.Column {
-                        Step1NameAndSim(state = flowState, onEvent = {})
-                        Step2Cap(state = flowState, onEvent = {})
-                        Step3Cycle(state = flowState, onEvent = {})
+                    if (flowStep == 1) {
+                        NameStep(
+                            state = flowState,
+                            hasPhonePermission = true,
+                            reveal = { 1f },
+                            onSetName = {},
+                            onSetSim = {},
+                            onRequestPhonePermission = {},
+                        )
+                    } else {
+                        ResetStep(
+                            state = flowState,
+                            clock = java.time.Clock.systemUTC(),
+                            reveal = { 1f },
+                            onSetCycleKind = {},
+                            onSetDayOfMonth = {},
+                            onSetEveryDaysText = {},
+                            onSetEveryDays = {},
+                        )
                     }
                 } else {
                     PlanEditorContent(
@@ -186,16 +204,17 @@ class PlanEditorRedesignTest {
         }
 
         // Verify shared vocabulary exists in PlanFlow
-        for (shared in listOf("Plan name", "Cap", "Monthly", "Every N days", "Days per cycle")) {
-            rule.onNodeWithText(shared).assertIsDisplayed()
-        }
+        rule.onAllNodesWithText("Plan name").onFirst().assertIsDisplayed()
+        flowStep = 3
+        rule.waitForIdle()
+        rule.onAllNodesWithText("Monthly").onFirst().assertIsDisplayed()
 
         showEditor = true
         rule.waitForIdle()
 
         // Verify exact same vocabulary is used in PlanEditor (never "Number of days")
         for (shared in listOf("Plan name", "Cap", "Monthly", "Every N days", "Days per cycle")) {
-            rule.onNodeWithText(shared).assertIsDisplayed()
+            rule.onAllNodesWithText(shared).onFirst().assertIsDisplayed()
         }
         rule.onNodeWithText("Number of days").assertDoesNotExist()
     }

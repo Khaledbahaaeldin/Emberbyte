@@ -187,12 +187,8 @@ internal fun PlanFlowScaffoldChrome(
         }
     }
 
-    BackHandler(enabled = true) {
-        if (step > 1) {
-            onBack()
-        } else {
-            requestClose()
-        }
+    BackHandler(enabled = step > 1) {
+        onBack()
     }
 
     Column(

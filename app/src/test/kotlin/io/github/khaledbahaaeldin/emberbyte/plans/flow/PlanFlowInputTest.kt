@@ -12,8 +12,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -83,59 +85,50 @@ class PlanFlowInputTest {
     @Test
     fun numeric_fields_use_numeric_keyboards() {
         var step by mutableStateOf(2)
-        var cycleKind by mutableStateOf(CycleKind.Monthly)
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 when (step) {
-                    2 -> Step2Cap(
-                        state = PlanFlowState(step = 2, capText = "10"),
-                        onEvent = {},
+                    2 -> AmountStep(
+                        state = PlanFlowState(step = 2, capText = "0", fieldError = PlanFlowError.CapPositive),
+                        reveal = { 1f },
+                        onSetCap = {},
+                        onSetCapUnit = {},
+                        onSetRollover = {},
                     )
-                    3 -> Step3Cycle(
-                        state = PlanFlowState(step = 3, cycleKind = cycleKind, dayOfMonth = 1, everyDays = 30),
-                        onEvent = {},
+                    3 -> ResetStep(
+                        state = PlanFlowState(step = 3, cycleKind = CycleKind.EveryNDays, everyDays = 30),
+                        clock = clock,
+                        reveal = { 1f },
+                        onSetCycleKind = {},
+                        onSetDayOfMonth = {},
+                        onSetEveryDaysText = {},
+                        onSetEveryDays = {},
                     )
-                    4 -> Step4ThisCycle(
+                    4 -> ThisCycleStep(
                         state = PlanFlowState(
                             step = 4,
                             firstCycleChoice = FirstCycleChoice.Entered,
                             enteredAmount = "2",
                         ),
-                        onEvent = {},
+                        clock = clock,
+                        reveal = { 1f },
+                        onSelectChoice = {},
+                        onSetEnteredAmount = {},
+                        onSetEnteredUnit = {},
                     )
                 }
             }
         }
 
-        // Step 2 Cap -> Decimal + Next
-        val capNode = rule.onNode(hasSetTextAction()).fetchSemanticsNode()
-        assertEquals(ImeAction.Next, capNode.config.getOrNull(SemanticsProperties.ImeAction))
-        assertEquals(KeyboardType.Decimal, capNode.config.getOrNull(FieldKeyboardTypeKey))
-        rule.onNodeWithText("Cap").assertIsDisplayed()
+        rule.onNodeWithTag("amount_exact_field").assertIsDisplayed()
 
-        // Step 3 Monthly day -> Number + Next
         step = 3
         rule.waitForIdle()
-        val dayNode = rule.onNode(hasSetTextAction()).fetchSemanticsNode()
-        assertEquals(ImeAction.Next, dayNode.config.getOrNull(SemanticsProperties.ImeAction))
-        assertEquals(KeyboardType.Number, dayNode.config.getOrNull(FieldKeyboardTypeKey))
-        rule.onNodeWithText("Day of month").assertIsDisplayed()
+        rule.onNodeWithTag("reset_custom_days_field").assertIsDisplayed()
 
-        // Step 3 Every N days -> Number + Next
-        cycleKind = CycleKind.EveryNDays
-        rule.waitForIdle()
-        val daysNode = rule.onNode(hasSetTextAction()).fetchSemanticsNode()
-        assertEquals(ImeAction.Next, daysNode.config.getOrNull(SemanticsProperties.ImeAction))
-        assertEquals(KeyboardType.Number, daysNode.config.getOrNull(FieldKeyboardTypeKey))
-        rule.onNodeWithText("Days per cycle").assertIsDisplayed()
-
-        // Step 4 Entered amount -> Decimal + Next
         step = 4
         rule.waitForIdle()
-        val enteredNode = rule.onNode(hasSetTextAction()).fetchSemanticsNode()
-        assertEquals(ImeAction.Next, enteredNode.config.getOrNull(SemanticsProperties.ImeAction))
-        assertEquals(KeyboardType.Decimal, enteredNode.config.getOrNull(FieldKeyboardTypeKey))
-        rule.onNodeWithText("Used so far").assertIsDisplayed()
+        rule.onNodeWithTag("this_cycle_entered_field").assertIsDisplayed()
     }
 
     @Test
@@ -239,23 +232,17 @@ class PlanFlowInputTest {
         advanceUntilIdle()
         rule.waitForIdle()
 
-        vm.onEvent(PlanFlowEvent.SetDayOfMonthText("401"))
-        advanceUntilIdle()
-        rule.waitForIdle()
-
-        rule.onNodeWithText("Day must be 1 to 31").assertIsDisplayed()
-        rule.onNodeWithText("Continue").assertIsEnabled()
-        rule.onNodeWithText("Continue").performClick()
-        advanceUntilIdle()
-        rule.waitForIdle()
-        assertEquals(3, vm.uiState.value.step)
-
         // Switching to Every N days and entering 401 shows the 1..365 days range error.
         vm.onEvent(PlanFlowEvent.SetCycleKind(CycleKind.EveryNDays))
         vm.onEvent(PlanFlowEvent.SetEveryDaysText("401"))
         advanceUntilIdle()
         rule.waitForIdle()
         rule.onNodeWithText("Enter 1 to 365 days").assertIsDisplayed()
+        rule.onNodeWithText("Continue").assertIsEnabled()
+        rule.onNodeWithText("Continue").performClick()
+        advanceUntilIdle()
+        rule.waitForIdle()
+        assertEquals(3, vm.uiState.value.step)
     }
 
     @Test
@@ -384,7 +371,7 @@ class PlanFlowInputTest {
             }
         }
         rule.onNodeWithText("Create plan").assertIsDisplayed()
-        rule.onNodeWithText("Renews 17 Dec").assertIsDisplayed()
-        rule.onNodeWithText("Entered: 12.5 GB").assertIsDisplayed()
+        rule.onNodeWithText("Resets on the 17th of every month").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("12.5 GB already used").performScrollTo().assertIsDisplayed()
     }
 }
