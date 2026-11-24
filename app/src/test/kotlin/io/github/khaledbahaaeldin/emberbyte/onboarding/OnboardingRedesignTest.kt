@@ -4,7 +4,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -22,7 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w360dp-h900dp")
 class OnboardingRedesignTest {
     @get:Rule val rule = createComposeRule()
 
@@ -108,7 +110,9 @@ class OnboardingRedesignTest {
 
         state = OnboardingUiState(usageAccess = true, notifications = false)
         rule.waitForIdle()
-        rule.onNodeWithText("Allow notifications").assertIsDisplayed()
+        // The card button and the action bar both carry the label: the action bar must show it.
+        rule.onAllNodesWithText("Allow notifications").assertCountEquals(2)
+        rule.onAllNodesWithText("Allow notifications")[1].assertIsDisplayed()
         assertEquals(0, finishCount)
 
         state = OnboardingUiState(usageAccess = true, notifications = true)

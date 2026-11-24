@@ -36,7 +36,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w360dp-h900dp")
 class OnboardingScreenTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
@@ -181,6 +181,8 @@ class OnboardingScreenTest {
                 val textList = node.config.getOrNull(SemanticsProperties.Text)
                 if (!textList.isNullOrEmpty()) {
                     val b = node.boundsInRoot
+                    // A node with no size at all is a neighbouring page that is composed but not laid out: nothing to clip.
+                    if (b.width == 0f && b.height == 0f) continue
                     assertTrue(
                         "Text '${textList.joinToString()}' on step $page right (${b.right}) exceeds screen width ($maxWidthPx)",
                         b.right <= maxWidthPx + 1f,

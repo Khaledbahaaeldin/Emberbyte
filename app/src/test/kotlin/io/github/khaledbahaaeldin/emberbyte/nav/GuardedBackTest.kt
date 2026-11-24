@@ -298,7 +298,7 @@ class GuardedBackTest {
         val text = onboardingFile.readText()
         assertTrue(
             "OnboardingScreen must only enable BackHandler when currentPage > 0",
-            text.contains("pagerState.currentPage > 0")
+            text.contains("BackHandler(enabled = currentPage > 0)")
         )
     }
 }
