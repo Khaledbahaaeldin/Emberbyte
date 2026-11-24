@@ -1,53 +1,39 @@
 package io.github.khaledbahaaeldin.emberbyte.onboarding
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.nav.PermissionActions
-import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.OnboardingType
+import kotlin.math.abs
 import kotlinx.coroutines.launch
+
+internal const val ONBOARDING_PAGE_COUNT = 4
 
 @Composable
 fun OnboardingScreen(
@@ -83,6 +69,15 @@ internal fun OnboardingContent(
     val scope = rememberCoroutineScope()
 
     var hasFinished by remember { mutableStateOf(false) }
+    var pagerWidthPx by remember { mutableStateOf(1f) }
+    val anchorRects = remember {
+        mutableStateListOf(
+            LayerRect(24f, 40f, 72f, 72f),
+            LayerRect(24f, 40f, 360f, 220f),
+            LayerRect(96f, 40f, 216f, 216f),
+            LayerRect(24f, 140f, 360f, 160f),
+        )
+    }
 
     fun completeOnce() {
         if (!hasFinished) {
@@ -93,181 +88,168 @@ internal fun OnboardingContent(
 
     fun moveToPage(targetPage: Int) {
         scope.launch {
+            val clamped = targetPage.coerceIn(0, ONBOARDING_PAGE_COUNT - 1)
             if (reduceMotion) {
-                pagerState.scrollToPage(targetPage)
+                pagerState.scrollToPage(clamped)
             } else {
-                pagerState.animateScrollToPage(targetPage)
+                pagerState.animateScrollToPage(
+                    page = clamped,
+                    animationSpec = spring(dampingRatio = 1f, stiffness = 224f),
+                )
             }
         }
     }
 
     BackHandler(enabled = pagerState.currentPage > 0) {
-        moveToPage((pagerState.currentPage - 1).coerceAtLeast(0))
+        moveToPage(pagerState.currentPage - 1)
     }
 
-    Column(
+    val position = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 3f)
+    val sharedActive = !reduceMotion && position < 2.999f && abs(position - position.toInt()) > 0.001f
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(palette.background)
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .navigationBarsPadding(),
     ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .testTag("onboarding_pager"),
-        ) { page ->
-            when (page) {
-                0 -> WelcomeOnboardingPage(modifier = Modifier.fillMaxSize())
-                1 -> SeeYourDataOnboardingPage(modifier = Modifier.fillMaxSize())
-                2 -> StayUnderYourCapOnboardingPage(
-                    hasPlan = state.hasPlan,
-                    onSetUpPlan = onSetUpPlan,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                else -> AllowUsageAccessOnboardingPage(
-                    state = state,
-                    onOpenUsageAccess = onOpenUsageAccess,
-                    onRequestNotifications = onRequestNotifications,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
-
-        OnboardingPageDots(
-            pagerState = pagerState,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-
-        OnboardingBottomBar(
-            currentPage = pagerState.currentPage,
-            usageAccessGranted = state.usageAccess,
-            onSkipToPermission = { moveToPage(ONBOARDING_PAGE_COUNT - 1) },
-            onNext = { moveToPage((pagerState.currentPage + 1).coerceAtMost(ONBOARDING_PAGE_COUNT - 1)) },
-            onAllowAccess = onOpenUsageAccess,
-            onFinish = { completeOnce() },
-        )
-    }
-}
-
-@Composable
-private fun OnboardingPageDots(
-    pagerState: PagerState,
-    modifier: Modifier = Modifier,
-) {
-    val palette = LocalEmberbytePalette.current
-    val motion = rememberEmberbyteMotion()
-    val spatialSpec = motion.spatial<Dp>()
-    val currentPage = pagerState.currentPage
-    val description = "Page ${currentPage + 1} of $ONBOARDING_PAGE_COUNT"
-
-    Row(
-        modifier = modifier
-            .padding(vertical = 4.dp)
-            .clearAndSetSemantics {
-                contentDescription = description
-            },
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        for (index in 0 until ONBOARDING_PAGE_COUNT) {
-            val isSelected = index == currentPage
-            val targetWidth: Dp = if (isSelected) 28.dp else 8.dp
-            val dotWidth by animateDpAsState(
-                targetValue = targetWidth,
-                animationSpec = spatialSpec,
-                label = "onboarding_dot_width_$index",
+        Column(modifier = Modifier.fillMaxSize()) {
+            OnboardingProgressPill(
+                position = position,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             )
+
             Box(
                 modifier = Modifier
-                    .width(dotWidth)
-                    .height(8.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) palette.primary else palette.track),
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .onSizeChanged { pagerWidthPx = it.width.toFloat().coerceAtLeast(1f) },
+            ) {
+                if (reduceMotion) {
+                    Crossfade(
+                        targetState = pagerState.currentPage,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "onboarding_reduced_crossfade",
+                    ) { page ->
+                        OnboardingStepPage(
+                            page = page,
+                            state = state,
+                            reveal = { 1f },
+                            layerHiddenByShared = false,
+                            onAnchorRect = { rect -> anchorRects[page] = rect },
+                            onSetUpPlan = onSetUpPlan,
+                            onOpenUsageAccess = onOpenUsageAccess,
+                            onRequestNotifications = onRequestNotifications,
+                        )
+                    }
+                } else {
+                    HorizontalPager(
+                        state = pagerState,
+                        beyondViewportPageCount = 1,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("onboarding_pager"),
+                    ) { page ->
+                        val d = (page - position)
+                        val q = (1f - abs(d)).coerceIn(0f, 1f)
+                        val isOutgoing = abs(d) > 0.001f &&
+                            ((d < 0f && position >= page) || (d > 0f && position <= page))
+                        val alpha = pageAlpha(d)
+                        val offsetPx = parallaxOffset(d, pagerWidthPx, isOutgoing) - d * pagerWidthPx
+                        val reveal: (Int) -> Float = { idx -> revealFraction(q, idx) }
+
+                        OnboardingStepPage(
+                            page = page,
+                            state = state,
+                            reveal = reveal,
+                            layerHiddenByShared = sharedActive && page < 3,
+                            onAnchorRect = { rect -> anchorRects[page] = rect },
+                            onSetUpPlan = onSetUpPlan,
+                            onOpenUsageAccess = onOpenUsageAccess,
+                            onRequestNotifications = onRequestNotifications,
+                            modifier = Modifier.graphicsLayer {
+                                this.alpha = alpha
+                                translationX = offsetPx
+                            },
+                        )
+                    }
+                }
+            }
+
+            OnboardingActionBar(
+                position = position,
+                usageAccess = state.usageAccess,
+                notifications = state.notifications,
+                onPrimaryClick = {
+                    val page = pagerState.currentPage
+                    if (page < ONBOARDING_PAGE_COUNT - 1) {
+                        moveToPage(page + 1)
+                    } else {
+                        when (nextPermissionAction(state.usageAccess, state.notifications)) {
+                            PermissionAction.Usage -> onOpenUsageAccess()
+                            PermissionAction.Notifications -> onRequestNotifications()
+                            PermissionAction.Done -> completeOnce()
+                        }
+                    }
+                },
+                onBackClick = { moveToPage(pagerState.currentPage - 1) },
+                onSkipClick = { completeOnce() },
+            )
+        }
+
+        if (sharedActive) {
+            SharedOnboardingLayer(
+                position = position,
+                rects = anchorRects,
+                usageAccess = state.usageAccess,
             )
         }
     }
 }
 
 @Composable
-private fun OnboardingBottomBar(
-    currentPage: Int,
-    usageAccessGranted: Boolean,
-    onSkipToPermission: () -> Unit,
-    onNext: () -> Unit,
-    onAllowAccess: () -> Unit,
-    onFinish: () -> Unit,
+private fun OnboardingStepPage(
+    page: Int,
+    state: OnboardingUiState,
+    reveal: (Int) -> Float,
+    layerHiddenByShared: Boolean,
+    onAnchorRect: (LayerRect) -> Unit,
+    onSetUpPlan: () -> Unit,
+    onOpenUsageAccess: () -> Unit,
+    onRequestNotifications: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val palette = LocalEmberbytePalette.current
-    val isLastPage = currentPage == ONBOARDING_PAGE_COUNT - 1
-    val fontScale = LocalDensity.current.fontScale
-    val buttonFontSize = if (fontScale > 1.3f) (OnboardingType.Button.value * (1.3f / fontScale)).sp else OnboardingType.Button
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (!isLastPage) {
-            TextButton(
-                onClick = onSkipToPermission,
-                colors = ButtonDefaults.textButtonColors(contentColor = palette.primary),
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-            ) {
-                Text(
-                    text = "Skip",
-                    style = EmberbyteType.heading(buttonFontSize),
-                )
-            }
-            Button(
-                onClick = onNext,
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.primary,
-                    contentColor = palette.onPrimary,
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp),
-            ) {
-                Text(
-                    text = "Next",
-                    style = EmberbyteType.heading(buttonFontSize),
-                    maxLines = 1,
-                )
-            }
-        } else {
-            TextButton(
-                onClick = onFinish,
-                colors = ButtonDefaults.textButtonColors(contentColor = palette.primary),
-                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-            ) {
-                Text(
-                    text = "Skip for now",
-                    style = EmberbyteType.heading(buttonFontSize),
-                )
-            }
-            Button(
-                onClick = if (usageAccessGranted) onFinish else onAllowAccess,
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.primary,
-                    contentColor = palette.onPrimary,
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp),
-            ) {
-                Text(
-                    text = if (usageAccessGranted) "Continue" else "Allow access",
-                    style = EmberbyteType.heading(buttonFontSize),
-                    maxLines = 1,
-                )
-            }
-        }
+    when (page) {
+        0 -> WelcomeStep(
+            reveal = reveal,
+            layerHiddenByShared = layerHiddenByShared,
+            onAnchorRect = onAnchorRect,
+            modifier = modifier,
+        )
+        1 -> SeeYourDataStep(
+            reveal = reveal,
+            layerHiddenByShared = layerHiddenByShared,
+            onAnchorRect = onAnchorRect,
+            modifier = modifier,
+        )
+        2 -> StayUnderCapStep(
+            hasPlan = state.hasPlan,
+            reveal = reveal,
+            layerHiddenByShared = layerHiddenByShared,
+            onAnchorRect = onAnchorRect,
+            onSetUpPlan = onSetUpPlan,
+            modifier = modifier,
+        )
+        else -> AllowAccessStep(
+            usageAccess = state.usageAccess,
+            notifications = state.notifications,
+            reveal = reveal,
+            firstCardHiddenByShared = layerHiddenByShared,
+            onAnchorRect = onAnchorRect,
+            onOpenUsageAccess = onOpenUsageAccess,
+            onRequestNotifications = onRequestNotifications,
+            modifier = modifier,
+        )
     }
 }

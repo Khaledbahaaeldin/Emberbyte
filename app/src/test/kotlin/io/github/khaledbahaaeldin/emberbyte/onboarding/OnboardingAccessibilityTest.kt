@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -38,37 +39,35 @@ class OnboardingAccessibilityTest {
     @Test
     fun onboarding_touch_targets_are_at_least_48dp() {
         show(OnboardingUiState(usageAccess = false, notifications = false, hasPlan = false))
-        for (page in 1..4) {
-            assertNoTouchTargetSmallerThan48dp(rule)
-            if (page < 4) {
-                rule.onNodeWithText("Next").performClick()
-            }
-        }
+        assertNoTouchTargetSmallerThan48dp(rule)
+        rule.onNodeWithText("Get started").performClick()
+        assertNoTouchTargetSmallerThan48dp(rule)
+        rule.onNodeWithText("Continue").performClick()
+        assertNoTouchTargetSmallerThan48dp(rule)
+        rule.onNodeWithText("Continue").performClick()
+        assertNoTouchTargetSmallerThan48dp(rule)
     }
 
     @Test
     fun onboarding_action_buttons_have_non_empty_accessible_names() {
         show(OnboardingUiState(usageAccess = false, notifications = false, hasPlan = false))
 
-        // Page 1: Skip and Next
-        val skipPage1 = rule.onNodeWithText("Skip")
+        val skipPage1 = rule.onNodeWithText("Skip intro")
         skipPage1.assertIsDisplayed()
         skipPage1.assert(hasClickAction())
 
-        val nextBtn = rule.onNodeWithText("Next")
-        nextBtn.assertIsDisplayed()
-        nextBtn.assert(hasClickAction())
+        val getStartedBtn = rule.onNodeWithText("Get started")
+        getStartedBtn.assertIsDisplayed()
+        getStartedBtn.assert(hasClickAction())
 
-        // Advance to Page 3 ("Stay under your cap")
-        rule.onNodeWithText("Next").performClick()
-        rule.onNodeWithText("Next").performClick()
+        getStartedBtn.performClick()
+        rule.onNodeWithText("Continue").performClick()
 
         val setUpPlan = rule.onNodeWithText("Set up a plan").performScrollTo()
         setUpPlan.assertIsDisplayed()
         setUpPlan.assert(hasClickAction())
 
-        // Advance to Page 4 ("Allow usage access")
-        rule.onNodeWithText("Next").performClick()
+        rule.onNodeWithText("Continue").performClick()
 
         val openSettings = rule.onNodeWithText("Open settings").performScrollTo()
         openSettings.assertIsDisplayed()
@@ -82,8 +81,8 @@ class OnboardingAccessibilityTest {
         skipForNow.assertIsDisplayed()
         skipForNow.assert(hasClickAction())
 
-        val allowAccessBtn = rule.onNodeWithText("Allow access")
-        allowAccessBtn.assertIsDisplayed()
-        allowAccessBtn.assert(hasClickAction())
+        val primaryBtn = rule.onNodeWithTag("onboarding_primary_button")
+        primaryBtn.assertIsDisplayed()
+        primaryBtn.assert(hasClickAction())
     }
 }
