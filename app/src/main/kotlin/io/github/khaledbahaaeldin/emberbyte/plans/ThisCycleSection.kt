@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -41,14 +43,14 @@ internal fun ThisCycleSection(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-    EditorSectionCard(title = "This cycle", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_this_cycle), modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Counted so far $countedSoFarText",
+                text = stringResource(R.string.plan_editor_counted_so_far, countedSoFarText),
                 style = EmberbyteType.heading(PlanFlowType.Body),
                 color = palette.text,
             )
@@ -58,7 +60,7 @@ internal fun ThisCycleSection(
                     color = palette.primary.copy(alpha = 0.14f),
                 ) {
                     Text(
-                        text = "Estimated",
+                        text = stringResource(R.string.plan_flow_choice_phone_tag),
                         style = EmberbyteType.heading(PlanFlowType.Micro),
                         color = palette.primary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -68,15 +70,15 @@ internal fun ThisCycleSection(
         }
 
         Text(
-            text = "Only applies to the first cycle. Next cycle starts from zero.",
+            text = stringResource(R.string.plan_editor_first_cycle_note),
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = PlanFlowType.Caption),
             color = palette.muted,
         )
 
         val choices = listOf(
-            FirstCycleChoice.PhoneRecord to "Phone record",
-            FirstCycleChoice.Entered to "Enter an amount",
-            FirstCycleChoice.StartNextCycle to "Next cycle",
+            FirstCycleChoice.PhoneRecord to stringResource(R.string.plan_editor_choice_phone),
+            FirstCycleChoice.Entered to stringResource(R.string.plan_editor_choice_entered),
+            FirstCycleChoice.StartNextCycle to stringResource(R.string.plan_editor_choice_next),
         )
         ConnectedButtonGroup(
             options = choices.map { it.second },
@@ -89,7 +91,7 @@ internal fun ThisCycleSection(
             OutlinedTextField(
                 value = enteredAmount,
                 onValueChange = onSetEnteredAmount,
-                label = { Text("Used so far") },
+                label = { Text(stringResource(R.string.plan_editor_used_so_far)) },
                 singleLine = true,
                 isError = enteredError != null,
                 supportingText = enteredError?.let { msg -> { Text(msg) } },

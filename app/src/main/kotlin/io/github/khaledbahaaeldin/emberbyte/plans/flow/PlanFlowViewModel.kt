@@ -129,7 +129,7 @@ data class PlanFlowState(
     val validationAttempt: Int = 0,
     val alertThresholds: Set<Int> = DEFAULT_PLAN_ALERT_THRESHOLDS,
     val rollover: RolloverKind = RolloverKind.None,
-    val saveError: String? = null,
+    val saveFailed: Boolean = false,
 ) {
     fun stepValidationError(): PlanFlowError? = when (step) {
         1 -> when {
@@ -575,9 +575,9 @@ class PlanFlowViewModel(
             alertThresholds = s.alertThresholds,
         )
         if (outcome is Outcome.Success) {
-            _uiState.update { it.copy(createdPlanId = outcome.value, isSaving = false, saveError = null) }
+            _uiState.update { it.copy(createdPlanId = outcome.value, isSaving = false, saveFailed = false) }
         } else {
-            _uiState.update { it.copy(isSaving = false, saveError = "Could not save plan. Please try again.") }
+            _uiState.update { it.copy(isSaving = false, saveFailed = true) }
         }
     }
 }

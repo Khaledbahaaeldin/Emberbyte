@@ -250,9 +250,9 @@ internal fun AmountStep(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         val options = listOf(
-                            RolloverKind.None to "Lost at renewal",
-                            RolloverKind.Full to "Carried forward",
-                            RolloverKind.Capped to "Capped rollover",
+                            RolloverKind.None to stringResource(R.string.plan_editor_rollover_lost),
+                            RolloverKind.Full to stringResource(R.string.plan_editor_rollover_full),
+                            RolloverKind.Capped to stringResource(R.string.plan_flow_rollover_capped_label),
                         )
                         options.forEach { (kind, label) ->
                             FilterChip(

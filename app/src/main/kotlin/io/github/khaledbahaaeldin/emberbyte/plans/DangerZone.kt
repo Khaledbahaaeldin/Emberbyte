@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,7 +52,7 @@ internal fun DangerZone(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "DANGER ZONE",
+                text = stringResource(R.string.plan_editor_danger_zone),
                 style = EmberbyteType.heading(PlanFlowType.Micro).copy(letterSpacing = 0.08.em),
                 color = palette.danger,
                 modifier = Modifier.semantics { heading() },
@@ -63,31 +65,31 @@ internal fun DangerZone(
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = 48.dp),
             ) {
-                Text("Delete plan")
+                Text(stringResource(R.string.plan_editor_delete_plan))
             }
         }
     }
 
     if (showConfirm) {
-        val displayName = planName.trim().ifEmpty { "this plan" }
+        val displayName = planName.trim().ifEmpty { stringResource(R.string.plan_editor_this_plan) }
         EmberbyteDialog(
             onDismiss = { showConfirm = false },
-            title = "Delete $displayName?",
+            title = stringResource(R.string.plan_editor_delete_title, displayName),
             icon = Icons.Rounded.DeleteOutline,
             destructive = true,
             confirm = DialogAction(
-                label = "Delete",
+                label = stringResource(R.string.plan_editor_delete),
                 onClick = {
                     showConfirm = false
                     onDeleteConfirmed()
                 },
             ),
             dismiss = DialogAction(
-                label = "Cancel",
+                label = stringResource(R.string.plan_editor_cancel),
                 onClick = { showConfirm = false },
             ),
         ) {
-            Text("This removes the plan, its add-ons and its alerts. Your recorded usage is kept, and you can undo this for a few seconds.")
+            Text(stringResource(R.string.plan_editor_delete_body))
         }
     }
 }

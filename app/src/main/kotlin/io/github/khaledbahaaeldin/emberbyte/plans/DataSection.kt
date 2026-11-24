@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -35,11 +37,11 @@ internal fun DataSection(
     val locale = LocalConfiguration.current.locales[0]
     val decimalSeparator = DecimalFormatSymbols.getInstance(locale).decimalSeparator
 
-    EditorSectionCard(title = "Data", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_data), modifier = modifier) {
         OutlinedTextField(
             value = capText,
             onValueChange = onSetCap,
-            label = { Text("Cap") },
+            label = { Text(stringResource(R.string.plan_editor_cap)) },
             singleLine = true,
             isError = capError != null,
             supportingText = capError?.let { msg -> { Text(msg) } },

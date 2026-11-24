@@ -160,7 +160,7 @@ internal fun ReviewStep(
                             color = palette.primary,
                         )
                         Text(
-                            text = cycleSummaryLine(cycle, locale),
+                            text = cycleSummaryText(cycle, locale),
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = PlanFlowType.Caption),
                             color = palette.muted,
                         )
@@ -179,10 +179,9 @@ internal fun ReviewStep(
             }
         }
 
-        val err = state.saveError
-        if (err != null) {
+        if (state.saveFailed) {
             Text(
-                text = err,
+                text = stringResource(R.string.plan_flow_save_failed),
                 style = EmberbyteType.heading(PlanFlowType.Body),
                 color = palette.danger,
             )

@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,7 +67,7 @@ internal fun ExtrasSection(
     val totalCount = addOns.size + freeRules.size
     var expanded by remember(totalCount > 0) { mutableStateOf(totalCount > 0) }
 
-    EditorSectionCard(title = "Extras", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_extras), modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,20 +79,20 @@ internal fun ExtrasSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Add-ons & free windows ($totalCount)",
+                text = stringResource(R.string.plan_editor_extras_count, totalCount),
                 style = EmberbyteType.heading(PlanFlowType.Body),
                 color = palette.text,
             )
             Icon(
                 imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = if (expanded) stringResource(R.string.plan_editor_collapse) else stringResource(R.string.plan_editor_expand),
                 tint = palette.muted,
             )
         }
 
         if (expanded) {
             Text(
-                text = "Add-ons",
+                text = stringResource(R.string.plan_editor_addons),
                 style = EmberbyteType.heading(PlanFlowType.Caption),
                 color = palette.muted,
             )
@@ -112,7 +114,7 @@ internal fun ExtrasSection(
                             OutlinedTextField(
                                 value = draft.label,
                                 onValueChange = { onUpdateAddOn(index, draft.copy(label = it)) },
-                                label = { Text("Add-on label") },
+                                label = { Text(stringResource(R.string.plan_editor_addon_label)) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                             )
@@ -120,13 +122,13 @@ internal fun ExtrasSection(
                                 onClick = { onRemoveAddOn(index) },
                                 modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                             ) {
-                                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remove add-on pack")
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.plan_editor_remove_addon))
                             }
                         }
                         OutlinedTextField(
                             value = draft.amountText,
                             onValueChange = { onUpdateAddOn(index, draft.copy(amountText = it)) },
-                            label = { Text("Amount") },
+                            label = { Text(stringResource(R.string.plan_editor_amount)) },
                             singleLine = true,
                             isError = errors.containsKey("addOn.$index.bytes"),
                             supportingText = errors["addOn.$index.bytes"]?.let { msg -> { Text(msg) } },
@@ -141,12 +143,12 @@ internal fun ExtrasSection(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         DateField(
-                            label = "Valid from",
+                            label = stringResource(R.string.plan_editor_valid_from),
                             date = draft.validFrom,
                             onChange = { onUpdateAddOn(index, draft.copy(validFrom = it)) },
                         )
                         DateField(
-                            label = "Valid until",
+                            label = stringResource(R.string.plan_editor_valid_until),
                             date = draft.validUntil,
                             onChange = { onUpdateAddOn(index, draft.copy(validUntil = it)) },
                         )
@@ -158,11 +160,11 @@ internal fun ExtrasSection(
                 modifier = Modifier.defaultMinSize(minHeight = 48.dp),
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
-                Text("Add add-on", modifier = Modifier.padding(start = 6.dp))
+                Text(stringResource(R.string.plan_editor_add_addon), modifier = Modifier.padding(start = 6.dp))
             }
 
             Text(
-                text = "Free windows",
+                text = stringResource(R.string.plan_editor_free_windows),
                 style = EmberbyteType.heading(PlanFlowType.Caption),
                 color = palette.muted,
             )
@@ -184,7 +186,7 @@ internal fun ExtrasSection(
                             OutlinedTextField(
                                 value = draft.label,
                                 onValueChange = { onUpdateFreeRule(index, draft.copy(label = it)) },
-                                label = { Text("Window label") },
+                                label = { Text(stringResource(R.string.plan_editor_window_label)) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
                             )
@@ -192,7 +194,7 @@ internal fun ExtrasSection(
                                 onClick = { onRemoveFreeRule(index) },
                                 modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                             ) {
-                                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remove free window")
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.plan_editor_remove_window))
                             }
                         }
                         FlowRow(
@@ -212,31 +214,31 @@ internal fun ExtrasSection(
                             }
                         }
                         TimeField(
-                            label = "Start time",
+                            label = stringResource(R.string.plan_editor_start_time),
                             time = draft.start,
                             onChange = { onUpdateFreeRule(index, draft.copy(start = it)) },
                         )
                         TimeField(
-                            label = "End time",
+                            label = stringResource(R.string.plan_editor_end_time),
                             time = draft.end,
                             onChange = { onUpdateFreeRule(index, draft.copy(end = it)) },
                         )
                         if (availableApps.isNotEmpty()) {
                             var appMenuOpen by remember { mutableStateOf(false) }
-                            val currentApp = availableApps.firstOrNull { it.packageName == draft.packageName }?.label ?: "All apps"
+                            val currentApp = availableApps.firstOrNull { it.packageName == draft.packageName }?.label ?: stringResource(R.string.plan_editor_all_apps)
                             androidx.compose.foundation.layout.Box {
                                 OutlinedButton(
                                     onClick = { appMenuOpen = true },
                                     modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                                 ) {
-                                    Text("App: $currentApp")
+                                    Text(stringResource(R.string.plan_editor_app_choice, currentApp))
                                 }
                                 androidx.compose.material3.DropdownMenu(
                                     expanded = appMenuOpen,
                                     onDismissRequest = { appMenuOpen = false },
                                 ) {
                                     androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("All apps") },
+                                        text = { Text(stringResource(R.string.plan_editor_all_apps)) },
                                         onClick = {
                                             appMenuOpen = false
                                             onUpdateFreeRule(index, draft.copy(packageName = null))
@@ -262,7 +264,7 @@ internal fun ExtrasSection(
                 modifier = Modifier.defaultMinSize(minHeight = 48.dp),
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = null)
-                Text("Add free window", modifier = Modifier.padding(start = 6.dp))
+                Text(stringResource(R.string.plan_editor_add_window), modifier = Modifier.padding(start = 6.dp))
             }
         }
     }

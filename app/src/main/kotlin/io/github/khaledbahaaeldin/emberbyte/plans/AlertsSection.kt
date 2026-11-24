@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -33,7 +35,7 @@ internal fun AlertsSection(
     val levels = listOf(50, 80, 90, 100)
     val enabled = thresholds.isNotEmpty()
 
-    EditorSectionCard(title = "Alerts", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_alerts), modifier = modifier) {
         val toggleAll = { on: Boolean ->
             if (on && thresholds.isEmpty()) {
                 onToggleThreshold(80)
@@ -51,7 +53,7 @@ internal fun AlertsSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Notify me",
+                text = stringResource(R.string.plan_editor_notify_me),
                 style = EmberbyteType.heading(PlanFlowType.Body),
                 color = palette.text,
             )
@@ -78,7 +80,7 @@ internal fun AlertsSection(
         }
 
         Text(
-            text = "Sent from this phone, never from a server",
+            text = stringResource(R.string.plan_editor_alerts_note),
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = PlanFlowType.Caption),
             color = palette.muted,
         )
@@ -92,7 +94,7 @@ internal fun OnHomeSection(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalEmberbytePalette.current
-    EditorSectionCard(title = "On Home", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_on_home), modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,12 +108,12 @@ internal fun OnHomeSection(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = "Pin to the front",
+                    text = stringResource(R.string.plan_editor_pin_title),
                     style = EmberbyteType.heading(PlanFlowType.Body),
                     color = palette.text,
                 )
                 Text(
-                    text = "Show this plan first, even when another is closer to its limit",
+                    text = stringResource(R.string.plan_editor_pin_body),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = PlanFlowType.Caption),
                     color = palette.muted,
                 )

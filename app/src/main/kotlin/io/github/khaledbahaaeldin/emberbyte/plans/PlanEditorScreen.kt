@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -116,7 +118,7 @@ internal fun PlanEditorContent(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 EditorHeader(
-                    title = if (state.isNew) "New plan" else "Edit plan",
+                    title = if (state.isNew) stringResource(R.string.plan_editor_title_new) else stringResource(R.string.plan_editor_title_edit),
                     canDelete = !state.isNew,
                     showSlimPreview = showSlimPreview,
                     preview = state.preview,
@@ -140,7 +142,7 @@ internal fun PlanEditorContent(
                     if (state.loading) {
                         item(key = "loading") {
                             LoadingState(
-                                label = "Loading plan",
+                                label = stringResource(R.string.plan_editor_loading),
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(vertical = 48.dp),
@@ -151,9 +153,9 @@ internal fun PlanEditorContent(
 
                     if (state.notFound) {
                         item(key = "not_found") {
-                            EditorSectionCard(title = "Plan") {
+                            EditorSectionCard(title = stringResource(R.string.plan_editor_plan)) {
                                 Text(
-                                    text = "This plan no longer exists",
+                                    text = stringResource(R.string.plan_editor_not_found),
                                     style = EmberbyteType.heading(PlanFlowType.Body),
                                     color = palette.text,
                                 )
@@ -244,8 +246,8 @@ internal fun PlanEditorContent(
                             WhatIfCard(
                                 capGb = capVal,
                                 extraGb = extraVal,
-                                nowText = "Now: ${state.whatIf.currentText}",
-                                withExtraText = "With +$extraVal GB: ${state.whatIf.whatIfText}",
+                                nowText = stringResource(R.string.plan_editor_what_if_now, state.whatIf.currentText.orEmpty()),
+                                withExtraText = stringResource(R.string.plan_editor_what_if_with, extraVal, state.whatIf.whatIfText.orEmpty()),
                                 unitSystem = state.unitSystem,
                                 onChangeExtraGb = { gb ->
                                     onEvent(PlanEditorEvent.SetWhatIfUnit(CapUnit.GB))
@@ -341,7 +343,7 @@ internal fun PlanEditorContent(
             ) {
                 Icon(Icons.Rounded.Check, contentDescription = null)
                 Text(
-                    text = "Save",
+                    text = stringResource(R.string.plan_editor_save),
                     style = EmberbyteType.heading(PlanFlowType.Button),
                     modifier = Modifier.padding(start = 8.dp),
                 )
@@ -351,21 +353,21 @@ internal fun PlanEditorContent(
 
     val otherPinned = state.pendingPinReplacement
     if (otherPinned != null) {
-        val thisName = state.form.name.trim().ifEmpty { "this plan" }
+        val thisName = state.form.name.trim().ifEmpty { stringResource(R.string.plan_editor_this_plan) }
         EmberbyteDialog(
             onDismiss = { onEvent(PlanEditorEvent.DismissPinReplacement) },
-            title = "Unpin $otherPinned and pin $thisName?",
+            title = stringResource(R.string.plan_editor_unpin_title, otherPinned, thisName),
             icon = Icons.Rounded.PushPin,
             confirm = DialogAction(
-                label = "Pin",
+                label = stringResource(R.string.plan_editor_pin),
                 onClick = { onEvent(PlanEditorEvent.ConfirmPinReplacement) },
             ),
             dismiss = DialogAction(
-                label = "Cancel",
+                label = stringResource(R.string.plan_editor_cancel),
                 onClick = { onEvent(PlanEditorEvent.DismissPinReplacement) },
             ),
         ) {
-            Text("Only one plan can be pinned to the front on Home.")
+            Text(stringResource(R.string.plan_editor_pin_dialog_body))
         }
     }
 }

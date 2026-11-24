@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -83,7 +85,7 @@ internal fun EditorHeader(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.plan_editor_back),
                         tint = palette.text,
                     )
                 }
@@ -103,7 +105,7 @@ internal fun EditorHeader(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.MoreVert,
-                            contentDescription = "More options",
+                            contentDescription = stringResource(R.string.plan_editor_more),
                             tint = palette.text,
                         )
                     }
@@ -112,7 +114,7 @@ internal fun EditorHeader(
                         onDismissRequest = { menuOpen = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Delete plan") },
+                            text = { Text(stringResource(R.string.plan_editor_delete_plan)) },
                             onClick = {
                                 menuOpen = false
                                 onJumpToDelete()
@@ -170,7 +172,7 @@ private fun SlimPreviewBar(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = preview.name.ifBlank { "Plan" },
+                    text = preview.name.ifBlank { stringResource(R.string.plan_editor_plan_fallback) },
                     style = EmberbyteType.heading(PlanFlowType.Body),
                     color = palette.text,
                     maxLines = 1,

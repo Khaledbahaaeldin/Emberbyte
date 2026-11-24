@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,11 +74,11 @@ internal fun PlanSection(
     onRequestPhonePermission: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    EditorSectionCard(title = "Plan", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_plan), modifier = modifier) {
         OutlinedTextField(
             value = name,
             onValueChange = onSetName,
-            label = { Text("Plan name") },
+            label = { Text(stringResource(R.string.plan_flow_name_hint)) },
             singleLine = true,
             isError = nameError != null,
             supportingText = nameError?.let { msg -> { Text(msg) } },
@@ -101,7 +103,7 @@ internal fun PlanSection(
         if (needsPhonePermission) {
             AssistChip(
                 onClick = onRequestPhonePermission,
-                label = { Text("Allow phone access to tell your SIMs apart") },
+                label = { Text(stringResource(R.string.plan_flow_sim_permission_chip)) },
                 modifier = Modifier.defaultMinSize(minHeight = 48.dp),
             )
         }

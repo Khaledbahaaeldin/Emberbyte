@@ -124,7 +124,7 @@ internal fun NameStep(
         )
 
         val r2 = reveal(2)
-        val suggestions = listOf("Home SIM", "Work", "Travel eSIM", "Hotspot")
+        val suggestions = listOf(stringResource(R.string.plan_flow_suggest_home), stringResource(R.string.plan_flow_suggest_work), stringResource(R.string.plan_flow_suggest_travel), stringResource(R.string.plan_flow_suggest_hotspot))
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,7 +147,7 @@ internal fun NameStep(
 
         if (state.sims.size >= 2) {
             val r3 = reveal(3)
-            val simLabels = listOf("All mobile") + state.sims.map { it.label }
+            val simLabels = listOf(stringResource(R.string.plan_flow_sim_all)) + state.sims.map { it.label }
             val selectedIndex = if (state.subscriptionId == null) {
                 0
             } else {

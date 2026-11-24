@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -30,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle
 import io.github.khaledbahaaeldin.emberbyte.plans.flow.MonthlyDayGrid
-import io.github.khaledbahaaeldin.emberbyte.plans.flow.cycleSummaryLine
+import io.github.khaledbahaaeldin.emberbyte.plans.flow.cycleSummaryText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.controls.ConnectedButtonGroup
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
@@ -79,9 +81,9 @@ internal fun CycleSection(
         CycleKind.EveryNDays -> Cycle.EveryNDays(everyDays.coerceIn(1, 365), anchor, renewalTime, ZoneId.systemDefault())
     }
 
-    EditorSectionCard(title = "Cycle", modifier = modifier) {
+    EditorSectionCard(title = stringResource(R.string.plan_editor_cycle), modifier = modifier) {
         ConnectedButtonGroup(
-            options = listOf("Monthly", "Weekly", "Custom"),
+            options = listOf(stringResource(R.string.plan_flow_cycle_monthly), stringResource(R.string.plan_flow_cycle_weekly), stringResource(R.string.plan_flow_cycle_custom)),
             selectedIndex = selectedTab.ordinal,
             onSelect = { idx ->
                 when (EditorCycleTab.entries[idx]) {
@@ -106,12 +108,12 @@ internal fun CycleSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Resets on",
+                    text = stringResource(R.string.plan_editor_resets_on),
                     style = EmberbyteType.heading(PlanFlowType.Caption),
                     color = palette.muted,
                 )
                 Text(
-                    text = cycleSummaryLine(cycle, locale),
+                    text = cycleSummaryText(cycle, locale),
                     style = EmberbyteType.heading(PlanFlowType.Body),
                     color = palette.text,
                 )
@@ -119,7 +121,7 @@ internal fun CycleSection(
             if (selectedTab == EditorCycleTab.Monthly) {
                 AssistChip(
                     onClick = { showDaySheet = true },
-                    label = { Text("Change") },
+                    label = { Text(stringResource(R.string.plan_editor_change)) },
                     modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
                 )
             }
@@ -131,7 +133,7 @@ internal fun CycleSection(
                 onValueChange = { text ->
                     text.filter { it.isDigit() }.toIntOrNull()?.let(onSetEveryDays)
                 },
-                label = { Text("Days per cycle") },
+                label = { Text(stringResource(R.string.plan_editor_days_per_cycle)) },
                 singleLine = true,
                 isError = daysError != null,
                 supportingText = daysError?.let { msg -> { Text(msg) } },
@@ -142,25 +144,25 @@ internal fun CycleSection(
                     .testTag("editor_days_field"),
             )
             DateField(
-                label = "Cycle anchor",
+                label = stringResource(R.string.plan_editor_cycle_anchor),
                 date = anchor,
                 onChange = onSetAnchor,
             )
         }
 
         TimeField(
-            label = "Renews at",
+            label = stringResource(R.string.plan_editor_renews_at),
             time = renewalTime,
             onChange = onSetRenewalTime,
         )
 
         Text(
-            text = "Unused data",
+            text = stringResource(R.string.plan_editor_unused_data),
             style = EmberbyteType.heading(PlanFlowType.Caption),
             color = palette.muted,
         )
         ConnectedButtonGroup(
-            options = listOf("Lost at renewal", "Carried forward", "Capped"),
+            options = listOf(stringResource(R.string.plan_editor_rollover_lost), stringResource(R.string.plan_editor_rollover_full), stringResource(R.string.plan_editor_rollover_capped)),
             selectedIndex = rolloverKind.ordinal,
             onSelect = { idx -> onSetRolloverKind(RolloverKind.entries[idx]) },
             modifier = Modifier.fillMaxWidth(),
@@ -170,7 +172,7 @@ internal fun CycleSection(
             OutlinedTextField(
                 value = rolloverCapText,
                 onValueChange = onSetRolloverCap,
-                label = { Text("Rollover cap") },
+                label = { Text(stringResource(R.string.plan_editor_rollover_cap)) },
                 singleLine = true,
                 isError = rolloverError != null,
                 supportingText = rolloverError?.let { msg -> { Text(msg) } },
@@ -197,7 +199,7 @@ internal fun CycleSection(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Resets on",
+                    text = stringResource(R.string.plan_editor_resets_on),
                     style = EmberbyteType.heading(PlanFlowType.SectionTitle),
                     color = palette.text,
                     modifier = Modifier.padding(horizontal = 12.dp),

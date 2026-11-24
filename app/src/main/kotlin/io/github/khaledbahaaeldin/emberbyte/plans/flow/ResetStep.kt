@@ -206,12 +206,12 @@ internal fun ResetStep(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = cycleSummaryLine(cycle, locale),
+                    text = cycleSummaryText(cycle, locale),
                     style = EmberbyteType.heading(PlanFlowType.CardTitle),
                     color = palette.text,
                 )
                 Text(
-                    text = nextResetDescription(cycle, clock.instant(), clock.zone, locale),
+                    text = nextResetText(cycle, clock.instant(), clock.zone, locale),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = PlanFlowType.Caption),
                     color = palette.muted,
                 )

@@ -1,5 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,7 +54,7 @@ internal fun WhatIfCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "What if",
+                text = stringResource(R.string.plan_editor_what_if),
                 style = EmberbyteType.heading(PlanFlowType.Micro).copy(letterSpacing = 0.08.em),
                 color = palette.primary,
             )
