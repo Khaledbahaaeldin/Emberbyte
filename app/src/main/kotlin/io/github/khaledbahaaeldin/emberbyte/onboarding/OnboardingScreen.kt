@@ -46,6 +46,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMo
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.OnboardingType
 import kotlinx.coroutines.launch
 
 @Composable
@@ -204,7 +205,7 @@ private fun OnboardingBottomBar(
     val palette = LocalEmberbytePalette.current
     val isLastPage = currentPage == ONBOARDING_PAGE_COUNT - 1
     val fontScale = LocalDensity.current.fontScale
-    val buttonFontSize = if (fontScale > 1.3f) (16f * (1.3f / fontScale)).sp else 16.sp
+    val buttonFontSize = if (fontScale > 1.3f) (OnboardingType.Button.value * (1.3f / fontScale)).sp else OnboardingType.Button
 
     Row(
         modifier = Modifier.fillMaxWidth(),

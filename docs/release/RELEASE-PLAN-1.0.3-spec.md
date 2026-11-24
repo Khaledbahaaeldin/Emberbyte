@@ -36,7 +36,7 @@
 | T9 Motion foundations | Khaled (wrappers); each owner applies them in their own screens | not started |
 | T10 Numbers, rings, charts | Omar | not started |
 | T11 Press, Plus exit, back cancel | Omar (press morph and back cancel only) | not started |
-| T12 Typography and shape scale | Khaled (T12a tokens first, T12b migration sweep last) | not started |
+| T12 Typography and shape scale | Khaled (T12a tokens first, T12b migration sweep last) | done |
 | T13 Navbar and adaptive | Khaled (also the Plus button exit) | not started |
 | T14 Localisation groundwork and cleanup | Khaled (last) | not started |
 | T16 What's new sheet (offline) | Joe | done |

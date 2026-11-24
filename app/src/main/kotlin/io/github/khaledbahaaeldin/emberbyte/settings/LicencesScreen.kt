@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -68,6 +68,7 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LicencesType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
@@ -153,7 +154,7 @@ fun LicencesContent(
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(percent = 50),
+                    shape = CircleShape,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = palette.surface2,
                         unfocusedContainerColor = palette.surface2,
@@ -183,7 +184,7 @@ fun LicencesContent(
                         ) {
                             Text(
                                 text = "Emberbyte is free software",
-                                style = EmberbyteType.heading(18.sp),
+                                style = EmberbyteType.heading(LicencesType.Header),
                                 color = palette.onPrimary,
                             )
                             Text(
@@ -209,7 +210,7 @@ fun LicencesContent(
                     item {
                         Text(
                             text = "Built with",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = LicencesType.SectionTracking),
                             color = palette.muted,
                             modifier = Modifier
                                 .padding(top = 10.dp, bottom = 2.dp)
@@ -225,7 +226,7 @@ fun LicencesContent(
                     item {
                         Text(
                             text = "Fonts and designs",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = LicencesType.SectionTracking),
                             color = palette.muted,
                             modifier = Modifier
                                 .padding(top = 10.dp, bottom = 2.dp)
@@ -241,7 +242,7 @@ fun LicencesContent(
                     item {
                         Text(
                             text = "Other components",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = LicencesType.SectionTracking),
                             color = palette.muted,
                             modifier = Modifier
                                 .padding(top = 10.dp, bottom = 2.dp)
@@ -284,7 +285,7 @@ private fun LicenceEntryRow(
 
     val motion = rememberEmberbyteMotion()
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.large,
         color = palette.surface,
         modifier = modifier
             .fillMaxWidth()
@@ -306,7 +307,7 @@ private fun LicenceEntryRow(
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = item.name,
-                        style = EmberbyteType.heading(15.sp),
+                        style = EmberbyteType.heading(LicencesType.ItemTitle),
                         color = palette.text,
                     )
                     if (item.version.isNotBlank()) {
@@ -322,7 +323,7 @@ private fun LicenceEntryRow(
 
                 // Licence pill
                 Surface(
-                    shape = RoundedCornerShape(percent = 50),
+                    shape = CircleShape,
                     color = pillBg,
                     contentColor = pillFg,
                 ) {
@@ -375,7 +376,7 @@ private fun LicenceEntryRow(
 
                     if (item.fullLicenceText.isNotBlank()) {
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
+                            shape = MaterialTheme.shapes.small,
                             color = palette.surface2,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -385,8 +386,8 @@ private fun LicenceEntryRow(
                                         text = item.fullLicenceText,
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontFamily = FontFamily.Monospace,
-                                            fontSize = 11.sp,
-                                            lineHeight = 15.sp,
+                                            fontSize = LicencesType.LicenceBody,
+                                            lineHeight = LicencesType.LicenceLineHeight,
                                         ),
                                         color = palette.text,
                                         modifier = Modifier.padding(12.dp),
