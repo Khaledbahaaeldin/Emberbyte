@@ -75,6 +75,7 @@ data class PlanEditorUiState(
     val unitSystem: UnitSystem = UnitSystem.DECIMAL,
     val whatIf: WhatIfUi? = null,
     val isDirty: Boolean = false,
+    val pendingPinReplacement: String? = null,
 )
 
 sealed interface PlanEditorEvent {
@@ -102,6 +103,9 @@ sealed interface PlanEditorEvent {
     data class UpdateFreeRule(val index: Int, val draft: FreeRuleDraft) : PlanEditorEvent
     data class RemoveFreeRule(val index: Int) : PlanEditorEvent
     data class ToggleThreshold(val percent: Int) : PlanEditorEvent
+    data class SetPinned(val pinned: Boolean) : PlanEditorEvent
+    data object ConfirmPinReplacement : PlanEditorEvent
+    data object DismissPinReplacement : PlanEditorEvent
     data object Save : PlanEditorEvent
     data object Delete : PlanEditorEvent
 }
