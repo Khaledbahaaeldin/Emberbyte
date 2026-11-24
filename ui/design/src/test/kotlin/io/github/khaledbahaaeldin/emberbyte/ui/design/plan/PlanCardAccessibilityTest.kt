@@ -35,7 +35,6 @@ class PlanCardAccessibilityTest {
         forecastText = null,
         isEstimated = false,
         chips = emptyList(),
-        archived = false,
     )
 
     private fun show(model: PlanCardUi) {

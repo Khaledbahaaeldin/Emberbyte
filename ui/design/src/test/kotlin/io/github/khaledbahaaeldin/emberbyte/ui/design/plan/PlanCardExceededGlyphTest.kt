@@ -25,7 +25,7 @@ class PlanCardExceededGlyphTest {
         val model = PlanCardUi(
             id = 1, name = "Main", simLabel = null, fraction = 1.1f, ringState = BudgetStateUi.Exceeded,
             percentText = "110%", usedText = "11 GB of 10 GB", remainingText = "0 B left", daysLeftText = "9 days left",
-            forecastText = "Already over your cap", isEstimated = false, chips = emptyList(), archived = false,
+            forecastText = "Already over your cap", isEstimated = false, chips = emptyList(),
         )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec(presetId = "monochrome", darkTheme = false)) { PlanCard(model, {}) }

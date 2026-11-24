@@ -42,7 +42,6 @@ class PlanTileTest {
         forecastText = null,
         isEstimated = false,
         chips = emptyList(),
-        archived = false,
     )
 
     private fun show(model: PlanCardUi = baseModel, onClick: () -> Unit = {}) {

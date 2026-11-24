@@ -60,9 +60,6 @@ fun PlanCard(
         if (model.isEstimated) {
             append(", estimated")
         }
-        if (model.archived) {
-            append(", archived")
-        }
     }
     Surface(
         onClick = onClick,
@@ -134,19 +131,6 @@ fun PlanCard(
                     Text(note, style = MaterialTheme.typography.labelSmall, color = palette.muted)
                 }
                 if (model.isEstimated) EstimatedBadge()
-                if (model.archived) {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = palette.surface,
-                    ) {
-                        Text(
-                            text = "Archived",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = palette.muted,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                    }
-                }
                 if (model.chips.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         model.chips.forEach { AssistChip(onClick = {}, label = { Text(it, maxLines = 1) }) }

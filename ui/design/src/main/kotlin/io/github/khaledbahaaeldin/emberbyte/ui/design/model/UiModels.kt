@@ -41,6 +41,8 @@ enum class BudgetStateUi { Ok, Warning, Exceeded }
 
 data class PlanChipUi(val id: Long, val name: String, val selected: Boolean)
 
+enum class PlanStatusKind { OnTrack, RunsOutEarly, OverCap, Upcoming }
+
 data class PlanCardUi(
     val id: Long,
     val name: String,
@@ -54,9 +56,19 @@ data class PlanCardUi(
     val forecastText: String?,
     val isEstimated: Boolean,
     val chips: List<String>,
-    val archived: Boolean,
     val isDormant: Boolean = false,
     val startsAtText: String? = null,
     val enteredNote: String? = null,
     val pinned: Boolean = false,
+    val allowancePerDayText: String? = null,
+    val timeFraction: Float = 0f,
+    val dayOfCycle: Int = 0,
+    val cycleLength: Int = 1,
+    val weekBars: List<Float> = emptyList(),
+    val statusKind: PlanStatusKind = PlanStatusKind.OnTrack,
+    val runOutDateText: String? = null,
+    val earlyDaysText: String? = null,
+    val renewsText: String = "",
+    val capText: String = "",
+    val rolloverText: String? = null,
 )
