@@ -18,7 +18,7 @@ class AppDetailBudgetTest {
         val ui = budgetUi(BudgetStatus(AppBudget(1, "com.video", 750_000_000L, BudgetPeriod.DAILY, null, 80, true), 612_000_000L, BudgetState.WARNING), planName = null, units = ByteUnits.DECIMAL)
         assertEquals("81%", ui.percentText)
         assertEquals(BudgetStateUi.Warning, ui.ringState)
-        assertEquals("612 MB of 750 MB", ui.usedText)
+        assertEquals("612 MB of 750 MB mobile data", ui.usedText)
         assertEquals("today", ui.periodText)
         assertEquals(0.816f, ui.fraction, 0.001f)
     }
@@ -29,7 +29,7 @@ class AppDetailBudgetTest {
         val ui = budgetUi(status, planName = "Main", units = ByteUnits.DECIMAL)
         assertEquals("120%", ui.percentText)
         assertEquals(BudgetStateUi.Exceeded, ui.ringState)
-        assertEquals("900 MB of 750 MB", ui.usedText)
+        assertEquals("900 MB of 750 MB mobile data", ui.usedText)
         assertEquals("this cycle (Main)", ui.periodText)
         assertEquals(1.2f, ui.fraction, 0.001f)
     }

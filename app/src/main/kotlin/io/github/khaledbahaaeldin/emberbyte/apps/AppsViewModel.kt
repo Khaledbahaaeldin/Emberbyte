@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.khaledbahaaeldin.emberbyte.data.PermissionRepository
 import io.github.khaledbahaaeldin.emberbyte.data.SettingsRepository
+import io.github.khaledbahaaeldin.emberbyte.data.SpikeRepository
 import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
@@ -11,7 +12,10 @@ import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage
 import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
 import io.github.khaledbahaaeldin.emberbyte.engine.model.NetworkKind
+import io.github.khaledbahaaeldin.emberbyte.engine.model.SpikeEvent
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsageFilter
+import io.github.khaledbahaaeldin.emberbyte.home.SpikeTileUi
+import io.github.khaledbahaaeldin.emberbyte.home.spikeTile
 import io.github.khaledbahaaeldin.emberbyte.home.toByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
@@ -24,15 +28,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class AppsRange { TODAY, LAST_7_DAYS, LAST_30_DAYS, THIS_MONTH, CYCLE }
 
 enum class AppsNetwork { ALL, MOBILE, WIFI }
 
-enum class AppFilterKind { RANGE, NETWORK, SORT, SYSTEM_APPS }
+enum class AppFilterKind { NETWORK, SORT, SYSTEM_APPS }
 
 data class AppsUiState(
     val range: AppsRange = AppsRange.TODAY,
@@ -43,10 +51,21 @@ data class AppsUiState(
     val apps: List<AppRowUi> = emptyList(),
     val featured: AppRowUi? = null,
     val totalBytes: Long = 0L,
+    val wifiBytes: Long = 0L,
+    val mobileBytes: Long = 0L,
+    /** Apps shown (the featured one plus the list), for the "47 apps" pill. */
+    val appCount: Int = 0,
     val units: ByteUnits = ByteUnits.DECIMAL,
     val needsUsageAccess: Boolean = false,
+    /** The newest undismissed spike, shown as a banner above the list. */
+    val spike: SpikeTileUi? = null,
     val loaded: Boolean = false,
-)
+) {
+    val isLoading: Boolean get() = !loaded
+
+    /** Filters that differ from the defaults; the period buttons are not filters. */
+    val activeFilterCount: Int get() = activeFilterCount(network, sort, showSystemApps)
+}
 
 sealed interface AppsEvent {
     data class SetRange(val range: AppsRange) : AppsEvent
@@ -56,8 +75,8 @@ sealed interface AppsEvent {
     data class SetQuery(val query: String) : AppsEvent
     data class RemoveFilter(val filter: AppFilterKind) : AppsEvent
     data object ResetFilters : AppsEvent
+    data class DismissSpike(val id: Long) : AppsEvent
     data class ApplyFilters(
-        val range: AppsRange,
         val network: AppsNetwork,
         val sort: AppSort,
         val showSystemApps: Boolean,
@@ -101,8 +120,17 @@ internal fun buildAppsUiState(
     } else {
         filtered.filter { it.label.contains(text, ignoreCase = true) || it.packageName.contains(text, ignoreCase = true) }
     }
-    val rows = shown.map { AppRowUi(it.packageName, it.label, it.mobileBytes, it.wifiBytes) }
-    val featuredRow = if (text.isEmpty() && rows.isNotEmpty()) rows.first() else null
+    val largest = shown.maxByOrNull { it.totalBytes }
+    val featuredRow = if (text.isEmpty() && largest != null) {
+        AppRowUi(largest.packageName, largest.label, largest.mobileBytes, largest.wifiBytes)
+    } else null
+    val isUsageSort = sort == AppSort.BYTES_DESC || sort == AppSort.BYTES_ASC
+    val listApps = if (text.isEmpty() && isUsageSort && featuredRow != null) {
+        shown.filter { it.packageName != featuredRow.packageName }
+    } else {
+        shown
+    }
+    val rows = listApps.map { AppRowUi(it.packageName, it.label, it.mobileBytes, it.wifiBytes) }
     return AppsUiState(
         range = range,
         network = network,
@@ -112,6 +140,9 @@ internal fun buildAppsUiState(
         apps = rows,
         featured = featuredRow,
         totalBytes = shown.sumOf { it.totalBytes },
+        wifiBytes = shown.sumOf { it.wifiBytes },
+        mobileBytes = shown.sumOf { it.mobileBytes },
+        appCount = shown.size,
         units = units,
         needsUsageAccess = needsUsageAccess,
         loaded = true,
@@ -133,6 +164,8 @@ class AppsViewModel(
     permissions: PermissionRepository,
     private val clock: Clock = SystemZoneClock(),
     dates: Flow<LocalDate> = DayClock(clock).dates(),
+    private val spikes: SpikeRepository? = null,
+    private val labelOf: (String) -> String = { it },
 ) : ViewModel() {
     private val selection = MutableStateFlow(Selection())
     private val query = MutableStateFlow("")
@@ -143,21 +176,35 @@ class AppsViewModel(
         }
 
     val featured: StateFlow<AppUsage?> = combine(apps, query) { list, text ->
-        if (text.trim().isEmpty() && list.isNotEmpty()) list.first() else null
+        if (text.trim().isEmpty() && list.isNotEmpty()) {
+            list.maxByOrNull { it.totalBytes }
+        } else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    private val spikeEvents: Flow<List<SpikeEvent>> =
+        spikes?.observeSpikes(includeDismissed = false) ?: emptyFlow()
+
+    private val newestSpike: Flow<SpikeEvent?> = spikeEvents.onStart { emit(emptyList()) }.map { list ->
+        list.filter { !it.dismissed }.maxWithOrNull(compareBy<SpikeEvent> { it.detectedAt }.thenBy { it.id })
+    }
+
     val uiState: StateFlow<AppsUiState> =
-        combine(apps, selection, query, settings.observe(), permissions.observe()) { list, sel, text, s, perm ->
-            buildAppsUiState(
-                list,
-                sel.range,
-                sel.network,
-                sel.sort,
-                text,
-                s.unitSystem.toByteUnits(),
-                !perm.usageAccess,
-                sel.showSystemApps,
-            )
+        combine(
+            combine(apps, selection, query, settings.observe(), permissions.observe()) { list, sel, text, s, perm ->
+                buildAppsUiState(
+                    list,
+                    sel.range,
+                    sel.network,
+                    sel.sort,
+                    text,
+                    s.unitSystem.toByteUnits(),
+                    !perm.usageAccess,
+                    sel.showSystemApps,
+                )
+            },
+            newestSpike,
+        ) { base, spike ->
+            base.copy(spike = spike?.let { spikeTile(it, labelOf(it.packageName), base.units) })
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppsUiState())
 
     fun onEvent(event: AppsEvent) {
@@ -169,16 +216,15 @@ class AppsViewModel(
             is AppsEvent.SetQuery -> query.value = event.query
             is AppsEvent.RemoveFilter -> {
                 when (event.filter) {
-                    AppFilterKind.RANGE -> selection.update { it.copy(range = AppsRange.TODAY) }
                     AppFilterKind.NETWORK -> selection.update { it.copy(network = AppsNetwork.ALL) }
                     AppFilterKind.SORT -> selection.update { it.copy(sort = AppSort.BYTES_DESC) }
                     AppFilterKind.SYSTEM_APPS -> selection.update { it.copy(showSystemApps = false) }
                 }
             }
-            is AppsEvent.ResetFilters -> selection.value = Selection()
+            is AppsEvent.ResetFilters -> selection.update { Selection(range = it.range) }
+            is AppsEvent.DismissSpike -> spikes?.let { repo -> viewModelScope.launch { repo.dismiss(event.id) } }
             is AppsEvent.ApplyFilters -> selection.update {
                 it.copy(
-                    range = event.range,
                     network = event.network,
                     sort = event.sort,
                     showSystemApps = event.showSystemApps,

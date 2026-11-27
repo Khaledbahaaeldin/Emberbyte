@@ -9,7 +9,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
@@ -49,12 +48,12 @@ fun ExpressiveSwitch(
             checkedIconColor = palette.primary,
             uncheckedThumbColor = palette.muted,
             uncheckedTrackColor = palette.surface2,
-            uncheckedBorderColor = Color.Transparent,
+            uncheckedBorderColor = palette.muted,
             disabledCheckedThumbColor = palette.onPrimary.copy(alpha = 0.38f),
             disabledCheckedTrackColor = palette.primary.copy(alpha = 0.12f),
             disabledUncheckedThumbColor = palette.muted.copy(alpha = 0.38f),
             disabledUncheckedTrackColor = palette.surface2.copy(alpha = 0.12f),
-            disabledUncheckedBorderColor = Color.Transparent,
+            disabledUncheckedBorderColor = palette.muted.copy(alpha = 0.38f),
         ),
     )
 }

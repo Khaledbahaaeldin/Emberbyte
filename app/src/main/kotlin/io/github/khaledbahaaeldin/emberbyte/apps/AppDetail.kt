@@ -5,8 +5,19 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings as AndroidSettings
 import androidx.core.net.toUri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,14 +33,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
 import io.github.khaledbahaaeldin.emberbyte.common.spokenBytes
 import io.github.khaledbahaaeldin.emberbyte.common.weekdayBars
+import io.github.khaledbahaaeldin.emberbyte.home.emberbyteAnimateItem
+import io.github.khaledbahaaeldin.emberbyte.home.rememberRetainedWhen
 import io.github.khaledbahaaeldin.emberbyte.data.BudgetRepository
 import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
@@ -39,6 +54,8 @@ import io.github.khaledbahaaeldin.emberbyte.data.UsageRepository
 import io.github.khaledbahaaeldin.emberbyte.data.util.DayClock
 import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppBudget
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AppUsage
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetPeriod
 import io.github.khaledbahaaeldin.emberbyte.engine.model.BudgetStatus
@@ -74,17 +91,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.rankOf
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.planImpact
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.hourTotals
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.dailyBudgetProjection
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.PlanImpact
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.DetailRange
+import io.github.khaledbahaaeldin.emberbyte.apps.detail.BudgetProjection
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.number.HeroNumber
 import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.BudgetRing
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppIcon
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.BentoTile
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.NetworkBar
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.TileContainer
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UsageBarRow
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -105,16 +130,29 @@ data class AppDetailUiState(
     val totalBytes: Long = 0L,
     val mobileBytes: Long = 0L,
     val wifiBytes: Long = 0L,
-    val foregroundBytes: Long = 0L,
-    val backgroundBytes: Long = 0L,
-    val bars: List<BarUi> = emptyList(),
+    /** Local-time points of the chosen range (oldest first), one per day. */
+    val dailySeries: List<UsagePoint> = emptyList(),
+    val range: DetailRange = DetailRange.Week,
+    /** Total of the equal-length range right before [range]; 0 when there is no data there. */
+    val previousTotalBytes: Long = 0L,
+    /** The app's place among all apps (0 when it is not in the list), how many apps there are, and its share. */
+    val rank: Int = 0,
+    val appCount: Int = 0,
+    val shareOfAll: Float = 0f,
+    /** Total per local hour of the day over the range (24 entries). */
+    val hourTotals: LongArray = LongArray(24),
+    val planMobileImpact: PlanImpact? = null,
+    val budgetProjection: BudgetProjection? = null,
     val units: ByteUnits = ByteUnits.DECIMAL,
     val loaded: Boolean = false,
     val budget: BudgetUi? = null,
     val spikes: List<SpikeRowUi> = emptyList(),
     val planOptions: List<PlanOptionUi> = emptyList(),
     val editor: BudgetEditorUi? = null,
-)
+    val showBudgetRemovedUndo: Boolean = false,
+) {
+    val isLoading: Boolean get() = !loaded
+}
 
 internal fun buildAppDetailUiState(
     packageName: String,
@@ -123,15 +161,25 @@ internal fun buildAppDetailUiState(
     units: ByteUnits,
     zone: ZoneId,
     locale: Locale,
+    range: DetailRange = DetailRange.Week,
+    previousTotal: Long = 0L,
+    hours: List<UsagePoint> = emptyList(),
 ): AppDetailUiState {
     val app = apps.firstOrNull { it.packageName == packageName }
+    val rank = rankOf(packageName, apps)
     return AppDetailUiState(
         packageName = packageName,
         label = app?.label ?: packageName,
         totalBytes = app?.totalBytes ?: series.sumOf { it.totalBytes },
         mobileBytes = app?.mobileBytes ?: series.sumOf { it.mobileBytes },
         wifiBytes = app?.wifiBytes ?: series.sumOf { it.wifiBytes },
-        bars = weekdayBars(series, units, zone, locale),
+        dailySeries = series,
+        range = range,
+        previousTotalBytes = previousTotal,
+        rank = rank.rank,
+        appCount = rank.appCount,
+        shareOfAll = rank.shareOfAll,
+        hourTotals = hourTotals(hours, zone),
         units = units,
         loaded = true,
     )
@@ -142,6 +190,7 @@ private data class BudgetAndSpikesState(
     val spikes: List<SpikeEvent>,
     val plans: List<Plan>,
     val editor: BudgetEditorUi?,
+    val showBudgetUndo: Boolean,
 )
 
 /** @param dates tests MUST pass a finite flow. */
@@ -159,34 +208,55 @@ class AppDetailViewModel(
     dates: Flow<LocalDate> = DayClock(clock).dates(),
 ) : ViewModel() {
     private val _editor = MutableStateFlow<BudgetEditorUi?>(null)
+    private val _range = MutableStateFlow(DetailRange.Week)
+    private val _showBudgetUndo = MutableStateFlow(false)
     @Volatile private var currentBudgetStatus: BudgetStatus? = null
+    @Volatile private var lastRemovedBudget: AppBudget? = null
     @Volatile private var currentSettings: Settings = Settings()
 
-    val uiState: StateFlow<AppDetailUiState> = dates.flatMapLatest { date ->
+    val uiState: StateFlow<AppDetailUiState> = combine(dates, _range) { date, detailRange -> date to detailRange }
+        .flatMapLatest { (date, detailRange) ->
         val zone = clock.zone
+        val days = detailRange.days
         val range = DateRange(
-            date.minusDays(6).atStartOfDay(zone).toInstant(),
+            date.minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant(),
+            date.plusDays(1).atStartOfDay(zone).toInstant(),
+        )
+        // One daily query for twice the range: the second half is the range, the first half the period before it.
+        val doubled = DateRange(
+            date.minusDays((2 * days - 1).toLong()).atStartOfDay(zone).toInstant(),
             date.plusDays(1).atStartOfDay(zone).toInstant(),
         )
         val usageAndSettings = combine(
             usage.observeApps(range),
-            usage.observeAppSeries(packageName, range, Granularity.DAY),
+            usage.observeAppSeries(packageName, doubled, Granularity.DAY),
+            usage.observeAppSeries(packageName, range, Granularity.HOUR),
             settings.observe(),
-        ) { apps, series, s ->
+        ) { apps, both, hours, s ->
             currentSettings = s
-            Triple(apps, series, s)
+            val series = both.takeLast(days)
+            val previous = both.dropLast(days).takeLast(days)
+            Triple(apps, series to previous.sumOf { it.totalBytes }, hours to s)
+        }
+        val editorAndUndo = combine(_editor, _showBudgetUndo) { editorState, showUndo ->
+            editorState to showUndo
         }
         val budgetAndSpikes = combine(
             budgets.observeStatuses(),
             spikes.observeSpikes(includeDismissed = false),
-            plans.observePlans(includeArchived = false),
-            _editor,
-        ) { statuses, spikeList, planList, editorState ->
-            BudgetAndSpikesState(statuses, spikeList, planList, editorState)
+            plans.observePlans(),
+            editorAndUndo,
+        ) { statuses, spikeList, planList, (editorState, showUndo) ->
+            BudgetAndSpikesState(statuses, spikeList, planList, editorState, showUndo)
         }
-        combine(usageAndSettings, budgetAndSpikes) { (apps, series, s), bState ->
+        combine(usageAndSettings, budgetAndSpikes) { (apps, seriesAndPrevious, hoursAndSettings), bState ->
+            val (series, previousTotal) = seriesAndPrevious
+            val (hours, s) = hoursAndSettings
             val units = s.unitSystem.toByteUnits()
-            val baseState = buildAppDetailUiState(packageName, apps, series, units, zone, locale)
+            val baseState = buildAppDetailUiState(
+                packageName, apps, series, units, zone, locale,
+                range = detailRange, previousTotal = previousTotal, hours = hours,
+            )
             val matchedStatus = bState.statuses.firstOrNull { it.budget.packageName == packageName }
             currentBudgetStatus = matchedStatus
             val planName = matchedStatus?.budget?.planId?.let { pid -> bState.plans.firstOrNull { it.id == pid }?.name }
@@ -194,17 +264,26 @@ class AppDetailViewModel(
             val appSpikes = bState.spikes.filter { it.packageName == packageName && !it.dismissed }
                 .map { spikeRowUi(it, units, zone, locale, is24Hour()) }
             val planOptionList = bState.plans.map { PlanOptionUi(it.id, it.name) }
+            val mobileImpact = planImpact(baseState.mobileBytes, days, bState.plans.firstOrNull())
+            val projection = matchedStatus?.takeIf { it.budget.period == BudgetPeriod.DAILY }?.let {
+                val now = clock.instant().atZone(zone)
+                dailyBudgetProjection(it.usedBytes, it.budget.limitBytes, now.hour * 60 + now.minute)
+            }
             baseState.copy(
+                planMobileImpact = mobileImpact,
+                budgetProjection = projection,
                 budget = budgetUiModel,
                 spikes = appSpikes,
                 planOptions = planOptionList,
                 editor = bState.editor,
+                showBudgetRemovedUndo = bState.showBudgetUndo,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppDetailUiState(packageName))
 
     fun onEvent(event: AppDetailEvent) {
         when (event) {
+            is AppDetailEvent.SetRange -> _range.value = event.range
             AppDetailEvent.OpenBudgetEditor -> {
                 val current = currentBudgetStatus?.budget
                 if (current != null) {
@@ -293,9 +372,22 @@ class AppDetailViewModel(
             }
             AppDetailEvent.RemoveBudget -> {
                 val current = currentBudgetStatus?.budget ?: return
+                lastRemovedBudget = current.copy(id = 0L)
+                _showBudgetUndo.value = true
                 viewModelScope.launch {
                     budgets.delete(current.id)
                 }
+            }
+            AppDetailEvent.UndoRemoveBudget -> {
+                val restored = lastRemovedBudget ?: return
+                lastRemovedBudget = null
+                _showBudgetUndo.value = false
+                viewModelScope.launch {
+                    budgets.upsert(restored)
+                }
+            }
+            AppDetailEvent.DismissBudgetUndo -> {
+                _showBudgetUndo.value = false
             }
             is AppDetailEvent.DismissSpike -> {
                 viewModelScope.launch {
@@ -306,7 +398,7 @@ class AppDetailViewModel(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+/** The App detail screen content; the redesigned sections live in the `detail` package. */
 @Composable
 fun AppDetailContent(
     state: AppDetailUiState,
@@ -315,330 +407,14 @@ fun AppDetailContent(
     modifier: Modifier = Modifier,
     onOpenSettings: (() -> Unit)? = null,
     icon: ImageBitmap? = null,
-) {
-    val palette = LocalEmberbytePalette.current
-    var selectedBarIndex by remember { mutableStateOf<Int?>(null) }
-
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        // Header with Back button, AppIcon, Title & Package
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    shapes = IconButtonDefaults.shapes(),
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = palette.text),
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Back",
-                    )
-                }
-                AppIcon(
-                    label = state.label.ifEmpty { state.packageName },
-                    icon = icon,
-                    shape = shapeFor(state.packageName),
-                    size = 56.dp,
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = state.label.ifEmpty { state.packageName },
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        color = palette.text,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (state.label.isNotEmpty() && state.label != state.packageName) {
-                        Text(
-                            text = state.packageName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.muted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Hero Number section
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Last 7 days",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = palette.muted,
-                )
-                val totalFmt = formatBytes(state.totalBytes, state.units)
-                HeroNumber(
-                    value = totalFmt.value,
-                    unit = totalFmt.unit,
-                    contentDescription = "${spokenBytes(state.totalBytes, state.units)} used in the last 7 days",
-                    size = 64.sp,
-                    color = palette.primary,
-                )
-            }
-        }
-
-        // Network split bar & legend
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                NetworkBar(
-                    mobileBytes = state.mobileBytes,
-                    wifiBytes = state.wifiBytes,
-                    mobileColor = palette.warn,
-                    wifiColor = palette.primary,
-                    units = state.units,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    val mobileFmt = formatBytes(state.mobileBytes, state.units)
-                    val wifiFmt = formatBytes(state.wifiBytes, state.units)
-                    ForceLtr {
-                        Text(
-                            text = "• Mobile ${mobileFmt.value} ${mobileFmt.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.warn,
-                        )
-                    }
-                    ForceLtr {
-                        Text(
-                            text = "• Wi-Fi ${wifiFmt.value} ${wifiFmt.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.primary,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Foreground vs Background split as two BentoTiles. Android's per-app statistics are not split
-        // this way by the app yet, so both values stay 0 and the tiles are hidden instead of showing "0 B".
-        if (state.foregroundBytes + state.backgroundBytes > 0L) item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                val fgFmt = formatBytes(state.foregroundBytes, state.units)
-                val bgFmt = formatBytes(state.backgroundBytes, state.units)
-                BentoTile(
-                    title = "Foreground",
-                    modifier = Modifier.weight(1f),
-                    container = TileContainer.Standard,
-                ) {
-                    ForceLtr {
-                        Text(
-                            text = "${fgFmt.value} ${fgFmt.unit}",
-                            style = EmberbyteType.value(20.sp),
-                            color = palette.text,
-                        )
-                    }
-                }
-                BentoTile(
-                    title = "Background",
-                    modifier = Modifier.weight(1f),
-                    container = TileContainer.Standard,
-                ) {
-                    ForceLtr {
-                        Text(
-                            text = "${bgFmt.value} ${bgFmt.unit}",
-                            style = EmberbyteType.value(20.sp),
-                            color = palette.text,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Daily chart (bars use primary, today's bar uses accent)
-        item {
-            val weekSummary = run {
-                val highest = state.bars.maxByOrNull { it.bytes }
-                if (highest != null) "Daily usage, last 7 days, highest ${highest.description}"
-                else "Daily usage, last 7 days"
-            }
-            BentoTile(
-                title = "Daily usage",
-                modifier = Modifier.fillMaxWidth(),
-                container = TileContainer.Standard,
-            ) {
-                if (state.bars.isEmpty()) {
-                    EmptyState(
-                        icon = Icons.Rounded.HistoryToggleOff,
-                        title = "No daily usage",
-                        body = "Daily breakdown will show here once usage is recorded.",
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    )
-                } else {
-                    UsageBarRow(
-                        points = state.bars,
-                        selectedIndex = selectedBarIndex,
-                        onSelect = { selectedBarIndex = if (selectedBarIndex == it) null else it },
-                        summaryDescription = weekSummary,
-                        barColor = { index, _ ->
-                            if (index == state.bars.lastIndex) palette.accent
-                            else palette.primary
-                        },
-                    )
-                }
-            }
-        }
-
-        // Spikes if present
-        if (state.spikes.isNotEmpty()) {
-            item {
-                BentoTile(title = "Spikes", modifier = Modifier.fillMaxWidth(), container = TileContainer.Warn) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        state.spikes.forEach { spike ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    ForceLtr {
-                                        Text(spike.whenText, style = MaterialTheme.typography.bodyMedium, color = palette.text)
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        ForceLtr {
-                                            Text(
-                                                spike.bytesText,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = palette.muted,
-                                            )
-                                        }
-                                        Text(
-                                            "·",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = palette.muted,
-                                        )
-                                        ForceLtr {
-                                            Text(
-                                                spike.multipleText,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = palette.muted,
-                                            )
-                                        }
-                                    }
-                                }
-                                TextButton(
-                                    onClick = { onEvent(AppDetailEvent.DismissSpike(spike.id)) },
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Dismiss", color = palette.primary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Data budget
-        item {
-            BentoTile(title = "Data budget", modifier = Modifier.fillMaxWidth()) {
-                val b = state.budget
-                if (b == null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "No budget set",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.muted,
-                        )
-                        TextButton(
-                            onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
-                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                        ) {
-                            Text("Set a budget", color = palette.primary)
-                        }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BudgetRing(
-                            fraction = b.fraction,
-                            state = b.ringState,
-                            percentText = b.percentText,
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            ForceLtr {
-                                Text(b.usedText, style = MaterialTheme.typography.titleMedium, color = palette.text)
-                            }
-                            ForceLtr {
-                                Text(
-                                    b.periodText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = palette.muted,
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(
-                                    onClick = { onEvent(AppDetailEvent.OpenBudgetEditor) },
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Edit", color = palette.primary)
-                                }
-                                TextButton(
-                                    onClick = { onEvent(AppDetailEvent.RemoveBudget) },
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                                ) {
-                                    Text("Remove", color = palette.danger)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // App settings
-        if (!state.packageName.startsWith("uid:") && onOpenSettings != null) {
-            item {
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    TextButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("App settings", color = palette.primary)
-                    }
-                }
-            }
-        }
-    }
-
-    if (state.editor != null) {
-        BudgetEditorDialog(
-            editor = state.editor,
-            planOptions = state.planOptions,
-            onEvent = onEvent,
-        )
-    }
-}
+) = io.github.khaledbahaaeldin.emberbyte.apps.detail.AppDetailContent(
+    state = state,
+    onEvent = onEvent,
+    onBack = onBack,
+    modifier = modifier,
+    onOpenSettings = onOpenSettings,
+    icon = icon,
+)
 
 @Composable
 fun AppDetailScreen(
@@ -669,5 +445,34 @@ private fun openAppSettings(context: Context, packageName: String) {
         context.startActivity(intent)
     } catch (_: ActivityNotFoundException) {
         // No settings screen to open; nothing to do.
+    }
+}
+
+@Composable
+internal fun NetworkLegendItem(
+    label: String,
+    dotColor: Color,
+    textColor: Color,
+    textStyle: TextStyle = MaterialTheme.typography.bodySmall,
+    textModifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(dotColor, CircleShape),
+        )
+        ForceLtr {
+            Text(
+                text = label,
+                style = textStyle,
+                color = textColor,
+                modifier = textModifier,
+            )
+        }
     }
 }

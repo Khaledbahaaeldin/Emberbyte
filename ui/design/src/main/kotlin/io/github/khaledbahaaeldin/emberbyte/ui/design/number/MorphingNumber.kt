@@ -11,15 +11,25 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.UnitBadge
 import androidx.compose.ui.text.font.Font
@@ -36,6 +46,16 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalett
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import kotlin.math.ln
 import kotlin.math.roundToInt
+
+internal fun digitSlotKey(text: String, index: Int): Int {
+    val dotIndex = text.indexOf('.')
+    val char = text[index]
+    return when {
+        char == '.' -> 0
+        dotIndex >= 0 -> if (index < dotIndex) -(dotIndex - index) else (index - dotIndex)
+        else -> -(text.length - index)
+    }
+}
 
 internal object MorphingNumberPhysics {
     const val REST_BPS = 10_000L
@@ -94,7 +114,11 @@ fun MorphingNumber(
     val motion = rememberEmberbyteMotion()
 
     val intensitySpec: androidx.compose.animation.core.AnimationSpec<Float> = motion.fastEffects()
-    onMotionResolved?.invoke(live, intensitySpec)
+    if (onMotionResolved != null) {
+        SideEffect {
+            onMotionResolved(live, intensitySpec)
+        }
+    }
 
     val intensity by animateFloatAsState(
         targetValue = if (live) throughputIntensity(throughputBps) else 0f,
@@ -105,34 +129,41 @@ fun MorphingNumber(
     val family = remember(step) { robotoFlexFamily(axesFor(step / MorphingNumberPhysics.AXIS_STEPS.toFloat())) }
     val rollSpatial = motion.spatial<IntOffset>()
     val rollEffects = motion.effects<Float>()
+    val heroStyle = remember(family) {
+        EmberbyteType.hero(ComponentType.MorphingSize).copy(
+            fontFamily = family,
+            lineHeight = ComponentType.MorphingSize,
+        )
+    }
 
     ForceLtr {
         Column(modifier.clearAndSetSemantics { this.contentDescription = contentDescription }) {
             Row {
                 val text = formatted.value
                 text.forEachIndexed { index, char ->
-                    // Keyed from the right so existing digits keep their identity when the length changes.
-                    key(text.length - index) {
-                        AnimatedContent(
-                            targetState = char,
-                            transitionSpec = {
-                                if (live) {
+                    key(digitSlotKey(text, index)) {
+                        if (live) {
+                            AnimatedContent(
+                                targetState = char,
+                                transitionSpec = {
                                     (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
                                         (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
-                                } else {
-                                    EnterTransition.None togetherWith ExitTransition.None
-                                }
-                            },
-                            label = "digit",
-                        ) { digit ->
+                                },
+                                label = "digit",
+                            ) { digit ->
+                                Text(
+                                    text = digit.toString(),
+                                    modifier = Modifier.clearAndSetSemantics { },
+                                    color = palette.primary,
+                                    style = heroStyle,
+                                )
+                            }
+                        } else {
                             Text(
-                                text = digit.toString(),
+                                text = char.toString(),
                                 modifier = Modifier.clearAndSetSemantics { },
                                 color = palette.primary,
-                                style = EmberbyteType.hero(72.sp).copy(
-                                    fontFamily = family,
-                                    lineHeight = 72.sp,
-                                ),
+                                style = heroStyle,
                             )
                         }
                     }
@@ -141,6 +172,97 @@ fun MorphingNumber(
             UnitBadge(
                 unit = formatted.unit,
             )
+        }
+    }
+}
+
+@Composable
+fun MorphingNumber(
+    value: String,
+    unit: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+    color: Color = Color.Unspecified,
+    contentDescription: String? = null,
+    prefix: String = "",
+    animate: Boolean = true,
+    unitStyle: TextStyle? = null,
+) {
+    val live = animate && !LocalReduceMotion.current
+    val motion = rememberEmberbyteMotion()
+    val rollSpatial = motion.spatial<IntOffset>()
+    val rollEffects = motion.effects<Float>()
+
+    val fullUnit = if (unit.isEmpty()) "" else if (unit.startsWith(" ") || unit.startsWith("/")) unit else " $unit"
+    val fullText = "$prefix$value$fullUnit"
+
+    ForceLtr {
+        Row(
+            modifier = modifier.clearAndSetSemantics {
+                if (contentDescription != null) {
+                    this.contentDescription = contentDescription
+                } else {
+                    this.text = AnnotatedString(fullText)
+                }
+            },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (prefix.isNotEmpty()) {
+                Text(
+                    text = prefix,
+                    modifier = Modifier.clearAndSetSemantics { },
+                    style = style,
+                    color = color,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                value.forEachIndexed { index, char ->
+                    key(digitSlotKey(value, index)) {
+                        if (live) {
+                            AnimatedContent(
+                                targetState = char,
+                                transitionSpec = {
+                                    (slideInVertically(rollSpatial) { it } + fadeIn(rollEffects)) togetherWith
+                                        (slideOutVertically(rollSpatial) { -it } + fadeOut(rollEffects))
+                                },
+                                label = "morphingDigit",
+                            ) { digit ->
+                                Text(
+                                    text = digit.toString(),
+                                    modifier = Modifier
+                                        .testTag("morphing_digit_$digit")
+                                        .clearAndSetSemantics { },
+                                    color = color,
+                                    style = style,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = char.toString(),
+                                modifier = Modifier
+                                    .testTag("morphing_digit_$char")
+                                    .clearAndSetSemantics { },
+                                color = color,
+                                style = style,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
+                    }
+                }
+            }
+            if (unit.isNotEmpty()) {
+                Text(
+                    text = if (unit.startsWith(" ") || unit.startsWith("/")) unit else " $unit",
+                    modifier = Modifier.clearAndSetSemantics { },
+                    style = unitStyle ?: style,
+                    color = color,
+                )
+            }
         }
     }
 }

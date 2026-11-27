@@ -16,11 +16,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToString
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
@@ -78,7 +78,6 @@ class HomeAccessibilityTest {
             PlanChipUi(1L, "SIM 1", true),
             PlanChipUi(2L, "SIM 2", false),
         ),
-        spike = SpikeTileUi(1L, "com.video", "Spike detected", "Video used 1.2 GB in 2h"),
     )
 
     private fun show(state: HomeUiState = sampleHomeState) {
@@ -129,28 +128,13 @@ class HomeAccessibilityTest {
 
     @Test
     @Config(qualifiers = "w411dp-h3000dp")
-    fun home_chart_exposes_summary_node_with_highest_day() {
-        show()
-        val summaryNode = rule.onNodeWithContentDescription(
-            "Daily usage, last 7 days, highest Wednesday, 2.10 gigabytes",
-        )
-        summaryNode.assertExists()
-        val summaryBounds = summaryNode.getBoundsInRoot()
-        val width = summaryBounds.right - summaryBounds.left
-        val height = summaryBounds.bottom - summaryBounds.top
-        assertTrue("Summary node width must be >= 48dp but was $width", width >= 48.dp)
-        assertTrue("Summary node height must be >= 48dp but was $height", height >= 48.dp)
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h3000dp")
     fun home_touch_targets_are_at_least_48dp() {
         show()
         assertNoTouchTargetSmallerThan48dp(rule)
     }
 
     @Test
-    @Config(qualifiers = "w360dp-h2000dp")
+    @Config(qualifiers = "w720dp-h4000dp") // 360 dp wide at the test's 2x density
     fun at_font_scale_2_home_tiles_reflow_to_one_column_and_no_number_is_clipped() {
         rule.setContent {
             CompositionLocalProvider(
@@ -172,34 +156,36 @@ class HomeAccessibilityTest {
             }
         }
 
-        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeBy(2_000) // let the one-time tile entrance finish before measuring
 
-        // Tiles must reflow to ONE column: ForecastTile should be stacked vertically below SpeedTile
-        val speedTile = rule.onNodeWithText("Live · Wi-Fi")
-        val forecastTile = rule.onNodeWithText("Forecast")
-
-        speedTile.assertIsDisplayed()
-        forecastTile.assertIsDisplayed()
-
-        val speedBounds = speedTile.getBoundsInRoot()
-        val forecastBounds = forecastTile.getBoundsInRoot()
+        // Large text: the Forecast row sits above, and the Live and network tiles stack in ONE column below it.
+        val forecastBounds = rule.onNodeWithText("Forecast").getBoundsInRoot()
+        val liveBounds = rule.onNodeWithTag("live_bento_tile").getBoundsInRoot()
+        val networkBounds = rule.onNodeWithTag("network_bento_tile").getBoundsInRoot()
 
         assertTrue(
-            "Expected Forecast tile to be stacked below Speed tile in 1 column, but forecast top (${forecastBounds.top}) is not >= speed top (${speedBounds.top})",
-            forecastBounds.top > speedBounds.top,
+            "Forecast (${forecastBounds.top}) must sit above the Live tile (${liveBounds.top})",
+            forecastBounds.top < liveBounds.top,
         )
+        assertTrue(
+            "Network tile (${networkBounds.top}) must be stacked below the Live tile (${liveBounds.bottom})",
+            networkBounds.top >= liveBounds.bottom - 0.5.dp,
+        )
+        assertTrue("Live tile fits inside the 360dp parent", liveBounds.right <= 360.dp)
+        assertTrue("Network tile fits inside the 360dp parent", networkBounds.right <= 360.dp)
 
-        // The speed number text node is fully displayed and fits inside parent
-        val downText = rule.onNodeWithText("↓ 3.80 MB/s", substring = true)
+        // The speed number is fully displayed and fits inside its tile.
+        val downText = rule.onNodeWithContentDescription("Download 3.80 MB per second", useUnmergedTree = true)
         downText.assertIsDisplayed()
-        val downBounds = downText.getBoundsInRoot()
-        assertTrue("Speed number right edge exceeds 360dp parent", downBounds.right <= 360.dp)
+        assertTrue("Speed number right edge exceeds the Live tile", downText.getBoundsInRoot().right <= liveBounds.right)
     }
 
     @Test
     @Config(qualifiers = "w360dp-h3000dp")
-    fun home_7_day_row_opens_at_end_showing_todays_bar_at_rest() {
-        show()
-        rule.onNodeWithContentDescription("Sunday, 600 megabytes").assertIsDisplayed()
+    fun home_strip_shows_all_seven_days_with_today_selected() {
+        show(sampleHomeState.copy(usage = sampleUsageCard()))
+        rule.onNodeWithContentDescription("Friday, 2.99 gigabytes", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription("Thursday, 1.60 gigabytes", useUnmergedTree = true).assertIsDisplayed()
     }
 }

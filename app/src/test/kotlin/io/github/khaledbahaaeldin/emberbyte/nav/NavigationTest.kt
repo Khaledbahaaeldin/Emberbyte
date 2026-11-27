@@ -61,6 +61,8 @@ class NavigationTest {
     @Test fun plans_tab_opens_under_rtl() {
         val graph = (app as EmberbyteApplication).graph
         runBlocking {
+            // The database is shared across tests in one run: start this one with no plans so the empty state shows.
+            graph.plans.observePlans().first().forEach { graph.plans.deletePlan(it.id) }
             graph.onboarding.complete()
             graph.onboardingCompleted.first { it == true }
         }
@@ -84,6 +86,6 @@ class NavigationTest {
         }
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("nav_plans").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("nav_plans").performClick()
-        rule.onNodeWithText("Set up your first plan").assertIsDisplayed()
+        rule.onNodeWithText("Nothing to track yet").assertIsDisplayed()
     }
 }

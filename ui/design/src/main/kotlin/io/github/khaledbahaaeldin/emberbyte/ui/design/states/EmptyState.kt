@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.ShapedBox
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
@@ -79,7 +80,7 @@ fun EmptyState(
         ) {
             Text(
                 text = title,
-                style = EmberbyteType.heading(20.sp),
+                style = EmberbyteType.heading(ComponentType.EmptyTitle),
                 color = palette.text,
             )
             Text(

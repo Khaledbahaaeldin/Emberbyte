@@ -31,7 +31,7 @@ class WhatIfMappingTest {
         )
 
         val sentence = whatIfSentence(forecast, remainingBytes = 5_000_000_000L, now, zone, locale)
-        assertEquals("runs out Mon (±1 day)", sentence)
+        assertEquals("runs out Mon 19 Oct (±1 day)", sentence)
     }
 
     @Test

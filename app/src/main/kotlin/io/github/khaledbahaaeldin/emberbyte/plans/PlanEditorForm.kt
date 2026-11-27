@@ -57,6 +57,8 @@ data class PlanEditorForm(
 
 data class SimOptionUi(val subscriptionId: Int?, val label: String)
 
+data class AppChoiceUi(val packageName: String, val label: String)
+
 data class PlanEditorUiState(
     val form: PlanEditorForm = PlanEditorForm(),
     val planId: Long = 0,
@@ -64,6 +66,7 @@ data class PlanEditorUiState(
     val loading: Boolean = true,
     val notFound: Boolean = false,
     val sims: List<SimOptionUi> = emptyList(),
+    val availableApps: List<AppChoiceUi> = emptyList(),
     val needsPhonePermission: Boolean = false,
     val errors: Map<String, String> = emptyMap(),
     val preview: PlanCardUi? = null,
@@ -72,6 +75,7 @@ data class PlanEditorUiState(
     val unitSystem: UnitSystem = UnitSystem.DECIMAL,
     val whatIf: WhatIfUi? = null,
     val isDirty: Boolean = false,
+    val pendingPinReplacement: String? = null,
 )
 
 sealed interface PlanEditorEvent {
@@ -99,7 +103,9 @@ sealed interface PlanEditorEvent {
     data class UpdateFreeRule(val index: Int, val draft: FreeRuleDraft) : PlanEditorEvent
     data class RemoveFreeRule(val index: Int) : PlanEditorEvent
     data class ToggleThreshold(val percent: Int) : PlanEditorEvent
+    data class SetPinned(val pinned: Boolean) : PlanEditorEvent
+    data object ConfirmPinReplacement : PlanEditorEvent
+    data object DismissPinReplacement : PlanEditorEvent
     data object Save : PlanEditorEvent
-    data object Archive : PlanEditorEvent
     data object Delete : PlanEditorEvent
 }

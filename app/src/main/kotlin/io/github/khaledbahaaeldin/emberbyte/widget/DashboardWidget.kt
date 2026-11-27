@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.WidgetType
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -161,7 +161,7 @@ fun DashboardLayout(
                 text = "Emberbyte",
                 style = TextStyle(
                     color = ColorProvider(palette.primary),
-                    fontSize = 13.sp,
+                    fontSize = WidgetType.Body,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = GlanceModifier.defaultWeight()
@@ -170,7 +170,7 @@ fun DashboardLayout(
                 text = dateText,
                 style = TextStyle(
                     color = ColorProvider(palette.muted),
-                    fontSize = 11.sp
+                    fontSize = WidgetType.Caption
                 )
             )
         }
@@ -202,12 +202,12 @@ fun DashboardLayout(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = formattedToday.value,
-                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.HeroCompact, fontWeight = FontWeight.Bold)
                 )
                 Spacer(GlanceModifier.width(4.dp))
                 Text(
                     text = formattedToday.unit,
-                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = ColorProvider(palette.primary), fontSize = WidgetType.UnitSmall, fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -221,7 +221,7 @@ fun DashboardLayout(
         }
         Text(
             text = planLine,
-            style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp),
+            style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption),
             maxLines = 1
         )
 
@@ -277,13 +277,13 @@ fun DashboardLayout(
                     }
                     Text(
                         text = app.label,
-                        style = TextStyle(color = ColorProvider(palette.text), fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                        style = TextStyle(color = ColorProvider(palette.text), fontSize = WidgetType.Label, fontWeight = FontWeight.Medium),
                         maxLines = 1,
                         modifier = GlanceModifier.defaultWeight()
                     )
                     Text(
                         text = plainBytes(app.totalBytes, units),
-                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = 11.sp)
+                        style = TextStyle(color = ColorProvider(palette.muted), fontSize = WidgetType.Caption)
                     )
                 }
             }

@@ -77,6 +77,7 @@ class DataSectionTest {
         rule.onNodeWithText("All").assertIsDisplayed()
 
         rule.onNodeWithText("Last 7 days").performClick()
+        rule.onNodeWithText("Export").performClick()
         assertEquals(ExportRange.LAST_7_DAYS, selectedRange)
     }
 
@@ -87,10 +88,12 @@ class DataSectionTest {
 
         rule.onNodeWithText("Export usage (CSV)").performClick()
         rule.onNodeWithText("Last 30 days").performClick()
+        rule.onNodeWithText("Export").performClick()
         assertEquals(ExportRange.LAST_30_DAYS, selectedRange)
 
         rule.onNodeWithText("Export usage (CSV)").performClick()
         rule.onNodeWithText("All").performClick()
+        rule.onNodeWithText("Export").performClick()
         assertEquals(ExportRange.ALL, selectedRange)
     }
 

@@ -1,6 +1,10 @@
 package io.github.khaledbahaaeldin.emberbyte.settings
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.height
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -56,6 +60,50 @@ class LicencesScreenTest {
             fullLicenceText = "Apache License 2.0 text",
         ),
     )
+
+    private fun expandHeights(reduced: Boolean): List<Float> {
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides reduced) {
+                    LicencesContent(
+                        items = sampleItems,
+                        searchQuery = "",
+                        onSearchQueryChange = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Roboto Flex"))
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeByFrame()
+        val start = rule.onNodeWithText("Roboto Flex").getUnclippedBoundsInRoot().height.value
+        rule.onNodeWithText("Roboto Flex").performClick()
+        val heights = mutableListOf(start)
+        repeat(30) {
+            rule.mainClock.advanceTimeBy(16)
+            heights += rule.onNodeWithText("Roboto Flex").getUnclippedBoundsInRoot().height.value
+        }
+        return heights
+    }
+
+    @Test
+    fun licences_uses_reduced_motion() {
+        val heights = expandHeights(reduced = true)
+        val settled = heights.last()
+        assertTrue("the card should have grown, saw $heights", settled > heights.first() + 1f)
+        val inBetween = heights.filter { it > heights.first() + 1f && it < settled - 1f }
+        assertTrue("reduced motion must not animate the expansion, saw $heights", inBetween.isEmpty())
+    }
+
+    @Test
+    fun licences_expansion_animates_with_normal_motion() {
+        val heights = expandHeights(reduced = false)
+        val settled = heights.last()
+        assertTrue("the card should have grown, saw $heights", settled > heights.first() + 1f)
+        val inBetween = heights.filter { it > heights.first() + 1f && it < settled - 1f }
+        assertTrue("expected in-between heights, saw $heights", inBetween.isNotEmpty())
+    }
 
     @Test
     fun screen_shows_the_list_and_a_search_filters_it() {

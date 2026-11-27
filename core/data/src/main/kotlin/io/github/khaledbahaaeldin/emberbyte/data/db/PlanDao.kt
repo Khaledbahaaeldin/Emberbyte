@@ -13,21 +13,29 @@ abstract class PlanDao {
     @Query("SELECT * FROM plan WHERE id = :id") abstract suspend fun plan(id: Long): PlanEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putPlan(entity: PlanEntity): Long
     @Query("UPDATE plan SET archived = :archived, pinned = CASE WHEN :archived THEN 0 ELSE pinned END WHERE id = :id") abstract suspend fun setArchived(id: Long, archived: Boolean): Int
+    @Query("UPDATE plan SET archived = 0 WHERE archived = 1") abstract suspend fun restoreAllArchived(): Int
+    @Query("DELETE FROM plan WHERE id = :id") abstract suspend fun deletePlanRow(id: Long): Int
     @Query("UPDATE plan SET pinned = :pinned WHERE id = :id") abstract suspend fun setPinned(id: Long, pinned: Boolean): Int
     @Query("UPDATE plan SET pinned = 0") abstract suspend fun clearAllPinned(): Int
 
     @Query("SELECT * FROM add_on WHERE planId = :planId ORDER BY validFrom, id") abstract fun observeAddOns(planId: Long): Flow<List<AddOnEntity>>
+    @Query("SELECT * FROM add_on WHERE planId = :planId ORDER BY validFrom, id") abstract suspend fun addOns(planId: Long): List<AddOnEntity>
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putAddOn(entity: AddOnEntity): Long
     @Query("DELETE FROM add_on WHERE id = :id") abstract suspend fun deleteAddOn(id: Long)
+    @Query("DELETE FROM add_on WHERE planId = :planId") abstract suspend fun deleteAddOnsForPlan(planId: Long)
 
     @Query("SELECT * FROM free_rule WHERE planId = :planId ORDER BY id") abstract fun observeFreeRules(planId: Long): Flow<List<FreeRuleEntity>>
+    @Query("SELECT * FROM free_rule WHERE planId = :planId ORDER BY id") abstract suspend fun freeRules(planId: Long): List<FreeRuleEntity>
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putFreeRule(entity: FreeRuleEntity): Long
     @Query("DELETE FROM free_rule WHERE id = :id") abstract suspend fun deleteFreeRule(id: Long)
+    @Query("DELETE FROM free_rule WHERE planId = :planId") abstract suspend fun deleteFreeRulesForPlan(planId: Long)
 
     @Query("SELECT * FROM alert_rule WHERE planId = :planId ORDER BY thresholdPercent") abstract fun observeAlertRules(planId: Long): Flow<List<AlertRuleEntity>>
     @Query("SELECT * FROM alert_rule WHERE planId = :planId ORDER BY thresholdPercent") abstract suspend fun alertRules(planId: Long): List<AlertRuleEntity>
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putAlertRule(entity: AlertRuleEntity): Long
     @Query("DELETE FROM alert_rule WHERE id = :id") abstract suspend fun deleteAlertRule(id: Long)
+    @Query("DELETE FROM alert_rule WHERE planId = :planId") abstract suspend fun deleteAlertRulesForPlan(planId: Long)
+    @Query("DELETE FROM alert_fired WHERE planId = :planId") abstract suspend fun deleteAlertFiredForPlan(planId: Long)
 
     @Query("SELECT percent FROM alert_fired WHERE planId = :planId AND windowStart = :windowStart") abstract suspend fun firedPercent(planId: Long, windowStart: Long): Int?
     @Insert(onConflict = OnConflictStrategy.REPLACE) abstract suspend fun putFired(entity: AlertFiredEntity)

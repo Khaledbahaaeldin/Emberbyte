@@ -1,12 +1,10 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
-import io.github.khaledbahaaeldin.emberbyte.data.UnitSystem
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
 import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSimInfoSource
 import io.github.khaledbahaaeldin.emberbyte.data.fake.InMemoryPlanStore
 import io.github.khaledbahaaeldin.emberbyte.data.fake.InMemoryUsageStore
 import io.github.khaledbahaaeldin.emberbyte.data.plan.RoomPlanRepository
-import io.github.khaledbahaaeldin.emberbyte.data.source.SimInfo
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle
 import io.github.khaledbahaaeldin.emberbyte.engine.model.NetworkKind
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Plan
@@ -19,6 +17,7 @@ import java.time.ZoneOffset
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -28,7 +27,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -43,7 +41,8 @@ class PlansViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun loaded_becomes_true_with_empty_lists_before_any_plan() = runTest(dispatcher) {
+    @Test
+    fun loading_until_first_emission() = runTest(dispatcher) {
         val planStore = InMemoryPlanStore()
         val usageStore = InMemoryUsageStore()
         val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
@@ -51,17 +50,18 @@ class PlansViewModelTest {
         val sims = FakeSimInfoSource()
         val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
 
+        assertEquals(false, vm.uiState.value.loaded)
         val job = launch { vm.uiState.collect {} }
         advanceUntilIdle()
 
         assertTrue(vm.uiState.value.loaded)
-        assertTrue(vm.uiState.value.cards.isEmpty())
-        assertTrue(vm.uiState.value.archivedCards.isEmpty())
-        assertFalse(vm.uiState.value.showArchived)
+        assertNull(vm.uiState.value.front)
+        assertTrue(vm.uiState.value.tiles.isEmpty())
         job.cancel()
     }
 
-    @Test fun after_upsert_plan_the_card_has_used_text_derived_from_seeded_minute_row() = runTest(dispatcher) {
+    @Test
+    fun state_has_front_tiles_and_upcoming() = runTest(dispatcher) {
         val planStore = InMemoryPlanStore()
         val usageStore = InMemoryUsageStore()
         val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
@@ -73,186 +73,102 @@ class PlansViewModelTest {
         advanceUntilIdle()
 
         usageStore.addMinute(MinuteTotal(now.minusSeconds(3600), NetworkKind.MOBILE, 5, 2_000_000_000L, 0L))
-        val plan = Plan(0L, "Main SIM", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        repo.upsertPlan(plan)
+        repo.upsertPlan(Plan(0L, "Main SIM", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, pinned = true))
+        repo.upsertPlan(Plan(0L, "Second SIM", 6, 5_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None))
+        repo.upsertPlan(Plan(0L, "Future SIM", 7, 5_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, firstCycle = io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle.StartsNextCycle(now.plusSeconds(5 * 86_400L))))
         advanceUntilIdle()
 
-        assertEquals(1, vm.uiState.value.cards.size)
-        val card = vm.uiState.value.cards.first()
-        assertEquals("Main SIM", card.name)
-        assertEquals("2.00 GB of 10.0 GB", card.usedText)
-        assertEquals("8.00 GB left", card.remainingText)
+        assertEquals("Main SIM", vm.uiState.value.front?.name)
+        assertEquals(listOf("Second SIM"), vm.uiState.value.tiles.map { it.name })
+        assertEquals(listOf("Future SIM"), vm.uiState.value.upcoming.map { it.name })
         job.cancel()
     }
 
-    @Test fun archived_plan_moves_to_archived_cards_and_is_hidden_until_toggle_archived() = runTest(dispatcher) {
+    @Test
+    fun pin_makes_the_tile_the_front_and_unpins_the_previous() = runTest(dispatcher) {
         val planStore = InMemoryPlanStore()
         val usageStore = InMemoryUsageStore()
         val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
-        val settings = FakeSettingsRepository()
-        val sims = FakeSimInfoSource()
-        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
+        val vm = PlansViewModel(repo, FakeSettingsRepository(), FakeSimInfoSource(), clock, Locale.ENGLISH)
 
         val job = launch { vm.uiState.collect {} }
+        repo.upsertPlan(Plan(0L, "Plan A", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, pinned = true))
+        repo.upsertPlan(Plan(0L, "Plan B", 6, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, pinned = false))
         advanceUntilIdle()
 
-        val plan = Plan(0L, "Old SIM", null, 5_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, archived = true)
-        repo.upsertPlan(plan)
+        val idB = vm.uiState.value.tiles.single().id
+        vm.onEvent(PlansEvent.SetPinned(idB, true))
         advanceUntilIdle()
 
-        assertTrue(vm.uiState.value.cards.isEmpty())
-        assertEquals(1, vm.uiState.value.archivedCards.size)
-        assertFalse(vm.uiState.value.showArchived)
-        assertEquals("Old SIM", vm.uiState.value.archivedCards.first().name)
-
-        vm.onEvent(PlansEvent.ToggleArchived)
-        advanceUntilIdle()
-
-        assertTrue(vm.uiState.value.showArchived)
-
-        vm.onEvent(PlansEvent.ToggleArchived)
-        advanceUntilIdle()
-
-        assertFalse(vm.uiState.value.showArchived)
+        assertEquals("Plan B", vm.uiState.value.front?.name)
+        assertEquals(listOf("Plan A"), vm.uiState.value.tiles.map { it.name })
         job.cancel()
     }
 
-    @Test fun sim_label_reflects_installed_sims_unbound_and_missing() = runTest(dispatcher) {
+    @Test
+    fun delete_then_undo_restores_the_plan() = runTest(dispatcher) {
         val planStore = InMemoryPlanStore()
         val usageStore = InMemoryUsageStore()
         val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
-        val settings = FakeSettingsRepository()
-        val sims = FakeSimInfoSource(
-            sims = listOf(SimInfo(subscriptionId = 5, slotIndex = 0, displayName = "Alpha")),
-        )
-        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
+        val vm = PlansViewModel(repo, FakeSettingsRepository(), FakeSimInfoSource(), clock, Locale.ENGLISH)
 
         val job = launch { vm.uiState.collect {} }
+        repo.upsertPlan(Plan(0L, "Main SIM", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None))
         advanceUntilIdle()
 
-        val p1 = Plan(0L, "Plan 1", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        val p2 = Plan(0L, "Plan 2", null, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        val p3 = Plan(0L, "Plan 3", 99, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-
-        repo.upsertPlan(p1)
-        repo.upsertPlan(p2)
-        repo.upsertPlan(p3)
+        val id = vm.uiState.value.front!!.id
+        vm.onEvent(PlansEvent.Delete(id))
         advanceUntilIdle()
+        assertNull(vm.uiState.value.front)
+        assertEquals("Main SIM", vm.uiState.value.deletedPlanName)
 
-        val cards = vm.uiState.value.cards.associateBy { it.name }
-        assertEquals("SIM 1 · Alpha", cards["Plan 1"]?.simLabel)
-        assertNull(cards["Plan 2"]?.simLabel)
-        assertEquals("SIM (not found)", cards["Plan 3"]?.simLabel)
+        vm.onEvent(PlansEvent.UndoDelete)
+        advanceUntilIdle()
+        assertEquals("Main SIM", vm.uiState.value.front?.name)
+        assertNull(vm.uiState.value.deletedPlanName)
         job.cancel()
     }
 
-    @Test fun sim_label_falls_back_to_default_data_sim_when_sims_not_listed() = runTest(dispatcher) {
+    @Test
+    fun delete_without_undo_stands() = runTest(dispatcher) {
         val planStore = InMemoryPlanStore()
         val usageStore = InMemoryUsageStore()
         val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
-        val settings = FakeSettingsRepository()
-        val sims = FakeSimInfoSource(
-            sims = emptyList(),
-            defaultId = 5,
-        )
-        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
+        val vm = PlansViewModel(repo, FakeSettingsRepository(), FakeSimInfoSource(), clock, Locale.ENGLISH)
 
         val job = launch { vm.uiState.collect {} }
+        repo.upsertPlan(Plan(0L, "Main SIM", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None))
         advanceUntilIdle()
 
-        val p1 = Plan(0L, "Plan Default", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        val p2 = Plan(0L, "Plan Other", 99, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        repo.upsertPlan(p1)
-        repo.upsertPlan(p2)
+        val id = vm.uiState.value.front!!.id
+        vm.onEvent(PlansEvent.Delete(id))
+        advanceUntilIdle()
+        vm.onEvent(PlansEvent.DismissDeleteUndo)
         advanceUntilIdle()
 
-        val cards = vm.uiState.value.cards.associateBy { it.name }
-        assertEquals("Default data SIM", cards["Plan Default"]?.simLabel)
-        assertEquals("SIM (not found)", cards["Plan Other"]?.simLabel)
+        assertTrue(repo.observePlans().first().isEmpty())
+        assertNull(vm.uiState.value.deletedPlanName)
         job.cancel()
     }
 
-    @Test fun settings_binary_unit_system_formats_cap_in_gib() = runTest(dispatcher) {
+    @Test
+    fun what_if_never_changes_stored_plans() = runTest(dispatcher) {
         val planStore = InMemoryPlanStore()
         val usageStore = InMemoryUsageStore()
         val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
-        val settings = FakeSettingsRepository()
-        val sims = FakeSimInfoSource()
-        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
+        val vm = PlansViewModel(repo, FakeSettingsRepository(), FakeSimInfoSource(), clock, Locale.ENGLISH)
 
         val job = launch { vm.uiState.collect {} }
+        repo.upsertPlan(Plan(0L, "Main SIM", 5, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None))
         advanceUntilIdle()
+        val before = repo.observePlans().first()
 
-        val plan = Plan(0L, "Main SIM", null, 10_737_418_240L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        repo.upsertPlan(plan)
+        vm.onEvent(PlansEvent.SetWhatIf(5))
         advanceUntilIdle()
-
-        settings.update { it.copy(unitSystem = UnitSystem.BINARY) }
-        advanceUntilIdle()
-
-        val card = vm.uiState.value.cards.first()
-        assertTrue(card.usedText.contains("10.0 GiB"))
-        job.cancel()
-    }
-
-    @Test fun state_orders_plans_by_urgency_and_dormant_last() = runTest(dispatcher) {
-        val planStore = InMemoryPlanStore()
-        val usageStore = InMemoryUsageStore()
-        val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
-        val settings = FakeSettingsRepository()
-        val sims = FakeSimInfoSource()
-        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
-
-        val job = launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-
-        // p1: Low usage (10%)
-        val p1 = Plan(0L, "Low Urgency", 1, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        // p2: Over cap
-        val p2 = Plan(0L, "Over Cap", 2, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        // p3: Dormant
-        val nextMonth = Instant.parse("2026-11-01T00:00:00Z")
-        val p3 = Plan(0L, "Dormant", 3, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None, firstCycle = io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle.StartsNextCycle(nextMonth))
-
-        val id1 = (repo.upsertPlan(p1) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
-        val id2 = (repo.upsertPlan(p2) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
-        val id3 = (repo.upsertPlan(p3) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
-
-        usageStore.addMinute(MinuteTotal(now.minusSeconds(3600), NetworkKind.MOBILE, 1, 1_000_000_000L, 0L))
-        usageStore.addMinute(MinuteTotal(now.minusSeconds(3600), NetworkKind.MOBILE, 2, 11_000_000_000L, 0L))
-        advanceUntilIdle()
-
-        val cards = vm.uiState.value.cards
-        assertEquals(3, cards.size)
-        // Over Cap leads, Low Urgency second, Dormant last
-        assertEquals(id2, cards[0].id)
-        assertEquals(id1, cards[1].id)
-        assertEquals(id3, cards[2].id)
-        assertTrue(cards[2].isDormant)
-        job.cancel()
-    }
-
-    @Test fun pin_action_calls_the_repository() = runTest(dispatcher) {
-        val planStore = InMemoryPlanStore()
-        val usageStore = InMemoryUsageStore()
-        val repo = RoomPlanRepository(planStore, usageStore, clock, ticks = flowOf(now))
-        val settings = FakeSettingsRepository()
-        val sims = FakeSimInfoSource()
-        val vm = PlansViewModel(repo, settings, sims, clock, Locale.ENGLISH)
-
-        val job = launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-
-        val p1 = Plan(0L, "Plan 1", null, 10_000_000_000L, Cycle.MonthlyOnDay(1, LocalTime.MIDNIGHT, ZoneOffset.UTC), Rollover.None)
-        val id1 = (repo.upsertPlan(p1) as io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome.Success).value
-        advanceUntilIdle()
-
-        assertFalse(vm.uiState.value.cards.first().pinned)
-
-        vm.onEvent(PlansEvent.SetPinned(id1, true))
-        advanceUntilIdle()
-
-        assertTrue(vm.uiState.value.cards.first().pinned)
+        val after = repo.observePlans().first()
+        assertEquals(before, after)
+        assertEquals(5, vm.uiState.value.whatIfExtraGb)
+        assertTrue(vm.uiState.value.whatIfSentence?.contains("+5 GB") == true)
         job.cancel()
     }
 }

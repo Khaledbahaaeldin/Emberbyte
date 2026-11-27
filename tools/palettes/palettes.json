@@ -32,8 +32,8 @@
       "onAccent": "#0D3A1F",
       "warn": "#F4C35B",
       "onWarn": "#3B2A00",
-      "danger": "#FFB4AB",
-      "onDanger": "#4D0B0B",
+      "danger": "#BA1A1A",
+      "onDanger": "#FFFFFF",
       "track": "#CFC3E6"
     }
   },
@@ -70,8 +70,8 @@
       "onAccent": "#00382F",
       "warn": "#FFD98A",
       "onWarn": "#3B2A00",
-      "danger": "#FFB4AB",
-      "onDanger": "#4D0B0B",
+      "danger": "#BA1A1A",
+      "onDanger": "#FFFFFF",
       "track": "#E3CDBF"
     }
   },
@@ -92,8 +92,8 @@
       "onAccent": "#1A1A1A",
       "warn": "#9E9E9E",
       "onWarn": "#111111",
-      "danger": "#F5F5F5",
-      "onDanger": "#111111",
+      "danger": "#FFB4AB",
+      "onDanger": "#4D0B0B",
       "track": "#444444"
     },
     "light": {
@@ -108,7 +108,7 @@
       "onAccent": "#FAFAFA",
       "warn": "#9E9E9E",
       "onWarn": "#111111",
-      "danger": "#000000",
+      "danger": "#B3261E",
       "onDanger": "#FFFFFF",
       "track": "#CFCFCF"
     }

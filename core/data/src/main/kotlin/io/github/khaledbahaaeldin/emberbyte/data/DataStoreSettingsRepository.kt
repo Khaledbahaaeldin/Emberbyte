@@ -7,13 +7,17 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import io.github.khaledbahaaeldin.emberbyte.engine.model.EmberbyteError
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import java.io.IOException
+import java.time.Instant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -31,6 +35,9 @@ internal object SettingsKeys {
     val HAPTICS = booleanPreferencesKey("haptics_enabled")
     val PROMOTED_DISMISSED_ON = stringPreferencesKey("promoted_dismissed_on")
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+    val LAST_SEEN_WHATS_NEW_VERSION_CODE = intPreferencesKey("last_seen_whats_new_version_code")
+    val ARCHIVED_PLANS_RESTORED = booleanPreferencesKey("archived_plans_restored")
+    val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
     val LEGACY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
 }
 
@@ -49,6 +56,7 @@ internal fun Preferences.toSettings(): Settings {
             ?.let { name -> runCatching { UnitSystem.valueOf(name) }.getOrNull() } ?: d.unitSystem,
         hapticsEnabled = this[SettingsKeys.HAPTICS] ?: d.hapticsEnabled,
         promotedDismissedOn = this[SettingsKeys.PROMOTED_DISMISSED_ON],
+        lastBackupAt = this[SettingsKeys.LAST_BACKUP_AT]?.let(Instant::ofEpochMilli),
     )
 }
 
@@ -66,6 +74,11 @@ internal fun MutablePreferences.write(settings: Settings) {
         this[SettingsKeys.PROMOTED_DISMISSED_ON] = settings.promotedDismissedOn
     } else {
         this.remove(SettingsKeys.PROMOTED_DISMISSED_ON)
+    }
+    if (settings.lastBackupAt != null) {
+        this[SettingsKeys.LAST_BACKUP_AT] = settings.lastBackupAt.toEpochMilli()
+    } else {
+        this.remove(SettingsKeys.LAST_BACKUP_AT)
     }
 }
 
@@ -141,5 +154,46 @@ class DataStoreOnboardingRepository(private val store: DataStore<Preferences>) :
 
     override suspend fun complete() {
         store.edit { it[SettingsKeys.ONBOARDING_COMPLETED] = true }
+    }
+}
+
+interface WhatsNewPrefsRepository {
+    fun observeLastSeenVersionCode(): Flow<Int?>
+    suspend fun lastSeenVersionCode(): Int?
+    suspend fun markSeen(versionCode: Int)
+}
+
+class DataStoreWhatsNewPrefsRepository(private val store: DataStore<Preferences>) : WhatsNewPrefsRepository {
+    override fun observeLastSeenVersionCode(): Flow<Int?> = store.data.safe()
+        .map { it[SettingsKeys.LAST_SEEN_WHATS_NEW_VERSION_CODE] }
+
+    override suspend fun lastSeenVersionCode(): Int? =
+        store.data.safe().map { it[SettingsKeys.LAST_SEEN_WHATS_NEW_VERSION_CODE] }.let { flow ->
+            var value: Int? = null
+            flow.collect {
+                value = it
+                throw StopCollectException
+            }
+            value
+        }
+
+    override suspend fun markSeen(versionCode: Int) {
+        store.edit { it[SettingsKeys.LAST_SEEN_WHATS_NEW_VERSION_CODE] = versionCode }
+    }
+}
+
+private object StopCollectException : CancellationException("Done reading single value")
+
+interface ArchivedPlansRestoreRepository {
+    suspend fun isRestored(): Boolean
+    suspend fun markRestored()
+}
+
+class DataStoreArchivedPlansRestoreRepository(private val store: DataStore<Preferences>) : ArchivedPlansRestoreRepository {
+    override suspend fun isRestored(): Boolean =
+        store.data.safe().map { it[SettingsKeys.ARCHIVED_PLANS_RESTORED] ?: false }.first()
+
+    override suspend fun markRestored() {
+        store.edit { it[SettingsKeys.ARCHIVED_PLANS_RESTORED] = true }
     }
 }

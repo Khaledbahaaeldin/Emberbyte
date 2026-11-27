@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.history
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -35,6 +36,8 @@ import org.robolectric.annotation.Config
 class HistoryContentTest {
     @get:Rule
     val rule = createComposeRule()
+
+    @org.junit.Before fun settleReveals() { io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate.enabled = false }
 
     private val zone = ZoneOffset.UTC
     private val today = LocalDate.of(2026, 10, 7)
@@ -160,4 +163,24 @@ class HistoryContentTest {
         rule.onNodeWithContentDescription("Week of 20 July, 200 megabytes").assertIsNotDisplayed()
     }
 
+    @Test
+    fun week_granularity_shows_the_selected_card_and_the_four_tiles() {
+        val state = HistoryUiState(
+            granularity = Granularity.WEEK,
+            totalBytes = 1_480_000_000L,
+            averageBytes = 210_000_000L,
+            units = io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits.DECIMAL,
+            rangeLabel = "28 Sep to 5 Oct 2026",
+        )
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HistoryContent(state = state, onEvent = {}, onBack = {})
+            }
+        }
+        rule.onNode(hasScrollAction()).performScrollToNode(androidx.compose.ui.test.hasTestTag("history_tile_average"))
+        rule.onNodeWithText("Daily average").assertExists()
+        rule.onNodeWithText("Wi-Fi share").assertExists()
+        rule.onNodeWithText("Heaviest app").assertExists()
+        rule.onNodeWithText("Active days").assertExists()
+    }
 }

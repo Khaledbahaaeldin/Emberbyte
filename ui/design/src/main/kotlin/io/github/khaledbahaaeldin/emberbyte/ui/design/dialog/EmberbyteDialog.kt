@@ -47,6 +47,7 @@ import androidx.compose.ui.window.DialogProperties
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.Corner
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.ShapedBox
 import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.mixedCorners
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
 
@@ -140,7 +141,7 @@ fun EmberbyteDialog(
                 // Title
                 Text(
                     text = title,
-                    style = EmberbyteType.heading(24.sp),
+                    style = EmberbyteType.heading(ComponentType.DialogTitle),
                     color = if (destructive) palette.danger else palette.primary,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -181,7 +182,7 @@ fun EmberbyteDialog(
                         ) {
                             Text(
                                 text = dismiss.label,
-                                style = EmberbyteType.heading(15.sp),
+                                style = EmberbyteType.heading(ComponentType.DialogBody),
                             )
                         }
                         Spacer(Modifier.width(8.dp))
@@ -217,7 +218,7 @@ fun EmberbyteDialog(
                             }
                             Text(
                                 text = confirm.label,
-                                style = EmberbyteType.heading(15.sp),
+                                style = EmberbyteType.heading(ComponentType.DialogBody),
                             )
                         }
                     }

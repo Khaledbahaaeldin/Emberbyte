@@ -59,5 +59,20 @@ internal object ContrastPairs {
         register(ContrastPair("bar color on track", { it.primary }, { it.track }, 2.2))
         register(ContrastPair("dialog primary confirm", { it.onPrimary }, { it.primary }, 4.5))
         register(ContrastPair("dialog danger confirm", { it.onDanger }, { it.danger }, 4.5))
+        // Text roles on the surfaces text actually sits on. The 1.0.2 audit found these unreadable in light themes
+        // because the gate only checked roles used as designed (fills with their on-colours), not as text.
+        register(ContrastPair("muted on surface2", { it.muted }, { it.surface2 }, 4.5))
+        register(ContrastPair("danger text on surface2", { it.danger }, { it.surface2 }, 4.5))
+        register(ContrastPair("danger text on surface", { it.danger }, { it.surface }, 4.5))
+        register(ContrastPair("danger text on background", { it.danger }, { it.background }, 4.5))
+        register(ContrastPair("accent text on surface2", { it.accentText }, { it.surface2 }, 4.5))
+        register(ContrastPair("accent text on surface", { it.accentText }, { it.surface }, 4.5))
+        register(ContrastPair("accent text on background", { it.accentText }, { it.background }, 4.5))
+        register(ContrastPair("warn text on surface2", { it.warnText }, { it.surface2 }, 4.5))
+        register(ContrastPair("warn text on surface", { it.warnText }, { it.surface }, 4.5))
+        register(ContrastPair("warn text on background", { it.warnText }, { it.background }, 4.5))
+        register(ContrastPair("link text on surface2", { it.linkText }, { it.surface2 }, 4.5))
+        register(ContrastPair("link text on surface", { it.linkText }, { it.surface }, 4.5))
+        register(ContrastPair("link text on background", { it.linkText }, { it.background }, 4.5))
     }
 }

@@ -17,6 +17,7 @@ class UpdatesPermissionTest {
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
     )
 
     @Test fun the_manifest_declares_only_the_known_permissions_and_never_internet() {

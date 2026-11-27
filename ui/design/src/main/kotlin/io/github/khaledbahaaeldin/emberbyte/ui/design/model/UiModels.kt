@@ -21,7 +21,17 @@ data class AppRowUi(
 }
 
 /** [description] is the spoken form, e.g. "Wednesday, 2.10 gigabytes". */
-data class BarUi(val label: String, val bytes: Long, val description: String)
+data class BarUi(
+    val label: String,
+    val bytes: Long,
+    val description: String,
+    val valueText: String = "",
+    val title: String? = null,
+    val shortLabel: String? = null,
+    val isBoundary: Boolean = false,
+    /** The mobile part of [bytes]; when above zero the bar is stacked (Wi-Fi below, mobile above). */
+    val mobileBytes: Long = 0L,
+)
 
 data class PermissionPromptUi(val id: String, val title: String, val body: String, val actionLabel: String)
 
@@ -30,6 +40,8 @@ data class GapUi(val message: String)
 enum class BudgetStateUi { Ok, Warning, Exceeded }
 
 data class PlanChipUi(val id: Long, val name: String, val selected: Boolean)
+
+enum class PlanStatusKind { OnTrack, RunsOutEarly, OverCap, Upcoming }
 
 data class PlanCardUi(
     val id: Long,
@@ -44,9 +56,19 @@ data class PlanCardUi(
     val forecastText: String?,
     val isEstimated: Boolean,
     val chips: List<String>,
-    val archived: Boolean,
     val isDormant: Boolean = false,
     val startsAtText: String? = null,
     val enteredNote: String? = null,
     val pinned: Boolean = false,
+    val allowancePerDayText: String? = null,
+    val timeFraction: Float = 0f,
+    val dayOfCycle: Int = 0,
+    val cycleLength: Int = 1,
+    val weekBars: List<Float> = emptyList(),
+    val statusKind: PlanStatusKind = PlanStatusKind.OnTrack,
+    val runOutDateText: String? = null,
+    val earlyDaysText: String? = null,
+    val renewsText: String = "",
+    val capText: String = "",
+    val rolloverText: String? = null,
 )

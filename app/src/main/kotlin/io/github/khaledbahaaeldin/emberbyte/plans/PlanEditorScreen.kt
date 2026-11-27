@@ -1,72 +1,54 @@
 package io.github.khaledbahaaeldin.emberbyte.plans
 
+import io.github.khaledbahaaeldin.emberbyte.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-import androidx.compose.ui.graphics.graphicsLayer
-import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
-import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
-import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.error
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.khaledbahaaeldin.emberbyte.common.ScreenHeader
+import io.github.khaledbahaaeldin.emberbyte.engine.model.FirstCycle
+import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
 import io.github.khaledbahaaeldin.emberbyte.plans.flow.FirstCycleChoice
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
-import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
-import io.github.khaledbahaaeldin.emberbyte.ui.design.plan.PlanCard
-import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
+import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
 import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
-import java.time.DayOfWeek
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.PlanFlowType
+import kotlinx.coroutines.launch
 
 @Composable
 fun PlanEditorScreen(
@@ -88,7 +70,6 @@ fun PlanEditorScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlanEditorContent(
     state: PlanEditorUiState,
@@ -99,7 +80,13 @@ internal fun PlanEditorContent(
 ) {
     val palette = LocalEmberbytePalette.current
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     val backRequester = remember { FocusRequester() }
+
+    val showSlimPreview by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 0 }
+    }
 
     val handleBack: () -> Unit = {
         if (state.isDirty) {
@@ -109,701 +96,278 @@ internal fun PlanEditorContent(
         }
     }
 
+    val canSave = !state.saving &&
+        state.isDirty &&
+        state.errors.isEmpty() &&
+        state.form.name.isNotBlank() &&
+        state.form.capText.isNotBlank()
+
     GuardedBack(
         dirty = state.isDirty,
         onConfirmLeave = onBack,
-        onDismiss = { backRequester.requestFocus() },
+        onDismiss = { runCatching { backRequester.requestFocus() } },
     ) { shrink ->
-        var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
-
-        if (showDeleteDialog) {
-            EmberbyteDialog(
-                onDismiss = { showDeleteDialog = false },
-                title = "Delete plan?",
-                icon = Icons.Rounded.Delete,
-                destructive = true,
-                confirm = DialogAction(
-                    label = "Delete",
-                    onClick = {
-                        showDeleteDialog = false
-                        onEvent(PlanEditorEvent.Delete)
-                    },
-                ),
-                dismiss = DialogAction(
-                    label = "Cancel",
-                    onClick = { showDeleteDialog = false },
-                ),
-            ) {
-                Text(
-                    text = "Are you sure you want to delete this plan? This action cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
+                .background(palette.background)
                 .graphicsLayer {
                     scaleX = shrink
                     scaleY = shrink
-                }
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                },
         ) {
-            ScreenHeader(
-            if (state.isNew) "New plan" else "Edit plan",
-            handleBack,
-            backModifier = Modifier.focusRequester(backRequester),
-        )
+            Column(modifier = Modifier.fillMaxSize()) {
+                EditorHeader(
+                    title = if (state.isNew) stringResource(R.string.plan_editor_title_new) else stringResource(R.string.plan_editor_title_edit),
+                    canDelete = !state.isNew,
+                    showSlimPreview = showSlimPreview,
+                    preview = state.preview,
+                    onBack = handleBack,
+                    onJumpToDelete = {
+                        scope.launch {
+                            listState.animateScrollToItem(9)
+                        }
+                    },
+                    backFocusRequester = backRequester,
+                )
 
-        when {
-            state.loading -> {
-                Box(
+                LazyColumn(
+                    state = listState,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center,
+                        .fillMaxSize()
+                        .testTag("editor_lazy_list"),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    LoadingState(label = "Loading plan")
+                    if (state.loading) {
+                        item(key = "loading") {
+                            LoadingState(
+                                label = stringResource(R.string.plan_editor_loading),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(vertical = 48.dp),
+                            )
+                        }
+                        return@LazyColumn
+                    }
+
+                    if (state.notFound) {
+                        item(key = "not_found") {
+                            EditorSectionCard(title = stringResource(R.string.plan_editor_plan)) {
+                                Text(
+                                    text = stringResource(R.string.plan_editor_not_found),
+                                    style = EmberbyteType.heading(PlanFlowType.Body),
+                                    color = palette.text,
+                                )
+                            }
+                        }
+                        return@LazyColumn
+                    }
+
+                    if (state.preview != null) {
+                        item(key = "preview") {
+                            EditorPreviewCard(preview = state.preview)
+                        }
+                    }
+
+                    item(key = "plan") {
+                        PlanSection(
+                            name = state.form.name,
+                            nameError = state.errors["name"],
+                            subscriptionId = state.form.subscriptionId,
+                            sims = state.sims,
+                            needsPhonePermission = state.needsPhonePermission,
+                            onSetName = { onEvent(PlanEditorEvent.SetName(it)) },
+                            onSetSim = { onEvent(PlanEditorEvent.SetSim(it)) },
+                            onRequestPhonePermission = { onPrompt("phone_state") },
+                        )
+                    }
+
+                    item(key = "data") {
+                        DataSection(
+                            capText = state.form.capText,
+                            capUnit = state.form.capUnit,
+                            unitSystem = state.unitSystem,
+                            capError = state.errors["capBytes"],
+                            onSetCap = { onEvent(PlanEditorEvent.SetCap(it)) },
+                            onSetCapUnit = { onEvent(PlanEditorEvent.SetCapUnit(it)) },
+                        )
+                    }
+
+                    item(key = "cycle") {
+                        CycleSection(
+                            cycleKind = state.form.cycleKind,
+                            dayOfMonth = state.form.dayOfMonth,
+                            everyDays = state.form.everyDays,
+                            anchor = state.form.anchor,
+                            renewalTime = state.form.renewalTime,
+                            rolloverKind = state.form.rolloverKind,
+                            rolloverCapText = state.form.rolloverCapText,
+                            rolloverCapUnit = state.form.rolloverCapUnit,
+                            unitSystem = state.unitSystem,
+                            daysError = state.errors["cycle.days"] ?: state.errors["everyDays"],
+                            rolloverError = state.errors["rollover.maxBytes"],
+                            onSetCycleKind = { onEvent(PlanEditorEvent.SetCycleKind(it)) },
+                            onSetDayOfMonth = { onEvent(PlanEditorEvent.SetDayOfMonth(it)) },
+                            onSetEveryDays = { onEvent(PlanEditorEvent.SetEveryDays(it)) },
+                            onSetAnchor = { onEvent(PlanEditorEvent.SetAnchor(it)) },
+                            onSetRenewalTime = { onEvent(PlanEditorEvent.SetRenewalTime(it)) },
+                            onSetRolloverKind = { onEvent(PlanEditorEvent.SetRolloverKind(it)) },
+                            onSetRolloverCap = { onEvent(PlanEditorEvent.SetRolloverCap(it)) },
+                            onSetRolloverUnit = { onEvent(PlanEditorEvent.SetRolloverUnit(it)) },
+                            modifier = Modifier.testTag("editor_cycle_section"),
+                        )
+                    }
+
+                    val showFirstCycle = state.isNew ||
+                        state.form.firstCycle != FirstCycle.PhoneRecord ||
+                        state.form.firstCycleChoice != FirstCycleChoice.PhoneRecord ||
+                        (state.preview?.isEstimated == true)
+                    if (showFirstCycle) {
+                        item(key = "this_cycle") {
+                            ThisCycleSection(
+                                countedSoFarText = state.preview?.usedText?.substringBefore(" of ") ?: "0 GB",
+                                firstCycleChoice = state.form.firstCycleChoice,
+                                enteredAmount = state.form.enteredAmount,
+                                enteredUnit = state.form.enteredUnit,
+                                unitSystem = state.unitSystem,
+                                enteredError = state.errors["enteredAmount"],
+                                onSelectChoice = { onEvent(PlanEditorEvent.SetFirstCycleChoice(it)) },
+                                onSetEnteredAmount = { onEvent(PlanEditorEvent.SetEnteredAmount(it)) },
+                                onSetEnteredUnit = { onEvent(PlanEditorEvent.SetEnteredUnit(it)) },
+                            )
+                        }
+                    }
+
+                    if (state.whatIf != null) {
+                        item(key = "what_if") {
+                            val capVal = state.form.capText.trim().replace(',', '.').toDoubleOrNull()?.toInt()?.coerceAtLeast(1) ?: 10
+                            val extraVal = state.whatIf.amountText.trim().replace(',', '.').toDoubleOrNull()?.toInt()?.coerceAtLeast(0) ?: 0
+                            WhatIfCard(
+                                capGb = capVal,
+                                extraGb = extraVal,
+                                nowText = stringResource(R.string.plan_editor_what_if_now, state.whatIf.currentText.orEmpty()),
+                                withExtraText = stringResource(R.string.plan_editor_what_if_with, extraVal, state.whatIf.whatIfText.orEmpty()),
+                                unitSystem = state.unitSystem,
+                                onChangeExtraGb = { gb ->
+                                    onEvent(PlanEditorEvent.SetWhatIfUnit(CapUnit.GB))
+                                    onEvent(PlanEditorEvent.SetWhatIfAmount(gb.toString()))
+                                },
+                            )
+                        }
+                    }
+
+                    item(key = "extras") {
+                        ExtrasSection(
+                            addOns = state.form.addOns,
+                            freeRules = state.form.freeRules,
+                            availableApps = state.availableApps,
+                            unitSystem = state.unitSystem,
+                            errors = state.errors,
+                            onAddAddOn = { onEvent(PlanEditorEvent.AddAddOn) },
+                            onUpdateAddOn = { idx, draft -> onEvent(PlanEditorEvent.UpdateAddOn(idx, draft)) },
+                            onRemoveAddOn = { idx -> onEvent(PlanEditorEvent.RemoveAddOn(idx)) },
+                            onAddFreeRule = { onEvent(PlanEditorEvent.AddFreeRule) },
+                            onUpdateFreeRule = { idx, draft -> onEvent(PlanEditorEvent.UpdateFreeRule(idx, draft)) },
+                            onRemoveFreeRule = { idx -> onEvent(PlanEditorEvent.RemoveFreeRule(idx)) },
+                        )
+                    }
+
+                    item(key = "alerts") {
+                        AlertsSection(
+                            thresholds = state.form.alertThresholds,
+                            onToggleThreshold = { onEvent(PlanEditorEvent.ToggleThreshold(it)) },
+                        )
+                    }
+
+                    item(key = "on_home") {
+                        OnHomeSection(
+                            pinned = state.form.pinned,
+                            onSetPinned = { onEvent(PlanEditorEvent.SetPinned(it)) },
+                        )
+                    }
+
+                    if (!state.isNew) {
+                        item(key = "danger") {
+                            DangerZone(
+                                planName = state.form.name,
+                                onDeleteConfirmed = { onEvent(PlanEditorEvent.Delete) },
+                            )
+                        }
+                    }
+
+                    val extraErrors = state.errors.filterKeys { key ->
+                        key != "name" &&
+                            key != "capBytes" &&
+                            key != "cycle.days" &&
+                            key != "everyDays" &&
+                            key != "rollover.maxBytes" &&
+                            key != "enteredAmount" &&
+                            !(key.startsWith("addOn.") && key.endsWith(".bytes"))
+                    }
+                    if (extraErrors.isNotEmpty()) {
+                        item(key = "extra_errors") {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                extraErrors.values.forEach { msg ->
+                                    Text(
+                                        text = msg,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = palette.danger,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item(key = "bottom_spacer") {
+                        Spacer(modifier = Modifier.height(88.dp))
+                    }
                 }
             }
 
-            state.notFound -> {
-                Text("This plan no longer exists")
-                Button(onClick = onBack) {
-                    Text("Back")
-                }
-            }
-            else -> {
-                if (state.preview != null) {
-                    Text("Preview", style = MaterialTheme.typography.titleMedium)
-                    PlanCard(model = state.preview, onClick = {})
-                }
-
-                if (state.whatIf != null) {
-                    Text("What if I use more?", style = MaterialTheme.typography.titleMedium)
-                    val whatIfError = state.whatIf.error
-                    OutlinedTextField(
-                        value = state.whatIf.amountText,
-                        onValueChange = { onEvent(PlanEditorEvent.SetWhatIfAmount(it)) },
-                        label = { Text("Extra per day") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (whatIfError != null) {
-                                    error(whatIfError)
-                                }
-                            },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = whatIfError != null,
-                        supportingText = whatIfError?.let {
-                            {
-                                Text(it)
-                            }
-                        },
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (unit in listOf(CapUnit.MB, CapUnit.GB)) {
-                            EmberbyteFilterChip(
-                                selected = state.whatIf.unit == unit,
-                                onClick = { onEvent(PlanEditorEvent.SetWhatIfUnit(unit)) },
-                                label = { Text(unit.label, softWrap = false) },
-                            )
-                        }
-                    }
-                    ForceLtr {
-                        Text("Now: ${state.whatIf.currentText}")
-                    }
-                    if (state.whatIf.whatIfText != null) {
-                        ForceLtr {
-                            Text("With extra: ${state.whatIf.whatIfText}")
-                        }
-                    }
-                }
-
+            Button(
+                onClick = { onEvent(PlanEditorEvent.Save) },
+                enabled = canSave,
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = palette.primary,
+                    contentColor = palette.background,
+                ),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(16.dp)
+                    .defaultMinSize(minWidth = 48.dp, minHeight = 52.dp)
+                    .testTag("editor_save_pill"),
+            ) {
+                Icon(Icons.Rounded.Check, contentDescription = null)
                 Text(
-                    text = "Basics",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
+                    text = stringResource(R.string.plan_editor_save),
+                    style = EmberbyteType.heading(PlanFlowType.Button),
+                    modifier = Modifier.padding(start = 8.dp),
                 )
-
-                val nameError = state.errors["name"]
-                OutlinedTextField(
-                    value = state.form.name,
-                    onValueChange = { onEvent(PlanEditorEvent.SetName(it)) },
-                    label = { Text("Plan name") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics {
-                            if (nameError != null) {
-                                error(nameError)
-                            }
-                        },
-                    singleLine = true,
-                    isError = nameError != null,
-                    supportingText = nameError?.let {
-                        {
-                            Text(it)
-                        }
-                    },
-                )
-
-                Text("SIM", style = MaterialTheme.typography.titleMedium)
-                if (state.needsPhonePermission) {
-                    PermissionPrompt(
-                        model = PermissionPromptUi(
-                            id = "phone_state",
-                            title = "Allow phone access",
-                            body = "Lets Emberbyte list your SIMs so a plan can follow one SIM. You can also use the default data SIM below.",
-                            actionLabel = "Allow",
-                        ),
-                        onAction = { onPrompt("phone_state") },
-                    )
-                }
-                for (sim in state.sims) {
-                    val isSelected = state.form.subscriptionId == sim.subscriptionId
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 48.dp)
-                            .selectable(
-                                selected = isSelected,
-                                role = Role.RadioButton,
-                                onClick = { onEvent(PlanEditorEvent.SetSim(sim.subscriptionId)) },
-                            )
-                            .semantics(mergeDescendants = true) {}
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = null,
-                        )
-                        Text(sim.label, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-
-                Text(
-                    text = "Cap and cycle",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
-
-                val capError = state.errors["capBytes"]
-                OutlinedTextField(
-                    value = state.form.capText,
-                    onValueChange = { onEvent(PlanEditorEvent.SetCap(it)) },
-                    label = { Text("Cap") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics {
-                            if (capError != null) {
-                                error(capError)
-                            }
-                        },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = capError != null,
-                    supportingText = capError?.let {
-                        {
-                            Text(it)
-                        }
-                    },
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (unit in CapUnit.entries) {
-                        EmberbyteFilterChip(
-                            selected = state.form.capUnit == unit,
-                            onClick = { onEvent(PlanEditorEvent.SetCapUnit(unit)) },
-                            label = { Text(unit.label, softWrap = false) },
-                        )
-                    }
-                }
-
-                Text("Cycle", style = MaterialTheme.typography.titleMedium)
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = state.form.cycleKind == CycleKind.Monthly,
-                        onClick = { onEvent(PlanEditorEvent.SetCycleKind(CycleKind.Monthly)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primary,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                            inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    ) {
-                        Text("Monthly")
-                    }
-                    SegmentedButton(
-                        selected = state.form.cycleKind == CycleKind.EveryNDays,
-                        onClick = { onEvent(PlanEditorEvent.SetCycleKind(CycleKind.EveryNDays)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primary,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                            inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    ) {
-                        Text("Every N days")
-                    }
-                }
-
-                when (state.form.cycleKind) {
-                    CycleKind.Monthly -> {
-                        val dayError = state.errors["cycle.dayOfMonth"]
-                        OutlinedTextField(
-                            value = if (state.form.dayOfMonth == 0) "" else state.form.dayOfMonth.toString(),
-                            onValueChange = { input ->
-                                val day = input.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                onEvent(PlanEditorEvent.SetDayOfMonth(day))
-                            },
-                            label = { Text("Day of month") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics {
-                                    if (dayError != null) {
-                                        error(dayError)
-                                    }
-                                },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = dayError != null,
-                            supportingText = dayError?.let {
-                                {
-                                    Text(it)
-                                }
-                            },
-                        )
-                    }
-                    CycleKind.EveryNDays -> {
-                        val daysError = state.errors["cycle.days"]
-                        OutlinedTextField(
-                            value = if (state.form.everyDays == 0) "" else state.form.everyDays.toString(),
-                            onValueChange = { input ->
-                                val days = input.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                onEvent(PlanEditorEvent.SetEveryDays(days))
-                            },
-                            label = { Text("Number of days") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics {
-                                    if (daysError != null) {
-                                        error(daysError)
-                                    }
-                                },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = daysError != null,
-                            supportingText = daysError?.let {
-                                {
-                                    Text(it)
-                                }
-                            },
-                        )
-                        DateField(
-                            label = "Starts on",
-                            date = state.form.anchor,
-                            onChange = { onEvent(PlanEditorEvent.SetAnchor(it)) },
-                        )
-                    }
-                }
-                TimeField(
-                    label = "Renews at",
-                    time = state.form.renewalTime,
-                    onChange = { onEvent(PlanEditorEvent.SetRenewalTime(it)) },
-                )
-
-                Text("Rollover", style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    EmberbyteFilterChip(
-                        selected = state.form.rolloverKind == RolloverKind.None,
-                        onClick = { onEvent(PlanEditorEvent.SetRolloverKind(RolloverKind.None)) },
-                        label = { Text("None") },
-                    )
-                    EmberbyteFilterChip(
-                        selected = state.form.rolloverKind == RolloverKind.Full,
-                        onClick = { onEvent(PlanEditorEvent.SetRolloverKind(RolloverKind.Full)) },
-                        label = { Text("Full") },
-                    )
-                    EmberbyteFilterChip(
-                        selected = state.form.rolloverKind == RolloverKind.Capped,
-                        onClick = { onEvent(PlanEditorEvent.SetRolloverKind(RolloverKind.Capped)) },
-                        label = { Text("Capped") },
-                    )
-                }
-                if (state.form.rolloverKind == RolloverKind.Capped) {
-                    val rolloverError = state.errors["rollover.maxBytes"]
-                    OutlinedTextField(
-                        value = state.form.rolloverCapText,
-                        onValueChange = { onEvent(PlanEditorEvent.SetRolloverCap(it)) },
-                        label = { Text("Maximum rollover") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (rolloverError != null) {
-                                    error(rolloverError)
-                                }
-                            },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = rolloverError != null,
-                        supportingText = rolloverError?.let {
-                            {
-                                Text(it)
-                            }
-                        },
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (unit in CapUnit.entries) {
-                            EmberbyteFilterChip(
-                                selected = state.form.rolloverCapUnit == unit,
-                                onClick = { onEvent(PlanEditorEvent.SetRolloverUnit(unit)) },
-                                label = { Text(unit.label, softWrap = false) },
-                            )
-                        }
-                    }
-                }
-
-                Text("Add-on packs", style = MaterialTheme.typography.titleMedium)
-                state.form.addOns.forEachIndexed { index, addOn ->
-                    val labelError = state.errors["addOn.$index.label"]
-                    OutlinedTextField(
-                        value = addOn.label,
-                        onValueChange = { onEvent(PlanEditorEvent.UpdateAddOn(index, addOn.copy(label = it))) },
-                        label = { Text("Label") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (labelError != null) {
-                                    error(labelError)
-                                }
-                            },
-                        singleLine = true,
-                        isError = labelError != null,
-                        supportingText = labelError?.let {
-                            {
-                                Text(it)
-                            }
-                        },
-                    )
-                    val amountError = state.errors["addOn.$index.bytes"]
-                    OutlinedTextField(
-                        value = addOn.amountText,
-                        onValueChange = { onEvent(PlanEditorEvent.UpdateAddOn(index, addOn.copy(amountText = it))) },
-                        label = { Text("Amount") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (amountError != null) {
-                                    error(amountError)
-                                }
-                            },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = amountError != null,
-                        supportingText = amountError?.let {
-                            {
-                                Text(it)
-                            }
-                        },
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (unit in CapUnit.entries) {
-                            EmberbyteFilterChip(
-                                selected = addOn.unit == unit,
-                                onClick = { onEvent(PlanEditorEvent.UpdateAddOn(index, addOn.copy(unit = unit))) },
-                                label = { Text(unit.label, softWrap = false) },
-                            )
-                        }
-                    }
-                    DateField(
-                        label = "Valid from",
-                        date = addOn.validFrom,
-                        onChange = { onEvent(PlanEditorEvent.UpdateAddOn(index, addOn.copy(validFrom = it))) },
-                    )
-                    DateField(
-                        label = "Valid until",
-                        date = addOn.validUntil,
-                        onChange = { onEvent(PlanEditorEvent.UpdateAddOn(index, addOn.copy(validUntil = it))) },
-                    )
-                    state.errors["addOn.$index.validUntil"]?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        IconButton(
-                            onClick = { onEvent(PlanEditorEvent.RemoveAddOn(index)) },
-                            shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = "Remove add-on pack")
-                        }
-                    }
-                }
-                OutlinedButton(
-                    onClick = { onEvent(PlanEditorEvent.AddAddOn) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Text("Add add-on pack")
-                }
-
-                Text("Free windows", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Traffic in a free window does not count toward the plan.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                state.form.freeRules.forEachIndexed { index, rule ->
-                    val ruleLabelError = state.errors["freeRule.$index.label"]
-                    OutlinedTextField(
-                        value = rule.label,
-                        onValueChange = { onEvent(PlanEditorEvent.UpdateFreeRule(index, rule.copy(label = it))) },
-                        label = { Text("Label") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (ruleLabelError != null) {
-                                    error(ruleLabelError)
-                                }
-                            },
-                        singleLine = true,
-                        isError = ruleLabelError != null,
-                        supportingText = ruleLabelError?.let {
-                            {
-                                Text(it)
-                            }
-                        },
-                    )
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        val dayLabels = listOf(
-                            DayOfWeek.MONDAY to "Mon",
-                            DayOfWeek.TUESDAY to "Tue",
-                            DayOfWeek.WEDNESDAY to "Wed",
-                            DayOfWeek.THURSDAY to "Thu",
-                            DayOfWeek.FRIDAY to "Fri",
-                            DayOfWeek.SATURDAY to "Sat",
-                            DayOfWeek.SUNDAY to "Sun",
-                        )
-                        for ((day, label) in dayLabels) {
-                            EmberbyteFilterChip(
-                                selected = day in rule.days,
-                                onClick = {
-                                    val nextDays = if (day in rule.days) rule.days - day else rule.days + day
-                                    onEvent(PlanEditorEvent.UpdateFreeRule(index, rule.copy(days = nextDays)))
-                                },
-                                label = { Text(label, softWrap = false) },
-                            )
-                        }
-                    }
-                    state.errors["freeRule.$index.days"]?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    TimeField(
-                        label = "From",
-                        time = rule.start,
-                        onChange = { onEvent(PlanEditorEvent.UpdateFreeRule(index, rule.copy(start = it))) },
-                    )
-                    TimeField(
-                        label = "To",
-                        time = rule.end,
-                        onChange = { onEvent(PlanEditorEvent.UpdateFreeRule(index, rule.copy(end = it))) },
-                    )
-                    state.errors["freeRule.$index.time"]?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    val pkgError = state.errors["freeRule.$index.packageName"]
-                    OutlinedTextField(
-                        value = rule.packageName.orEmpty(),
-                        onValueChange = {
-                            val pkg = it.ifEmpty { null }
-                            onEvent(PlanEditorEvent.UpdateFreeRule(index, rule.copy(packageName = pkg)))
-                        },
-                        label = { Text("App package") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (pkgError != null) {
-                                    error(pkgError)
-                                }
-                            },
-                        singleLine = true,
-                        isError = pkgError != null,
-                        supportingText = pkgError?.let {
-                            {
-                                Text(it)
-                            }
-                        },
-                    )
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        IconButton(
-                            onClick = { onEvent(PlanEditorEvent.RemoveFreeRule(index)) },
-                            shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = "Remove free window")
-                        }
-                    }
-                }
-                OutlinedButton(
-                    onClick = { onEvent(PlanEditorEvent.AddFreeRule) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Text("Add free window")
-                }
-
-                Text(
-                    text = "This cycle",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
-
-                val choices = listOf(
-                    Triple(FirstCycleChoice.PhoneRecord, "Use my phone's record", "Counts usage recorded by Android for this cycle."),
-                    Triple(FirstCycleChoice.Entered, "I've used some already", "Enter the data you already consumed this cycle:"),
-                    Triple(FirstCycleChoice.StartNextCycle, "Start tracking from the next cycle", "Starts on the next cycle reset. No alerts until then."),
-                )
-
-                for ((choice, title, helper) in choices) {
-                    val isSelected = state.form.firstCycleChoice == choice
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 48.dp)
-                            .selectable(
-                                selected = isSelected,
-                                role = Role.RadioButton,
-                                onClick = { onEvent(PlanEditorEvent.SetFirstCycleChoice(choice)) },
-                            )
-                            .semantics(mergeDescendants = true) {}
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = null,
-                        )
-                        Column(modifier = Modifier.padding(start = 8.dp)) {
-                            Text(title, style = MaterialTheme.typography.bodyLarge)
-                            Text(helper, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-
-                if (state.form.firstCycleChoice == FirstCycleChoice.Entered) {
-                    OutlinedTextField(
-                        value = state.form.enteredAmount,
-                        onValueChange = { onEvent(PlanEditorEvent.SetEnteredAmount(it)) },
-                        label = { Text("Entered usage") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (unit in listOf(CapUnit.MB, CapUnit.GB)) {
-                            EmberbyteFilterChip(
-                                selected = state.form.enteredUnit == unit,
-                                onClick = { onEvent(PlanEditorEvent.SetEnteredUnit(unit)) },
-                                label = { Text(unit.label, softWrap = false) },
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = "Alerts",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (percent in listOf(50, 80, 90, 100)) {
-                        EmberbyteFilterChip(
-                            selected = percent in state.form.alertThresholds,
-                            onClick = { onEvent(PlanEditorEvent.ToggleThreshold(percent)) },
-                            label = { Text("$percent%", softWrap = false, maxLines = 1) },
-                        )
-                    }
-                }
-
-                val consumedKeys = buildSet {
-                    add("name")
-                    add("capBytes")
-                    if (state.form.cycleKind == CycleKind.Monthly) add("cycle.dayOfMonth")
-                    if (state.form.cycleKind == CycleKind.EveryNDays) add("cycle.days")
-                    if (state.form.rolloverKind == RolloverKind.Capped) add("rollover.maxBytes")
-                    state.form.addOns.indices.forEach { index ->
-                        add("addOn.$index.label")
-                        add("addOn.$index.bytes")
-                        add("addOn.$index.validUntil")
-                    }
-                    state.form.freeRules.indices.forEach { index ->
-                        add("freeRule.$index.label")
-                        add("freeRule.$index.days")
-                        add("freeRule.$index.time")
-                        add("freeRule.$index.packageName")
-                    }
-                }
-                val unconsumedErrors = state.errors.filterKeys { it !in consumedKeys }.toSortedMap()
-                for ((_, unconsumedMessage) in unconsumedErrors) {
-                    Text(
-                        text = unconsumedMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-
-                Button(
-                    onClick = { onEvent(PlanEditorEvent.Save) },
-                    enabled = !state.saving,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Text("Save")
-                }
-
-                if (!state.isNew) {
-                    Text(
-                        text = "Danger zone",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
-
-                    TextButton(
-                        onClick = { onEvent(PlanEditorEvent.Archive) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        Text("Archive plan")
-                    }
-
-                    TextButton(
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        Text("Delete plan")
-                    }
-                }
             }
         }
     }
-}
+
+    val otherPinned = state.pendingPinReplacement
+    if (otherPinned != null) {
+        val thisName = state.form.name.trim().ifEmpty { stringResource(R.string.plan_editor_this_plan) }
+        EmberbyteDialog(
+            onDismiss = { onEvent(PlanEditorEvent.DismissPinReplacement) },
+            title = stringResource(R.string.plan_editor_unpin_title, otherPinned, thisName),
+            icon = Icons.Rounded.PushPin,
+            confirm = DialogAction(
+                label = stringResource(R.string.plan_editor_pin),
+                onClick = { onEvent(PlanEditorEvent.ConfirmPinReplacement) },
+            ),
+            dismiss = DialogAction(
+                label = stringResource(R.string.plan_editor_cancel),
+                onClick = { onEvent(PlanEditorEvent.DismissPinReplacement) },
+            ),
+        ) {
+            Text(stringResource(R.string.plan_editor_pin_dialog_body))
+        }
+    }
 }

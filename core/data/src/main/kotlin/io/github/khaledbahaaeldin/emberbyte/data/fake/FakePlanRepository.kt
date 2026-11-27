@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.data.fake
 
 import io.github.khaledbahaaeldin.emberbyte.data.PlanRepository
+import io.github.khaledbahaaeldin.emberbyte.data.PlanSnapshot
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AddOn
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Confidence
 import io.github.khaledbahaaeldin.emberbyte.engine.model.Cycle
@@ -41,14 +42,13 @@ class FakePlanRepository(private val clock: Clock = Clock.systemUTC()) : PlanRep
     private val freeRules = MutableStateFlow<List<FreeRule>>(emptyList())
     private var nextId = 2L
 
-    override fun observePlans(includeArchived: Boolean): Flow<List<Plan>> =
-        plans.map { list -> if (includeArchived) list else list.filter { !it.archived } }
+    override fun observePlans(): Flow<List<Plan>> = plans
 
     override fun observePlanState(planId: Long): Flow<PlanState?> =
         plans.map { list -> list.firstOrNull { it.id == planId }?.let(::stateFor) }
 
     override fun observeActivePlanStates(): Flow<List<PlanState>> =
-        plans.map { list -> list.filter { !it.archived }.map(::stateFor) }
+        plans.map { list -> list.map(::stateFor) }
 
     override fun observeForecast(planId: Long): Flow<Forecast?> =
         plans.map { list -> if (list.any { it.id == planId }) forecastFor(planId) else null }
@@ -65,9 +65,33 @@ class FakePlanRepository(private val clock: Clock = Clock.systemUTC()) : PlanRep
         return Outcome.Success(id)
     }
 
-    override suspend fun archivePlan(planId: Long): Outcome<Unit> {
-        if (plans.value.none { it.id == planId }) return Outcome.Failure(EmberbyteError.NotFound)
-        plans.update { list -> list.map { if (it.id == planId) it.copy(archived = true, pinned = false) else it } }
+    override suspend fun restoreArchivedPlans(): Outcome<Int> {
+        var count = 0
+        plans.update { list ->
+            list.map { if (it.archived) { count++; it.copy(archived = false) } else it }
+        }
+        return Outcome.Success(count)
+    }
+
+    override suspend fun deletePlan(planId: Long): Outcome<PlanSnapshot> {
+        val target = plans.value.firstOrNull { it.id == planId } ?: return Outcome.Failure(EmberbyteError.NotFound)
+        val snap = PlanSnapshot(
+            plan = target,
+            addOns = addOns.value.filter { it.planId == planId },
+            freeRules = freeRules.value.filter { it.planId == planId },
+            alertThresholds = emptySet(),
+            budgetIdsWithPlan = emptyList(),
+        )
+        plans.update { list -> list.filter { it.id != planId } }
+        addOns.update { list -> list.filter { it.planId != planId } }
+        freeRules.update { list -> list.filter { it.planId != planId } }
+        return Outcome.Success(snap)
+    }
+
+    override suspend fun restorePlan(snapshot: PlanSnapshot): Outcome<Unit> {
+        plans.update { list -> list.filter { it.id != snapshot.plan.id } + snapshot.plan.copy(archived = false) }
+        addOns.update { list -> list.filter { it.planId != snapshot.plan.id } + snapshot.addOns }
+        freeRules.update { list -> list.filter { it.planId != snapshot.plan.id } + snapshot.freeRules }
         return Outcome.Success(Unit)
     }
 
@@ -108,6 +132,10 @@ class FakePlanRepository(private val clock: Clock = Clock.systemUTC()) : PlanRep
     }
 
     override suspend fun whatIf(planId: Long, extraBytesPerDay: Long, from: Instant): Outcome<Forecast> =
+        if (plans.value.any { it.id == planId }) Outcome.Success(forecastFor(planId))
+        else Outcome.Failure(EmberbyteError.NotFound)
+
+    override suspend fun forecastWithExtraCap(planId: Long, extraBytes: Long): Outcome<Forecast> =
         if (plans.value.any { it.id == planId }) Outcome.Success(forecastFor(planId))
         else Outcome.Failure(EmberbyteError.NotFound)
 

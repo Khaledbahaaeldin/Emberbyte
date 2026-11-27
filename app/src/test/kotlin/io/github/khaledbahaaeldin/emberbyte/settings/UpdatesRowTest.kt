@@ -58,7 +58,7 @@ class UpdatesRowTest {
         show(UpdateSource.Unknown, onOpenUpdater = { updater++ }, onOpenReleases = { releases++ })
         rule.onNodeWithText("Updates").assertIsDisplayed()
         rule.onNode(hasText("You have 1.0.2", substring = true)).assertIsDisplayed()
-        rule.onNode(hasText("never goes online", substring = true)).assertIsDisplayed()
+        rule.onNode(hasText("Opens your browser", substring = true)).assertIsDisplayed()
         rule.onNodeWithText("Updates").performClick()
         assertEquals(1, releases)
         assertEquals(0, updater)

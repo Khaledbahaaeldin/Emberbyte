@@ -1,40 +1,24 @@
 package io.github.khaledbahaaeldin.emberbyte.apps
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Tune
-import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -42,20 +26,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.khaledbahaaeldin.emberbyte.appicons.AppIconProvider
-import io.github.khaledbahaaeldin.emberbyte.common.plainBytes
-import io.github.khaledbahaaeldin.emberbyte.engine.model.AppSort
-import io.github.khaledbahaaeldin.emberbyte.ui.design.chips.EmberbyteFilterChip
-import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
+import io.github.khaledbahaaeldin.emberbyte.common.EmberbyteScreenScaffold
+import io.github.khaledbahaaeldin.emberbyte.home.emberbyteAnimateItem
+import io.github.khaledbahaaeldin.emberbyte.home.rememberRetainedWhen
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteAnimatedVisibility
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.EmberbyteCrossfade
 import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.rememberEmberbyteMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.AppsShapes
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.states.LoadingState
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.AppsType
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
-import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.AppRow
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.linkText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.PermissionPrompt
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.staggerEntrance
 
 private val USAGE_ACCESS_PROMPT = PermissionPromptUi(
     id = "usage_access",
@@ -64,7 +60,15 @@ private val USAGE_ACCESS_PROMPT = PermissionPromptUi(
     actionLabel = "Open settings",
 )
 
-private data class ActiveFilter(val kind: AppFilterKind, val label: String)
+/** The Apps page entrance plays once per app start, not every time the tab is opened. */
+internal object AppsEntranceGate {
+    @Volatile
+    var played: Boolean = false
+
+    fun reset() {
+        played = false
+    }
+}
 
 @Composable
 fun AppsScreen(
@@ -75,7 +79,7 @@ fun AppsScreen(
     iconProvider: AppIconProvider? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val packageNames = state.apps.map { it.packageName }
+    val packageNames = (listOfNotNull(state.featured) + state.apps).map { it.packageName }
     val iconMap by produceState<Map<String, ImageBitmap>>(
         initialValue = emptyMap(),
         packageNames,
@@ -113,244 +117,228 @@ internal fun AppsContent(
 ) {
     val palette = LocalEmberbytePalette.current
     val motion = rememberEmberbyteMotion()
+    val reduce = LocalReduceMotion.current
     var showFiltersSheet by remember { mutableStateOf(false) }
+    val playEntrance = remember { !reduce && !AppsEntranceGate.played }
+    LaunchedEffect(Unit) { AppsEntranceGate.played = true }
 
     if (showFiltersSheet) {
         FiltersSheet(
-            initialRange = state.range,
             initialNetwork = state.network,
             initialSort = state.sort,
             initialShowSystemApps = state.showSystemApps,
-            onApply = { r, n, s, sys ->
-                onEvent(AppsEvent.ApplyFilters(r, n, s, sys))
-            },
-            onReset = {
-                onEvent(AppsEvent.ResetFilters)
-            },
+            onApply = { network, sort, system -> onEvent(AppsEvent.ApplyFilters(network, sort, system)) },
             onDismiss = { showFiltersSheet = false },
         )
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            Text(
-                "Apps",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = palette.text,
-            )
-        }
+    val searching = state.query.isNotBlank()
+    val hasApps = state.apps.isNotEmpty() || state.featured != null
+    val filters = activeFilters(state.network, state.sort, state.showSystemApps)
 
-        // Search bar with Filters button
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = { onEvent(AppsEvent.SetQuery(it)) },
-                    label = { Text("Search apps") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = null,
-                            tint = palette.muted,
+    EmberbyteScreenScaffold(
+        title = "Apps",
+        titleContent = {
+            Text(
+                text = "Apps",
+                style = EmberbyteType.grotesk(AppsType.Title, 700).copy(letterSpacing = (-0.02).em),
+                color = palette.text,
+                modifier = Modifier.semantics { heading() },
+            )
+        },
+        actions = {
+            if (state.loaded && (hasApps || !searching)) {
+                Text(
+                    text = if (state.appCount == 1) "1 app" else "${state.appCount} apps",
+                    style = EmberbyteType.grotesk(AppsType.Pill, 700),
+                    color = palette.linkText,
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .clip(AppsShapes.Chip)
+                        .background(palette.primary.copy(alpha = 0.16f))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                        .testTag("apps_count_pill"),
+                )
+            }
+        },
+        modifier = modifier,
+    ) { padding ->
+        EmberbyteCrossfade(
+            targetState = state.isLoading,
+            modifier = Modifier.fillMaxSize(),
+        ) { loading ->
+            if (loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding()),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    LoadingState(label = "Loading apps")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    state.spike?.let { spike ->
+                        item(key = "spike_banner") {
+                            SpikeBanner(
+                                spike = spike,
+                                onOpen = { onOpenApp(spike.packageName) },
+                                onDismiss = { onEvent(AppsEvent.DismissSpike(spike.id)) },
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
+
+                    item(key = "search_row") {
+                        AppsSearchRow(
+                            query = state.query,
+                            onQueryChange = { onEvent(AppsEvent.SetQuery(it)) },
+                            activeFilterCount = state.activeFilterCount,
+                            onOpenFilters = { showFiltersSheet = true },
+                            modifier = emberbyteAnimateItem(motion).staggerEntrance(0, playEntrance),
                         )
-                    },
-                    trailingIcon = if (state.query.isNotEmpty()) {
-                        {
-                            IconButton(
-                                onClick = { onEvent(AppsEvent.SetQuery("")) },
-                                shapes = IconButtonDefaults.shapes(),
-                                colors = IconButtonDefaults.iconButtonColors(contentColor = palette.muted),
-                                modifier = Modifier.size(48.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Clear search",
+                    }
+
+                    item(key = "period_buttons") {
+                        PeriodButtons(
+                            selected = state.range,
+                            onSelect = { onEvent(AppsEvent.SetRange(it)) },
+                            modifier = emberbyteAnimateItem(motion).staggerEntrance(1, playEntrance),
+                        )
+                    }
+
+                    item(key = "filter_chips") {
+                        val lastFilters = rememberRetainedWhen(filters) { it.isNotEmpty() }
+                        EmberbyteAnimatedVisibility(visible = filters.isNotEmpty(), modifier = emberbyteAnimateItem(motion)) {
+                            AppsFilterChips(
+                                filters = filters.ifEmpty { lastFilters ?: emptyList() },
+                                onRemove = { onEvent(AppsEvent.RemoveFilter(it)) },
+                                onReset = { onEvent(AppsEvent.ResetFilters) },
+                            )
+                        }
+                    }
+
+                    if (state.needsUsageAccess) {
+                        item(key = "usage_prompt") {
+                            PermissionPrompt(
+                                USAGE_ACCESS_PROMPT,
+                                onAction = { onPromptAction(USAGE_ACCESS_PROMPT.id) },
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    }
+
+                    if (hasApps) {
+                        item(key = "summary_card") {
+                            AppsSummaryCard(
+                                total = state.totalBytes,
+                                wifi = state.wifiBytes,
+                                mobile = state.mobileBytes,
+                                periodLabel = periodLabel(state.range),
+                                units = state.units,
+                                modifier = emberbyteAnimateItem(motion).staggerEntrance(2, playEntrance),
+                            )
+                        }
+
+                        if (state.featured != null) {
+                            item(key = "featured") {
+                                FeaturedAppCard(
+                                    app = state.featured,
+                                    totalBytes = state.totalBytes,
+                                    units = state.units,
+                                    icon = icons(state.featured.packageName),
+                                    onClick = { onOpenApp(state.featured.packageName) },
+                                    network = state.network,
+                                    modifier = emberbyteAnimateItem(motion).staggerEntrance(3, playEntrance),
                                 )
                             }
                         }
-                    } else null,
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = palette.primary,
-                        unfocusedBorderColor = palette.muted,
-                        focusedTextColor = palette.text,
-                        unfocusedTextColor = palette.text,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
 
-                Button(
-                    onClick = { showFiltersSheet = true },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.surface2,
-                        contentColor = palette.text,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                    modifier = Modifier.sizeIn(minHeight = 48.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Tune,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text("Filters")
-                    }
-                }
-            }
-        }
-
-        // Removable filter chips row (for each non-default filter)
-        val activeFilters = buildList {
-            if (state.range != AppsRange.TODAY) {
-                val label = when (state.range) {
-                    AppsRange.TODAY -> "Today"
-                    AppsRange.LAST_7_DAYS -> "7 days"
-                    AppsRange.LAST_30_DAYS -> "30 days"
-                    AppsRange.THIS_MONTH, AppsRange.CYCLE -> "Cycle"
-                }
-                add(ActiveFilter(AppFilterKind.RANGE, label))
-            }
-            if (state.network != AppsNetwork.ALL) {
-                val label = when (state.network) {
-                    AppsNetwork.ALL -> "All"
-                    AppsNetwork.MOBILE -> "Mobile"
-                    AppsNetwork.WIFI -> "Wi-Fi"
-                }
-                add(ActiveFilter(AppFilterKind.NETWORK, label))
-            }
-            if (state.sort != AppSort.BYTES_DESC) {
-                val label = when (state.sort) {
-                    AppSort.NAME -> "Name"
-                    AppSort.BYTES_ASC -> "Least data"
-                    AppSort.BYTES_DESC, AppSort.SCREEN_TIME_DESC -> "Most data"
-                }
-                add(ActiveFilter(AppFilterKind.SORT, label))
-            }
-            if (state.showSystemApps) {
-                add(ActiveFilter(AppFilterKind.SYSTEM_APPS, "System apps"))
-            }
-        }
-
-        if (activeFilters.isNotEmpty()) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    activeFilters.forEach { filter ->
-                        EmberbyteFilterChip(
-                            selected = true,
-                            showCheckIcon = false,
-                            onClick = { onEvent(AppsEvent.RemoveFilter(filter.kind)) },
-                            label = { Text(filter.label) },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = "Remove ${filter.label} filter",
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        // Featured card
-        if (state.featured != null) {
-            item {
-                FeaturedAppCard(
-                    app = state.featured,
-                    totalBytes = state.totalBytes,
-                    units = state.units,
-                    icon = icons(state.featured.packageName),
-                    onClick = { onOpenApp(state.featured.packageName) },
-                )
-            }
-        }
-
-        // Usage access prompt
-        if (state.needsUsageAccess) {
-            item {
-                PermissionPrompt(
-                    USAGE_ACCESS_PROMPT,
-                    onAction = { onPromptAction(USAGE_ACCESS_PROMPT.id) },
-                )
-            }
-        }
-
-        // Total bytes readout
-        item {
-            ForceLtr {
-                Text(
-                    text = "${plainBytes(state.totalBytes, state.units)} in total",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.muted,
-                )
-            }
-        }
-
-        // Apps list or empty state
-        if (state.loaded && state.apps.isEmpty()) {
-            item {
-                if (state.query.isNotBlank()) {
-                    io.github.khaledbahaaeldin.emberbyte.ui.design.states.EmptyState(
-                        icon = androidx.compose.material.icons.Icons.Rounded.Search,
-                        title = "No apps match",
-                        body = "No apps match \"${state.query.trim()}\".",
-                        action = {
-                            TextButton(
-                                onClick = { onEvent(AppsEvent.SetQuery("")) },
-                                modifier = Modifier.sizeIn(minHeight = 48.dp),
+                        item(key = "list_header") {
+                            Row(
+                                modifier = emberbyteAnimateItem(motion).staggerEntrance(4, playEntrance).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Text("Clear search")
+                                Text(
+                                    "All apps",
+                                    style = EmberbyteType.grotesk(AppsType.ListHeader, 700),
+                                    color = palette.text,
+                                    modifier = Modifier.semantics { heading() },
+                                )
+                                Text(
+                                    sortLabel(state.sort),
+                                    style = EmberbyteType.grotesk(AppsType.ListHeader, 600),
+                                    color = palette.muted,
+                                    modifier = Modifier.testTag("apps_sort_label"),
+                                )
                             }
-                        },
-                    )
-                } else {
-                    EmptyState(
-                        icon = Icons.Rounded.Apps,
-                        title = "No app data yet",
-                        body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
-                    )
+                        }
+
+                        val first = (state.featured ?: state.apps.firstOrNull())?.let { networkAmount(it, state.network) } ?: 0L
+                        items(state.apps, key = { it.packageName }) { app ->
+                            AppsListRow(
+                                app = app,
+                                firstAmount = first,
+                                totalBytes = state.totalBytes,
+                                network = state.network,
+                                units = state.units,
+                                icon = icons(app.packageName),
+                                onClick = { onOpenApp(app.packageName) },
+                                modifier = emberbyteAnimateItem(motion),
+                            )
+                        }
+                    } else {
+                        item(key = "empty_state") {
+                            val lastQuery = rememberRetainedWhen(state.query) { it.isNotBlank() }
+                            EmberbyteCrossfade(
+                                targetState = if (searching) 0 else if (filters.isNotEmpty()) 1 else 2,
+                                modifier = emberbyteAnimateItem(motion, Modifier.fillMaxWidth()),
+                            ) { kind ->
+                                when (kind) {
+                                    0 -> {
+                                        val displayQuery = state.query.ifBlank { lastQuery ?: "" }.trim()
+                                        EmptyState(
+                                            icon = Icons.Rounded.Search,
+                                            title = "No apps match",
+                                            body = "No apps match \"$displayQuery\".",
+                                            action = {
+                                                TextButton(
+                                                    onClick = { onEvent(AppsEvent.SetQuery("")) },
+                                                    modifier = Modifier.sizeIn(minHeight = 48.dp),
+                                                ) { Text("Clear search", color = palette.linkText) }
+                                            },
+                                        )
+                                    }
+                                    1 -> EmptyState(
+                                        icon = Icons.Rounded.Apps,
+                                        title = "Nothing to show",
+                                        body = "Nothing to show for these filters.",
+                                        action = {
+                                            TextButton(
+                                                onClick = { onEvent(AppsEvent.ResetFilters) },
+                                                modifier = Modifier.sizeIn(minHeight = 48.dp),
+                                            ) { Text("Reset filters", color = palette.linkText) }
+                                        },
+                                    )
+                                    else -> EmptyState(
+                                        icon = Icons.Rounded.Apps,
+                                        title = "No app data yet",
+                                        body = "Per-app numbers appear within about 5 minutes once usage access is allowed.",
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-        } else {
-            items(state.apps, key = { it.packageName }) { app ->
-                AppRow(
-                    icon = icons(app.packageName),
-                    shape = io.github.khaledbahaaeldin.emberbyte.ui.design.shapes.shapeFor(app.packageName),
-                    label = app.label,
-                    bytes = app.totalBytes,
-                    fraction = if (state.totalBytes > 0) app.totalBytes.toFloat() / state.totalBytes.toFloat() else 0f,
-                    mobileBytes = app.mobileBytes,
-                    wifiBytes = app.wifiBytes,
-                    onClick = { onOpenApp(app.packageName) },
-                    units = state.units,
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = motion.effects(),
-                        placementSpec = motion.spatial(),
-                        fadeOutSpec = motion.effects(),
-                    ),
-                )
             }
         }
     }

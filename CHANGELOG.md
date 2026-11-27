@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-11-27
+
+### Added
+- **What's new sheet**: after an update the app shows what changed, once. It is read from a changelog bundled in the app, so it still works completely offline, and you can open it again from Settings.
+- **Three-step onboarding**: Welcome, Allow access and Your plan, with every permission in one list and a button that always names the next one.
+- **New-plan flow in five calm steps**, and a **plan editor** that is one scrolling form with the preview always visible and a Save button that never scrolls away.
+- **What if** on a plan: try +1, +5 or +10 GB and see when the plan would run out, without changing it.
+- **Plan insight and renewal timeline** on the Plans page: which plan is running ahead of its pace and what daily amount keeps it lasting, plus the next renewals in a row.
+- **Tap a plan to bring it to the front.**
+- **Values on every bar** of the Apps, App detail and History charts, and clear date labels across month boundaries.
+- **Live tile and Today by network tile** on Home, and a hero with a bigger mark and a live unit badge.
+
+### Changed
+- **New look for Home, Apps, App detail, History, Plans and Settings**: lighter headlines, clearer cards, one scrolling screen pattern with a collapsing title, and one Plans button.
+- **Text is readable in every theme**: the contrast checks now cover every text role in all 12 themes, in light, dark and AMOLED. Pure black (AMOLED) cards are now distinguishable from the background.
+- **Setting up a plan** from Home opens the new-plan flow.
+- **Plans archive is gone.** Plans archived earlier are restored as normal plans the first time you open 1.0.3, and deleting a plan really deletes it, with Undo.
+- Dialogs share one style (icon, button order, one destructive style) and the passphrase and budget dialogs explain their errors.
+
+### Fixed
+- Home, Apps and App detail no longer flash an empty state while the first data loads.
+- The largest app is featured in Apps whatever the sort order, the seven day bars always fit their card, and History shows the visible date range.
+- The AMOLED switch enables itself when the system turns dark.
+- The Estimated tag on the Live tile stays on one line.
+- Granting usage access in onboarding no longer ends onboarding at once, so the other permissions are no longer skipped.
+
 ## [1.0.2] - 2026-11-12
 
 ### Added

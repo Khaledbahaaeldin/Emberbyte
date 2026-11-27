@@ -15,6 +15,15 @@ abstract class InsightDao {
     @Query("SELECT * FROM app_budget ORDER BY id")
     abstract suspend fun budgets(): List<AppBudgetEntity>
 
+    @Query("SELECT id FROM app_budget WHERE planId = :planId")
+    abstract suspend fun budgetIdsForPlan(planId: Long): List<Long>
+
+    @Query("UPDATE app_budget SET planId = NULL WHERE planId = :planId")
+    abstract suspend fun clearPlanIdFromBudgets(planId: Long)
+
+    @Query("UPDATE app_budget SET planId = :planId WHERE id IN (:ids)")
+    abstract suspend fun setPlanIdForBudgets(planId: Long, ids: List<Long>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun putBudget(entity: AppBudgetEntity): Long
 

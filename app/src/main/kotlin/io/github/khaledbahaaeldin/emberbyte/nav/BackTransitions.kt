@@ -20,7 +20,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.predictiveBackShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
@@ -182,7 +182,7 @@ fun AnimatedVisibilityScope.PredictiveBackSubScreen(
             .fillMaxSize()
             .graphicsLayer {
                 this.shadowElevation = shadowElevation.toPx()
-                this.shape = RoundedCornerShape(cornerRadius)
+                this.shape = predictiveBackShape(cornerRadius)
                 this.clip = cornerRadius > 0.dp
             }
             .background(palette.background),

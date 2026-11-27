@@ -53,8 +53,9 @@ class AppDetailTest {
         assertEquals(600L, state.mobileBytes)
         assertEquals(400L, state.wifiBytes)
         assertTrue(state.loaded)
-        assertEquals("Tue", state.bars.single().label)
-        assertEquals("Tuesday, 100 megabytes", state.bars.single().description)
+        assertEquals(1, state.dailySeries.size)
+        assertEquals(1, state.rank)
+        assertEquals(2, state.appCount)
     }
 
     @Test fun an_app_without_usage_in_range_falls_back_to_its_package_name_and_the_series_totals() {
@@ -65,7 +66,8 @@ class AppDetailTest {
         assertEquals(35L, state.totalBytes)
         assertEquals(30L, state.mobileBytes)
         assertEquals(5L, state.wifiBytes)
-        assertEquals(2, state.bars.size)
+        assertEquals(2, state.dailySeries.size)
+        assertEquals(0, state.rank)
     }
 
     @Test fun the_view_model_combines_apps_and_series() = runTest(dispatcher) {
@@ -90,7 +92,7 @@ class AppDetailTest {
         advanceUntilIdle()
         assertEquals("Chrome", vm.uiState.value.label)
         assertEquals(212_000_000L, vm.uiState.value.totalBytes)
-        assertEquals(7, vm.uiState.value.bars.size)
+        assertEquals(7, vm.uiState.value.dailySeries.size)
         job.cancel()
     }
 }

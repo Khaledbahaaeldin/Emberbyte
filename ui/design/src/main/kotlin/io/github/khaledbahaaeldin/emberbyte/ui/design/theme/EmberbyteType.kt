@@ -17,10 +17,10 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.R
  *
  * All roles configure the bundled Roboto Flex variable font axes via [FontVariation]:
  * - [hero]: wght 800, wdth 36, opsz 144, letterSpacing -0.04.em
- * - [badge]: wght 850, wdth 110
- * - [title]: wght 800, wdth 40, opsz 144
- * - [heading]: wght 800, wdth 105
- * - [value]: wght 850, wdth 75
+ * - [badge]: wght 700, wdth 105
+ * - [title]: wght 600, wdth 100, opsz 28
+ * - [heading]: wght 600, wdth 100
+ * - [value]: wght 700, wdth 80
  */
 object EmberbyteType {
     enum class Role {
@@ -39,10 +39,10 @@ object EmberbyteType {
 
     internal fun axes(role: Role): TypeAxes = when (role) {
         Role.Hero -> TypeAxes(wght = 800, wdth = 36f, opsz = 144f)
-        Role.Badge -> TypeAxes(wght = 850, wdth = 110f, opsz = null)
-        Role.Title -> TypeAxes(wght = 800, wdth = 40f, opsz = 144f)
-        Role.Heading -> TypeAxes(wght = 800, wdth = 105f, opsz = null)
-        Role.Value -> TypeAxes(wght = 850, wdth = 75f, opsz = null)
+        Role.Badge -> TypeAxes(wght = 700, wdth = 105f, opsz = null)
+        Role.Title -> TypeAxes(wght = 600, wdth = 100f, opsz = 28f)
+        Role.Heading -> TypeAxes(wght = 600, wdth = 100f, opsz = null)
+        Role.Value -> TypeAxes(wght = 700, wdth = 80f, opsz = null)
     }
 
     internal fun axes(roleName: String): TypeAxes {
@@ -98,6 +98,47 @@ object EmberbyteType {
             mode = LineHeightStyle.Mode.Fixed,
         ),
     )
+
+    private val heroWeightFamilies = java.util.concurrent.ConcurrentHashMap<Int, FontFamily>()
+
+    /**
+     * The hero style at a given weight on the same Roboto Flex font, keeping the hero `wdth` 36 and `opsz` 144.
+     * Used by the Home weight-bloom entrance. Families are cached per whole weight so an animation reuses a typeface
+     * instead of building one per frame; [wght] is clamped to the font's 100..1000 range.
+     */
+    fun heroAxes(size: TextUnit, wght: Float): TextStyle {
+        val weight = wght.coerceIn(100f, 1000f).toInt()
+        val family = heroWeightFamilies.getOrPut(weight) {
+            val base = axes(Role.Hero)
+            createFamily(base.copy(wght = weight))
+        }
+        return hero(size).copy(fontFamily = family)
+    }
+
+    private val groteskFamilies = java.util.concurrent.ConcurrentHashMap<Int, FontFamily>()
+
+    /**
+     * Space Grotesk (variable, `wght` 400 to 700) with tabular figures, used by the two Home bento tiles only.
+     * Families are cached per whole weight.
+     */
+    fun grotesk(size: TextUnit, weight: Int): TextStyle {
+        val w = weight.coerceIn(400, 700)
+        val family = groteskFamilies.getOrPut(w) {
+            FontFamily(
+                Font(
+                    resId = R.font.space_grotesk,
+                    weight = FontWeight(w),
+                    variationSettings = FontVariation.Settings(FontVariation.weight(w)),
+                ),
+            )
+        }
+        return TextStyle(
+            fontFamily = family,
+            fontWeight = FontWeight(w),
+            fontSize = size,
+            fontFeatureSettings = "tnum",
+        )
+    }
 
     fun badge(size: TextUnit): TextStyle = TextStyle(
         fontFamily = badgeFamily,

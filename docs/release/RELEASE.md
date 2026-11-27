@@ -41,8 +41,8 @@ The release build configuration is defined in [`app/build.gradle.kts`](../../app
   ./gradlew :app:dependencies --configuration releaseRuntimeClasspath
   ```
 - **Version Metadata**:
-  - `versionCode = 1`
-  - `versionName = "1.0.1"`
+  - `versionCode = 4`
+  - `versionName = "1.0.3"`
 
 ---
 
@@ -75,6 +75,7 @@ Every permission declared in [`app/src/main/AndroidManifest.xml`](../../app/src/
 | `android.permission.FOREGROUND_SERVICE` | Normal | Required to run `SamplerService` as a background foreground service for periodic network rate sampling and threshold checks. |
 | `android.permission.FOREGROUND_SERVICE_SPECIAL_USE` | Foreground Service Type (API 34+) | Declares the specific foreground service subtype (`data_metering_sampler`) for continuous background network traffic monitoring under modern platform restrictions. |
 | `android.permission.RECEIVE_BOOT_COMPLETED` | Normal | Allows `BootReceiver` to start `SamplerService` after a reboot or an app update (only once onboarding is complete), so measuring continues without opening the app. |
+| `android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Normal | Lets the app show the system prompt "Let the app always run in the background?" from onboarding and from Settings > Keep measuring, so the sampler is not stopped by battery optimisation. The user decides; nothing changes without the system dialog. |
 | `android.permission.WAKE_LOCK` | Normal | Merged by AndroidX WorkManager runtime to allow background periodic maintenance and catch-up jobs to acquire wake locks during execution. |
 | `io.github.khaledbahaaeldin.emberbyte.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Signature | Merged by AndroidX Core library to protect internal dynamic broadcast receivers from unauthorized external broadcasts on modern Android versions. |
 

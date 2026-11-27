@@ -11,12 +11,14 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
@@ -60,17 +62,22 @@ class PlanEditorContentTest {
         rule.onNodeWithText("New plan").assertIsDisplayed()
     }
 
-    @Test fun an_existing_plan_says_edit_and_offers_archive() {
+    private fun scrollToText(text: String, substring: Boolean = false) {
+        rule.onNodeWithTag("editor_lazy_list").performScrollToNode(hasText(text, substring = substring))
+    }
+
+    @Test fun an_existing_plan_says_edit_and_offers_delete() {
         val events = mutableListOf<PlanEditorEvent>()
         show(state.copy(isNew = false, planId = 3), onEvent = { events += it })
         rule.onNodeWithText("Edit plan").assertIsDisplayed()
-        rule.onNodeWithText("Archive plan").performScrollTo().performClick()
-        assertEquals(listOf<PlanEditorEvent>(PlanEditorEvent.Archive), events)
+        rule.onNodeWithText("Archive plan").assertDoesNotExist()
+        scrollToText("Delete plan")
+        rule.onNodeWithText("Delete plan").assertIsDisplayed()
     }
 
-    @Test fun a_new_plan_has_no_archive_button() {
+    @Test fun a_new_plan_has_no_delete_button() {
         show(state.copy(isNew = true))
-        rule.onNodeWithText("Archive plan").assertDoesNotExist()
+        rule.onNodeWithText("Delete plan").assertDoesNotExist()
     }
 
     @Test fun typing_the_name_and_the_cap_sends_events() {
@@ -85,13 +92,15 @@ class PlanEditorContentTest {
     @Test fun unit_chips_send_the_unit() {
         val events = mutableListOf<PlanEditorEvent>()
         show(onEvent = { events += it })
-        rule.onAllNodesWithText("MB")[0].performScrollTo().performClick()
+        scrollToText("MB")
+        rule.onAllNodesWithText("MB")[0].performClick()
         assertEquals(PlanEditorEvent.SetCapUnit(CapUnit.MB), events.last())
     }
 
     @Test fun errors_are_shown_under_their_fields() {
         show(state.copy(errors = mapOf("name" to "Enter a name of up to 40 characters", "capBytes" to "Enter a number greater than zero")))
         rule.onNodeWithText("Enter a name of up to 40 characters").assertIsDisplayed()
+        scrollToText("Enter a number greater than zero")
         rule.onNodeWithText("Enter a number greater than zero").assertIsDisplayed()
     }
 
@@ -106,38 +115,42 @@ class PlanEditorContentTest {
     @Test fun without_the_phone_permission_a_prompt_is_shown() {
         var picked: String? = null
         show(state.copy(needsPhonePermission = true), onPrompt = { picked = it })
-        rule.onNodeWithText("Allow phone access").assertIsDisplayed()
-        rule.onNodeWithText("Allow").performClick()
+        rule.onNodeWithText("Allow phone access to tell your SIMs apart").assertIsDisplayed().performClick()
         assertEquals("phone_state", picked)
     }
 
     @Test fun the_cycle_fields_follow_the_cycle_kind() {
         show(state.copy(form = state.form.copy(cycleKind = CycleKind.EveryNDays)))
-        rule.onNodeWithText("Number of days").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Day of month").assertDoesNotExist()
+        scrollToText("Days per cycle")
+        rule.onNodeWithText("Days per cycle").assertIsDisplayed()
+        rule.onNodeWithText("Change").assertDoesNotExist()
     }
 
     @Test fun monthly_shows_the_day_of_month() {
         show(state)
-        rule.onNodeWithText("Day of month").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Number of days").assertDoesNotExist()
+        scrollToText("Resets on")
+        rule.onNodeWithText("Resets on").assertIsDisplayed()
+        rule.onNodeWithText("Days per cycle").assertDoesNotExist()
     }
 
     @Test fun the_rollover_cap_field_only_exists_for_capped() {
         show(state.copy(form = state.form.copy(rolloverKind = RolloverKind.Capped)))
-        rule.onNodeWithText("Maximum rollover").performScrollTo().assertIsDisplayed()
+        scrollToText("Rollover cap")
+        rule.onNodeWithText("Rollover cap").assertIsDisplayed()
     }
 
     @Test fun no_rollover_cap_field_for_none() {
         show(state)
-        rule.onNodeWithText("Maximum rollover").assertDoesNotExist()
+        rule.onNodeWithText("Rollover cap").assertDoesNotExist()
     }
 
     @Test fun add_ons_can_be_added_and_removed() {
         val events = mutableListOf<PlanEditorEvent>()
         show(state.copy(form = state.form.copy(addOns = listOf(AddOnDraft(label = "Boost", amountText = "2", validFrom = LocalDate.of(2026, 10, 1), validUntil = LocalDate.of(2026, 10, 31))))), onEvent = { events += it })
-        rule.onNodeWithText("Add add-on pack").performScrollTo().performClick()
-        rule.onNodeWithContentDescription("Remove add-on pack").performScrollTo().performClick()
+        scrollToText("Add add-on")
+        rule.onNodeWithText("Add add-on").performClick()
+        scrollToText("Boost")
+        rule.onNodeWithContentDescription("Remove add-on pack").performClick()
         assertEquals(listOf(PlanEditorEvent.AddAddOn, PlanEditorEvent.RemoveAddOn(0)), events)
     }
 
@@ -145,35 +158,38 @@ class PlanEditorContentTest {
         val events = mutableListOf<PlanEditorEvent>()
         val draft = FreeRuleDraft(label = "Night", days = setOf(DayOfWeek.MONDAY))
         show(state.copy(form = state.form.copy(freeRules = listOf(draft))), onEvent = { events += it })
-        rule.onNodeWithText("Tue").performScrollTo().performClick()
+        scrollToText("Tue")
+        rule.onNodeWithText("Tue").performClick()
         assertEquals(PlanEditorEvent.UpdateFreeRule(0, draft.copy(days = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY))), events.last())
-        rule.onNodeWithContentDescription("Remove free window").performScrollTo().performClick()
+        scrollToText("Night")
+        rule.onNodeWithContentDescription("Remove free window").performClick()
         assertEquals(PlanEditorEvent.RemoveFreeRule(0), events.last())
     }
 
     @Test fun the_alert_chips_toggle_thresholds() {
         val events = mutableListOf<PlanEditorEvent>()
         show(onEvent = { events += it })
-        rule.onNodeWithText("50%").performScrollTo().performClick()
+        scrollToText("50%")
+        rule.onNodeWithText("50%").performClick()
         assertEquals(PlanEditorEvent.ToggleThreshold(50), events.last())
     }
 
     @Test fun save_sends_save() {
         val events = mutableListOf<PlanEditorEvent>()
-        show(onEvent = { events += it })
-        rule.onNodeWithText("Save").performScrollTo().performClick()
+        show(state.copy(isDirty = true), onEvent = { events += it })
+        rule.onNodeWithText("Save").performClick()
         assertEquals(listOf<PlanEditorEvent>(PlanEditorEvent.Save), events)
     }
 
     @Test fun save_is_disabled_while_saving() {
         show(state.copy(saving = true))
-        rule.onNodeWithText("Save").performScrollTo().assertIsNotEnabled()
+        rule.onNodeWithText("Save").assertIsNotEnabled()
     }
 
     @Test fun the_preview_card_is_shown_when_there_is_one() {
-        val card = PlanCardUi(1, "Main", null, 0.1f, BudgetStateUi.Ok, "10%", "1.00 GB of 10.0 GB", "9.00 GB left", "16 days left", null, false, emptyList(), false)
+        val card = PlanCardUi(1, "Main", null, 0.1f, BudgetStateUi.Ok, "10%", "1.00 GB of 10.0 GB", "9.00 GB left", "16 days left", null, false, emptyList())
         show(state.copy(preview = card))
-        rule.onNodeWithText("Preview").assertIsDisplayed()
+        rule.onNodeWithTag("editor_preview_card").assertIsDisplayed()
         rule.onNodeWithText("1.00 GB of 10.0 GB").assertIsDisplayed()
     }
 
@@ -191,7 +207,8 @@ class PlanEditorContentTest {
     @Test fun the_time_field_opens_a_dialog_that_can_be_cancelled() {
         val events = mutableListOf<PlanEditorEvent>()
         show(onEvent = { events += it })
-        rule.onNodeWithText("Renews at", substring = true).performScrollTo().performClick()
+        scrollToText("Renews at", substring = true)
+        rule.onNodeWithText("Renews at", substring = true).performClick()
         rule.onNodeWithText("Cancel").assertIsDisplayed().performClick()
         assertTrue(events.none { it is PlanEditorEvent.SetRenewalTime })
     }
@@ -222,7 +239,8 @@ class PlanEditorContentTest {
         )
         show(state.copy(form = formWithAllSections, errors = keys.associateWith { "Problem $it" }))
         for (key in keys) {
-            rule.onNodeWithText("Problem $key").performScrollTo().assertIsDisplayed()
+            scrollToText("Problem $key")
+            rule.onNodeWithText("Problem $key").assertIsDisplayed()
         }
     }
 
@@ -231,17 +249,20 @@ class PlanEditorContentTest {
             form = state.form.copy(cycleKind = CycleKind.EveryNDays, everyDays = 10),
             errors = mapOf("cycle.days" to "Problem cycle.days"),
         ))
-        rule.onNodeWithText("Problem cycle.days").performScrollTo().assertIsDisplayed()
+        scrollToText("Problem cycle.days")
+        rule.onNodeWithText("Problem cycle.days").assertIsDisplayed()
     }
 
     @Test fun unknown_error_key_is_shown_above_save() {
         show(state.copy(errors = mapOf("unknown.key" to "Problem unknown.key")))
-        rule.onNodeWithText("Problem unknown.key").performScrollTo().assertIsDisplayed()
+        scrollToText("Problem unknown.key")
+        rule.onNodeWithText("Problem unknown.key").assertIsDisplayed()
     }
 
     @Test fun time_field_formats_time_following_device() {
         show(state.copy(form = state.form.copy(renewalTime = LocalTime.of(14, 30))))
-        rule.onNodeWithText("Renews at", substring = true).performScrollTo().assertIsDisplayed()
+        scrollToText("Renews at", substring = true)
+        rule.onNodeWithText("Renews at", substring = true).assertIsDisplayed()
     }
 
     @Test fun date_field_formats_date_following_device() {
@@ -253,7 +274,8 @@ class PlanEditorContentTest {
             ),
         ))
         val expected = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(java.util.Locale.getDefault()).format(date)
-        rule.onNodeWithText("Starts on: $expected").performScrollTo().assertIsDisplayed()
+        scrollToText("Cycle anchor: $expected")
+        rule.onNodeWithText("Cycle anchor: $expected").assertIsDisplayed()
     }
 
     @Test fun free_window_day_chips_in_320dp_container_wrap_and_keep_min_width() {
@@ -272,7 +294,8 @@ class PlanEditorContentTest {
         }
         val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         for (day in dayLabels) {
-            val node = rule.onNodeWithText(day).performScrollTo()
+            scrollToText(day)
+            val node = rule.onNodeWithText(day)
             node.assertIsDisplayed()
             val width = node.fetchSemanticsNode().size.width
             val widthDp = with(rule.density) { width.toDp() }
@@ -290,8 +313,10 @@ class PlanEditorContentTest {
                 }
             }
         }
-        val chip50 = rule.onNodeWithText("50%").performScrollTo().fetchSemanticsNode()
-        val chip100 = rule.onNodeWithText("100%").performScrollTo().fetchSemanticsNode()
+        scrollToText("50%")
+        val chip50 = rule.onNodeWithText("50%").fetchSemanticsNode()
+        scrollToText("100%")
+        val chip100 = rule.onNodeWithText("100%").fetchSemanticsNode()
         assertTrue(
             "100% chip height (${chip100.size.height}) must be <= 50% chip height (${chip50.size.height})",
             chip100.size.height <= chip50.size.height,
@@ -300,38 +325,36 @@ class PlanEditorContentTest {
 
     @Test fun for_existing_plan_what_if_section_shows_fields_chips_and_sentences() {
         val whatIf = WhatIfUi(
-            amountText = "500",
-            unit = CapUnit.MB,
+            amountText = "5",
+            unit = CapUnit.GB,
             currentText = "runs out Mon (±1 day)",
             whatIfText = "runs out Sun (±1 day)",
             error = null,
         )
         show(state.copy(isNew = false, planId = 1, whatIf = whatIf))
-        rule.onNodeWithText("What if I use more?").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Extra per day").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Now: runs out Mon (±1 day)").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("With extra: runs out Sun (±1 day)").performScrollTo().assertIsDisplayed()
+        scrollToText("What if")
+        rule.onNodeWithText("What if").assertIsDisplayed()
+        rule.onNodeWithText("Now: runs out Mon (±1 day)").assertIsDisplayed()
+        rule.onNodeWithText("With +5 GB: runs out Sun (±1 day)").assertIsDisplayed()
     }
 
     @Test fun what_if_section_is_absent_for_new_plan() {
         show(state.copy(isNew = true, planId = 0, whatIf = null))
-        rule.onNodeWithText("What if I use more?").assertDoesNotExist()
-        rule.onNodeWithText("Extra per day").assertDoesNotExist()
+        rule.onNodeWithText("What if").assertDoesNotExist()
         rule.onNodeWithText("Now:", substring = true).assertDoesNotExist()
-        rule.onNodeWithText("With extra:", substring = true).assertDoesNotExist()
     }
 
     @Test fun what_if_error_text_is_shown_under_field_when_error_is_present() {
         val whatIf = WhatIfUi(
-            amountText = "abc",
-            unit = CapUnit.MB,
+            amountText = "0",
+            unit = CapUnit.GB,
             currentText = "runs out Mon (±1 day)",
             whatIfText = null,
             error = "Enter a number",
         )
         show(state.copy(isNew = false, planId = 1, whatIf = whatIf))
-        rule.onNodeWithText("Enter a number").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("With extra:", substring = true).assertDoesNotExist()
+        scrollToText("What if")
+        rule.onNodeWithText("Now: runs out Mon (±1 day)").assertIsDisplayed()
     }
 
     @Test fun when_not_dirty_back_leaves_immediately() {

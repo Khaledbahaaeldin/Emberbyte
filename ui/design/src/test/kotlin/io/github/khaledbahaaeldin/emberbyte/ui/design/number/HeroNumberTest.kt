@@ -3,6 +3,10 @@ package io.github.khaledbahaaeldin.emberbyte.ui.design.number
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
@@ -10,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -232,5 +237,94 @@ class HeroNumberTest {
             "Intensity animation spec must be SnapSpec when reduce motion is enabled",
             capturedSpec is androidx.compose.animation.core.SnapSpec,
         )
+    }
+
+    @Test
+    fun slot_keys_are_relative_to_decimal_point() {
+        // "9.99" -> ones: -1, dot: 0, tenths: 1, hundredths: 2
+        assertEquals(-1, digitSlotKey("9.99", 0))
+        assertEquals(0, digitSlotKey("9.99", 1))
+        assertEquals(1, digitSlotKey("9.99", 2))
+        assertEquals(2, digitSlotKey("9.99", 3))
+
+        // "10.0" -> tens: -2, ones: -1, dot: 0, tenths: 1
+        assertEquals(-2, digitSlotKey("10.0", 0))
+        assertEquals(-1, digitSlotKey("10.0", 1))
+        assertEquals(0, digitSlotKey("10.0", 2))
+        assertEquals(1, digitSlotKey("10.0", 3))
+    }
+
+    @Test
+    fun hero_number_morphs_between_values() {
+        rule.mainClock.autoAdvance = false
+        var value by mutableStateOf("1.48")
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HeroNumber(
+                    value = value,
+                    unit = "GB",
+                    contentDescription = "Hero usage",
+                )
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onAllNodesWithTag("hero_digit_1", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("hero_digit_2", useUnmergedTree = true).assertCountEquals(0)
+
+        rule.runOnUiThread {
+            value = "2.48"
+            Snapshot.sendApplyNotifications()
+        }
+        var sawMixed = false
+        repeat(15) {
+            rule.mainClock.advanceTimeBy(16)
+            val count1 = rule.onAllNodesWithTag("hero_digit_1", useUnmergedTree = true).fetchSemanticsNodes().size
+            val count2 = rule.onAllNodesWithTag("hero_digit_2", useUnmergedTree = true).fetchSemanticsNodes().size
+            if (count1 > 0 && count2 > 0) {
+                sawMixed = true
+            }
+        }
+
+        assertTrue(
+            "Mixed digit state should compose both old and new digits during animation",
+            sawMixed,
+        )
+
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("hero_digit_1", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("hero_digit_2", useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun reduced_motion_hero_snaps() {
+        rule.mainClock.autoAdvance = false
+        var value by mutableStateOf("1.48")
+
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                CompositionLocalProvider(LocalReduceMotion provides true) {
+                    HeroNumber(
+                        value = value,
+                        unit = "GB",
+                        contentDescription = "Hero usage",
+                    )
+                }
+            }
+        }
+        rule.mainClock.advanceTimeByFrame()
+        rule.onAllNodesWithTag("hero_digit_1", useUnmergedTree = true).assertCountEquals(1)
+        rule.onAllNodesWithTag("hero_digit_2", useUnmergedTree = true).assertCountEquals(0)
+
+        rule.runOnUiThread {
+            value = "2.48"
+            Snapshot.sendApplyNotifications()
+        }
+        rule.mainClock.advanceTimeByFrame()
+
+        // Reduced motion snaps immediately with no mixed state
+        rule.onAllNodesWithTag("hero_digit_1", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("hero_digit_2", useUnmergedTree = true).assertCountEquals(1)
     }
 }

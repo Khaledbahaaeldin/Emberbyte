@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -26,11 +27,18 @@ import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ForceLtr
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BudgetStateUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PlanCardUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.accentText
 import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.EstimatedBadge
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun PlanCard(
+    model: PlanCardUi,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0,
+) {
     val palette = LocalEmberbytePalette.current
     val summary = buildString {
         if (model.isDormant) {
@@ -52,9 +60,6 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
         if (model.isEstimated) {
             append(", estimated")
         }
-        if (model.archived) {
-            append(", archived")
-        }
     }
     Surface(
         onClick = onClick,
@@ -66,10 +71,11 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
             if (model.isDormant) {
                 DormantBadge()
             } else {
-                BudgetRing(model.fraction, model.ringState, percentText = model.percentText)
+                BudgetRing(model.fraction, model.ringState, percentText = model.percentText, delayMillis = delayMillis)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
+                    modifier = Modifier.padding(end = 40.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -95,7 +101,7 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
                     }
                     model.forecastText?.let {
                         val isExceeded = model.ringState == BudgetStateUi.Exceeded
-                        val textColor = if (isExceeded) palette.danger else palette.accent
+                        val textColor = planStatusTextColor(palette, isExceeded)
                         ForceLtr {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -125,7 +131,6 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
                     Text(note, style = MaterialTheme.typography.labelSmall, color = palette.muted)
                 }
                 if (model.isEstimated) EstimatedBadge()
-                if (model.archived) Text("Archived", style = MaterialTheme.typography.labelMedium, color = palette.muted)
                 if (model.chips.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         model.chips.forEach { AssistChip(onClick = {}, label = { Text(it, maxLines = 1) }) }
@@ -135,3 +140,10 @@ fun PlanCard(model: PlanCardUi, onClick: () -> Unit, modifier: Modifier = Modifi
         }
     }
 }
+
+/**
+ * Colour of the forecast line on a plan card: the danger colour when exceeded, otherwise the accent hue nudged to be
+ * readable (the accent itself is a pale container colour in light themes, 1.02:1 on the card).
+ */
+internal fun planStatusTextColor(palette: EmberbytePalette, isExceeded: Boolean): Color =
+    if (isExceeded) palette.danger else palette.accentText

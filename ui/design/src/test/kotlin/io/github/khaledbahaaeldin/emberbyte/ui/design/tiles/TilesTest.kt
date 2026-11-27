@@ -66,7 +66,7 @@ class TilesTest {
         }
         rule.onNodeWithText("Thu").assertIsDisplayed()
         rule.onNodeWithText("runs out (±1 day)").assertIsDisplayed()
-        rule.onNodeWithText("Medium confidence").assertIsDisplayed()
+        rule.onNodeWithText("Medium confidence").assertDoesNotExist() // the confidence line was removed from the tile
     }
 
     @Test fun forecastTile_renders_texts_in_one_node_matching_model_text_under_rtl() {
@@ -79,7 +79,7 @@ class TilesTest {
         }
         rule.onNodeWithText("Mon").assertIsDisplayed()
         rule.onNodeWithText("runs out Mon (±1 day)").assertIsDisplayed()
-        rule.onNodeWithText("Medium confidence").assertIsDisplayed()
+        rule.onNodeWithText("Medium confidence").assertDoesNotExist() // the confidence line was removed from the tile
     }
 
     @Test fun usageBarRow_reports_the_tapped_bar() {
@@ -150,13 +150,13 @@ class TilesTest {
         rule.onNodeWithText("Test Corner").assertIsDisplayed()
     }
 
-    @Test fun forecast_tile_uses_the_accent_container() {
+    @Test fun forecast_tile_uses_the_standard_container() {
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 ForecastTile(ForecastUi(headline = "Thu", detail = "runs out (±1 day)", confidence = "Medium confidence"))
             }
         }
-        rule.onNodeWithTag("bento_tile_accent").assertExists()
+        rule.onNodeWithTag("bento_tile_standard").assertExists()
     }
 
     @Test fun tile_containers_meet_contrast_requirements() {

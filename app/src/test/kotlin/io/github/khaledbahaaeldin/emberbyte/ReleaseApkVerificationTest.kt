@@ -187,6 +187,7 @@ class ReleaseApkVerificationTest {
                 "android.permission.FOREGROUND_SERVICE",
                 "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
                 "android.permission.RECEIVE_BOOT_COMPLETED",
+                "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
                 "android.permission.POST_PROMOTED_NOTIFICATIONS",
                 "android.permission.PACKAGE_USAGE_STATS",
                 "android.permission.QUERY_ALL_PACKAGES",

@@ -12,10 +12,12 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.AppRowUi
+import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.GapUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.PermissionPromptUi
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
@@ -36,7 +38,7 @@ class HomeContentTest {
         state: HomeUiState,
         onEvent: (HomeEvent) -> Unit = {},
         onSettings: () -> Unit = {},
-        onHistory: () -> Unit = {},
+        onHistory: (Int) -> Unit = {},
         onPrompt: (String) -> Unit = {},
         onOpenApp: (String) -> Unit = {},
         onSetUpPlan: () -> Unit = {},
@@ -76,33 +78,53 @@ class HomeContentTest {
         assertEquals("usage_access", picked)
     }
 
-    @Test fun without_a_plan_the_data_plan_tile_explains_whats_coming() {
+    @Test fun no_plan_shows_the_setup_card_and_neither_the_old_link_nor_the_old_card() {
         show(HomeUiState(hasPlan = false))
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Data plan"))
-        rule.onNodeWithText("Data plan").assertIsDisplayed()
-    }
-
-    @Test fun with_a_plan_the_data_plan_tile_is_hidden() {
-        show(HomeUiState(hasPlan = true))
+        rule.onNodeWithText("Set up your data plan", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("See what is left and when it runs out.", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Set up plan", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("Set up a plan").assertDoesNotExist()
         rule.onNodeWithText("Data plan").assertDoesNotExist()
+        rule.onNodeWithText("Set up your data plan to see what is left and when it runs out.").assertDoesNotExist()
     }
 
-    @Test fun the_history_tile_opens_history() {
-        var opened = false
-        show(HomeUiState(), onHistory = { opened = true })
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("History"))
-        rule.onNodeWithText("History").performClick()
-        assertEquals(true, opened)
+    @Test fun with_a_plan_the_setup_card_is_not_shown() {
+        show(HomeUiState(hasPlan = true))
+        rule.onNodeWithTag("plan_setup_card").assertDoesNotExist()
+        rule.onNodeWithText("Set up plan").assertDoesNotExist()
     }
 
-    @Test fun tapping_a_top_app_opens_it() {
+    @Test fun setup_card_button_opens_the_new_plan_flow() {
+        var opened = 0
+        rule.setContent {
+            EmberbyteTheme(EmberbyteThemeSpec.Default) {
+                HomeContent(
+                    state = HomeUiState(hasPlan = false),
+                    onEvent = {}, onOpenSettings = {}, onOpenHistory = {}, onPromptAction = {}, onOpenApp = {},
+                    onSetUpPlan = { opened++ },
+                )
+            }
+        }
+        rule.onNodeWithTag("plan_setup_button").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun the_history_button_opens_history_on_the_selected_day() {
+        var openedDay = -1
+        show(HomeUiState(usage = sampleUsageCard(selectedIndex = 3)), onHistory = { openedDay = it })
+        rule.onNodeWithTag("usage_btn_history").performClick()
+        assertEquals(3, openedDay)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun expanding_a_top_app_and_tapping_app_details_opens_it() {
         var opened: String? = null
-        show(
-            HomeUiState(topApps = listOf(AppRowUi("com.video", "Video", 1, 1))),
-            onOpenApp = { opened = it },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Video"))
-        rule.onNodeWithText("Video").performClick()
+        show(HomeUiState(usage = sampleUsageCard()), onOpenApp = { opened = it })
+        rule.onNodeWithTag("usage_row_com.video").performClick()
+        rule.onNodeWithTag("usage_row_details", useUnmergedTree = true).performClick()
         assertEquals("com.video", opened)
     }
 
@@ -156,50 +178,6 @@ class HomeContentTest {
         assertEquals(LayoutDirection.Ltr, node2.fetchSemanticsNode().layoutInfo.layoutDirection)
     }
 
-    @Test fun spike_tile_shows_title_and_detail_and_tapping_it_calls_on_open_app() {
-        var opened: String? = null
-        show(
-            HomeUiState(
-                spike = SpikeTileUi(
-                    id = 42L,
-                    packageName = "com.video",
-                    title = "Video used a lot of data",
-                    detail = "1.24 GB in two hours, 8.3x its usual",
-                ),
-            ),
-            onOpenApp = { opened = it },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Spike detected"))
-        rule.onNodeWithText("Spike detected").assertIsDisplayed()
-        rule.onNodeWithText("Video used a lot of data").assertIsDisplayed()
-        rule.onNodeWithText("1.24 GB in two hours, 8.3x its usual").assertIsDisplayed()
-        rule.onNodeWithText("Spike detected").performClick()
-        assertEquals("com.video", opened)
-    }
-
-    @Test fun spike_tile_dismiss_button_sends_dismiss_event() {
-        var dismissedEvent: HomeEvent? = null
-        show(
-            HomeUiState(
-                spike = SpikeTileUi(
-                    id = 42L,
-                    packageName = "com.video",
-                    title = "Video used a lot of data",
-                    detail = "1.24 GB in two hours, 8.3x its usual",
-                ),
-            ),
-            onEvent = { dismissedEvent = it },
-        )
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Dismiss"))
-        rule.onNodeWithText("Dismiss").performClick()
-        assertEquals(HomeEvent.DismissSpike(42L), dismissedEvent)
-    }
-
-    @Test fun without_a_spike_the_spike_detected_tile_is_not_shown() {
-        show(HomeUiState(spike = null))
-        rule.onNodeWithText("Spike detected").assertDoesNotExist()
-    }
-
     @Test fun loading_shows_loading_state() {
         show(HomeUiState(isLoading = true))
         rule.onNodeWithContentDescription("Loading today's usage").assertIsDisplayed()
@@ -226,13 +204,38 @@ class HomeContentTest {
         }
 
         rule.onNodeWithText("Prompt 1").assertIsDisplayed()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Prompt 2"))
         rule.onNodeWithText("Prompt 2").assertIsDisplayed()
 
         // Remove p1
         promptList = listOf(p2)
         rule.waitForIdle()
 
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Prompt 2"))
         rule.onNodeWithText("Prompt 2").assertIsDisplayed()
         rule.onNodeWithText("Prompt 1").assertDoesNotExist()
+    }
+
+    @Test
+    fun home_hero_labeled_today_with_system_traffic_footnote() {
+        show(HomeUiState(heroBytes = 500_000_000L, isToday = true))
+        rule.onNodeWithText("Today").assertIsDisplayed()
+        rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
+    }
+
+    @Test
+    fun home_hero_shows_selected_day_label_when_not_today() {
+        show(HomeUiState(heroBytes = 500_000_000L, isToday = false, heroLabel = "Wednesday"))
+        rule.onNodeWithText("Wednesday").assertIsDisplayed()
+        rule.onNodeWithText("Includes system traffic").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h3000dp")
+    fun home_day_buttons_select_the_day() {
+        val events = mutableListOf<HomeEvent>()
+        show(state = HomeUiState(usage = sampleUsageCard()), onEvent = { events += it })
+        rule.onNodeWithTag("usage_day_2").performClick()
+        assertEquals(listOf<HomeEvent>(HomeEvent.SelectDay(2)), events)
     }
 }

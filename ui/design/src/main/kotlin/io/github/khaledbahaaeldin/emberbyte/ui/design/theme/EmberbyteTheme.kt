@@ -9,6 +9,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.snap
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
@@ -23,7 +25,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import io.github.khaledbahaaeldin.emberbyte.ui.design.motion.animatePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.EmberbytePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.resolvePalette
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.toColorScheme
@@ -77,15 +81,21 @@ fun EmberbyteTheme(
             if (spec.darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         },
     )
-    val scheme = palette.toColorScheme(spec.darkTheme)
     val reduceMotion = rememberReduceMotion()
+    val motionScheme = remember { MotionScheme.expressive() }
+    // A theme or dark-mode change cross-fades every colour instead of flipping in one frame; reduced motion snaps.
+    val colorSpec: FiniteAnimationSpec<Color> = if (reduceMotion) snap() else motionScheme.defaultEffectsSpec()
+    val animatedPalette = animatePalette(palette, colorSpec)
+    val scheme = animatedPalette.toColorScheme(spec.darkTheme)
     CompositionLocalProvider(
-        LocalEmberbytePalette provides palette,
+        LocalEmberbytePalette provides animatedPalette,
         LocalReduceMotion provides reduceMotion,
     ) {
         MaterialExpressiveTheme(
             colorScheme = scheme,
-            motionScheme = MotionScheme.expressive(),
+            motionScheme = motionScheme,
+            shapes = EmberbyteShapeScale,
+            typography = EmberbyteTypography,
             content = content,
         )
     }

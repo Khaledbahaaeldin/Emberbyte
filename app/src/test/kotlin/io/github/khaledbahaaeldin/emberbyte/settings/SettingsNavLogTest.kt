@@ -27,13 +27,15 @@ class SettingsNavLogTest {
         var copies = 0
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                SettingsContent(
-                    settings = Settings(),
-                    onUpdate = {},
-                    onBack = {},
+                AboutScreen(
                     versionName = "0.2.0",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
+                    updateSource = UpdateSource.Unknown,
+                    isDark = false,
+                    amoled = false,
+                    hasWhatsNew = false,
+                    onOpenWhatsNew = {},
+                    onOpenLicences = {},
+                    onBack = {},
                     onCopyNavLog = { copies++ },
                 )
             }
@@ -47,13 +49,15 @@ class SettingsNavLogTest {
         var copies = 0
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                SettingsContent(
-                    settings = Settings(),
-                    onUpdate = {},
-                    onBack = {},
+                AboutScreen(
                     versionName = "0.2.0",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
+                    updateSource = UpdateSource.Unknown,
+                    isDark = false,
+                    amoled = false,
+                    hasWhatsNew = false,
+                    onOpenWhatsNew = {},
+                    onOpenLicences = {},
+                    onBack = {},
                     onCopyNavLog = { copies++ },
                 )
             }

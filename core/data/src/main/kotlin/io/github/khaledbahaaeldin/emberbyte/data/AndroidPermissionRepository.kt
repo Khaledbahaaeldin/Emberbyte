@@ -24,5 +24,7 @@ class AndroidPermissionRepository(private val context: Context) : PermissionRepo
         notifications = NotificationManagerCompat.from(context).areNotificationsEnabled(),
         phoneState = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) ==
             PackageManager.PERMISSION_GRANTED,
+        batteryUnrestricted = (context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager)
+            ?.isIgnoringBatteryOptimizations(context.packageName) ?: true,
     )
 }

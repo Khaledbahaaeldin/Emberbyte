@@ -2,6 +2,7 @@ package io.github.khaledbahaaeldin.emberbyte.common
 
 import io.github.khaledbahaaeldin.emberbyte.engine.model.UsagePoint
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.ByteUnits
+import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBarValue
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.formatBytes
 import io.github.khaledbahaaeldin.emberbyte.ui.design.format.spokenUnit
 import io.github.khaledbahaaeldin.emberbyte.ui.design.model.BarUi
@@ -29,5 +30,6 @@ internal fun weekdayBars(points: List<UsagePoint>, units: ByteUnits, zone: ZoneI
             label = day.getDisplayName(TextStyle.SHORT, locale),
             bytes = point.totalBytes,
             description = "${day.getDisplayName(TextStyle.FULL, locale)}, ${spokenBytes(point.totalBytes, units)}",
+            valueText = formatBarValue(point.totalBytes, units),
         )
     }

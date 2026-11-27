@@ -19,6 +19,8 @@ fun BudgetRing(
     modifier: Modifier = Modifier,
     size: Dp = 72.dp,
     percentText: String? = null,
+    delayMillis: Int = 0,
+    onAnimatedSweepChanged: ((Float) -> Unit)? = null,
 ) {
     val safe = if (fraction.isNaN() || fraction < 0f) 0f else fraction
     val percent = (safe * 100f).toInt()
@@ -38,6 +40,8 @@ fun BudgetRing(
         size = size,
         label = displayText,
         labelSize = MaterialTheme.typography.labelLarge.fontSize,
+        delayMillis = delayMillis,
+        onAnimatedSweepChanged = onAnimatedSweepChanged,
         modifier = modifier.semantics(mergeDescendants = true) {
             contentDescription = description
         },

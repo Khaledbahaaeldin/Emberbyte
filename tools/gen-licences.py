@@ -38,6 +38,12 @@ def sources_digest(root: Path) -> str:
         h.update(f.read_bytes().replace(b"\r\n", b"\n") + b"\0")
     return h.hexdigest()
 
+FONT_LICENCE_FILES = {
+    "Roboto Flex": "roboto-flex-OFL.txt",
+    "Space Grotesk": "space-grotesk-OFL.txt",
+}
+
+
 def find_repo_root() -> Path:
     candidates = [
         Path("."),
@@ -89,6 +95,7 @@ def main():
         "shaded protobuf": ["shaded inside AndroidX DataStore"],
         "Bouncy Castle": ["Bouncy Castle"],
         "Roboto Flex": ["Roboto Flex"],
+        "Space Grotesk": ["Space Grotesk"],
         "Jetpack Compose": ["AndroidX Jetpack Compose and Material 3"],
         "Material 3": ["AndroidX Jetpack Compose and Material 3"],
         "AndroidX Room": ["AndroidX Room"],
@@ -143,12 +150,12 @@ def main():
                 url = bl.strip()
                 break
 
-        category = "Fonts and designs" if name == "Roboto Flex" else "Built with"
+        category = "Fonts and designs" if name in FONT_LICENCE_FILES else "Built with"
 
         # Determine full licence text
         full_text = ""
-        if name == "Roboto Flex":
-            ofl_path = licenses_dir / "roboto-flex-OFL.txt"
+        if name in FONT_LICENCE_FILES:
+            ofl_path = licenses_dir / FONT_LICENCE_FILES[name]
             if ofl_path.exists():
                 full_text = ofl_path.read_text(encoding="utf-8").strip()
         elif "shaded protobuf" in name.lower():

@@ -17,6 +17,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -75,6 +76,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.ComponentType
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.palette.LocalEmberbytePalette
 import kotlinx.coroutines.CoroutineStart
@@ -130,7 +132,9 @@ fun CompactNavBar(
 
     if (reduceMotion) {
         if (visible) {
-            Box(modifier) { content() }
+            // A bare Box aligns its child to the top start and loosens the minimum width, so under reduced motion the
+            // bar sat at the left edge (right edge in RTL). AnimatedVisibility passes the width through, so centre here.
+            Box(modifier, contentAlignment = Alignment.Center) { content() }
         }
     } else {
         AnimatedVisibility(
@@ -164,7 +168,7 @@ private fun NavBarRow(
     if (trailing != null) lastTrailing[0] = trailing
 
     val labelStyle = MaterialTheme.typography.labelLarge.copy(
-        fontSize = 13.sp,
+        fontSize = ComponentType.NavLabel,
         fontWeight = FontWeight.Bold,
     )
 
@@ -187,7 +191,7 @@ private fun NavBarRow(
         // Fallback character-width floor (7.2sp per glyph) when Robolectric returns 0px for custom fonts
         val charFloorPx = with(density) {
             items.maxOfOrNull { item ->
-                item.label.length * (7.2f.sp.toPx())
+                item.label.length * (ComponentType.NavLabelCharWidth.toPx())
             } ?: 0f
         }
         maxOf(measurerPx, charFloorPx)
@@ -216,6 +220,7 @@ private fun NavBarRow(
                 .selectableGroup(),
             shape = CircleShape,
             color = palette.surface2,
+            border = BorderStroke(1.dp, navBarBorderColor(palette)),
         ) {
             NavBarSlots(
                 items = items,

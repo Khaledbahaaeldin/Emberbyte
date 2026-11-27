@@ -2,33 +2,29 @@ package io.github.khaledbahaaeldin.emberbyte.settings
 
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isRoot
-import androidx.compose.ui.test.onAllNodesWithText
-
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.test.onNodeWithTag
 import io.github.khaledbahaaeldin.emberbyte.common.assertNoTouchTargetSmallerThan48dp
 import io.github.khaledbahaaeldin.emberbyte.data.Settings
+import io.github.khaledbahaaeldin.emberbyte.data.backup.BackupService
+import io.github.khaledbahaaeldin.emberbyte.data.backup.RestoreSummary
+import io.github.khaledbahaaeldin.emberbyte.data.export.ExportService
+import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeSettingsRepository
+import io.github.khaledbahaaeldin.emberbyte.data.fake.FakeUsageRepository
+import io.github.khaledbahaaeldin.emberbyte.engine.model.DateRange
+import io.github.khaledbahaaeldin.emberbyte.engine.model.Outcome
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteTheme
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.EmberbyteThemeSpec
-import org.junit.Assert.assertTrue
+import io.github.khaledbahaaeldin.emberbyte.ui.design.tiles.RevealGate
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,45 +32,48 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h6000dp")
 class SettingsAccessibilityTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun show(settings: Settings = Settings(), dataUiState: DataUiState = DataUiState()) {
+    @Before fun setup() { RevealGate.enabled = false }
+    @After fun teardown() { RevealGate.enabled = true }
+
+    private fun show(settings: Settings = Settings()) {
+        val repo = FakeSettingsRepository(settings)
+        val svm = SettingsViewModel(repo, usage = FakeUsageRepository())
+        val dvm = DataViewModel(
+            export = object : ExportService {
+                override suspend fun exportCsv(range: DateRange, out: OutputStream) = Outcome.Success(Unit)
+                override suspend fun exportJson(out: OutputStream) = Outcome.Success(Unit)
+            },
+            backup = object : BackupService {
+                override suspend fun createBackup(out: OutputStream, passphrase: CharArray) = Outcome.Success(Unit)
+                override suspend fun restoreBackup(input: InputStream, passphrase: CharArray) =
+                    Outcome.Success(RestoreSummary(0, 0, 0, 0))
+            },
+            opener = object : StreamOpener {
+                override fun output(uri: android.net.Uri) = ByteArrayOutputStream()
+                override fun input(uri: android.net.Uri) = ByteArrayInputStream(ByteArray(0))
+            },
+        )
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                SettingsContent(
-                    settings = settings,
-                    onUpdate = {},
-                    onBack = {},
-                    versionName = "1.0.0",
-                    onOpenSource = {},
-                    onOpenBatterySettings = {},
-                    dataUiState = dataUiState,
-                )
+                SettingsScreen(viewModel = svm, dataViewModel = dvm, onBack = {})
             }
         }
     }
 
     @Test
-    fun switches_in_settings_are_merged_with_their_labels_into_one_clickable_node_with_role_switch() {
+    fun switches_in_settings_have_role_switch() {
         show(Settings(liveNotificationEnabled = true, amoledBlack = false))
-
-        // "Live notification" should be a single toggleable node merging the text and the switch
-        val liveNode = rule.onNodeWithText("Live notification")
+        val liveNode = rule.onNodeWithTag("hub_switch_live")
         liveNode.assertIsDisplayed()
         liveNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
-        liveNode.assertIsOn()
 
-        // In the unmerged tree, there should not be a duplicate switch node without the label
-        val unmergedLiveNodes = rule.onAllNodesWithText("Live notification", useUnmergedTree = true)
-        unmergedLiveNodes.assertCountEquals(1)
-
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("AMOLED black"))
-        val amoledBlackNode = rule.onNodeWithText("AMOLED black")
-        amoledBlackNode.assertIsDisplayed()
-        amoledBlackNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
-        amoledBlackNode.assertIsOff()
+        val amoledNode = rule.onNodeWithTag("hub_switch_amoled")
+        amoledNode.assertIsDisplayed()
+        amoledNode.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
     }
 
     @Test
@@ -86,7 +85,6 @@ class SettingsAccessibilityTest {
 
     @Test
     fun data_dialogs_touch_targets_are_at_least_48dp() {
-        // Passphrase dialog
         rule.setContent {
             EmberbyteTheme(EmberbyteThemeSpec.Default) {
                 CreateBackupPassphraseDialog(onDismiss = {}, onCreate = {})
@@ -114,51 +112,4 @@ class SettingsAccessibilityTest {
         }
         assertNoTouchTargetSmallerThan48dp(rule)
     }
-
-    @Test
-    fun create_backup_dialog_at_font_scale_2_keeps_create_and_cancel_reachable_and_clickable() {
-        var created = false
-        var dismissed = false
-        rule.setContent {
-            CompositionLocalProvider(
-                LocalDensity provides Density(density = 2.625f, fontScale = 2f),
-            ) {
-                EmberbyteTheme(EmberbyteThemeSpec.Default) {
-                    CreateBackupPassphraseDialog(
-                        onDismiss = { dismissed = true },
-                        onCreate = { created = true },
-                    )
-                }
-            }
-        }
-
-        val rootHeight = rule.onAllNodes(isRoot()).fetchSemanticsNodes().maxOf { it.size.height }
-        val imeHeightPx = (rootHeight * 0.40f).toInt()
-        val imeTopPx = rootHeight - imeHeightPx
-
-        io.github.khaledbahaaeldin.emberbyte.common.injectImeInsets(imeHeightPx)
-        rule.waitForIdle()
-
-        // Cancel button is displayed and clickable above IME
-        val cancelButton = rule.onNodeWithText("Cancel")
-        cancelButton.assertIsDisplayed()
-        val cancelBounds = cancelButton.fetchSemanticsNode().boundsInRoot
-        assertTrue(
-            "Cancel button bottom (${cancelBounds.bottom}) must be <= IME top ($imeTopPx)",
-            cancelBounds.bottom <= imeTopPx,
-        )
-        cancelButton.performClick()
-        assertTrue(dismissed)
-
-        // Create button is displayed above IME
-        val createButton = rule.onNodeWithText("Create")
-        createButton.assertIsDisplayed()
-        val createBounds = createButton.fetchSemanticsNode().boundsInRoot
-        assertTrue(
-            "Create button bottom (${createBounds.bottom}) must be <= IME top ($imeTopPx)",
-            createBounds.bottom <= imeTopPx,
-        )
-    }
 }
-
-

@@ -5,7 +5,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.WidgetType
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -113,7 +113,7 @@ fun PlanLayout(
                 text = "Set up a plan",
                 style = TextStyle(
                     color = ColorProvider(palette.primary),
-                    fontSize = 15.sp,
+                    fontSize = WidgetType.Title,
                     fontWeight = FontWeight.Medium
                 )
             )
@@ -138,7 +138,7 @@ fun PlanLayout(
                 text = plan.plan.name,
                 style = TextStyle(
                     color = ColorProvider(palette.text),
-                    fontSize = 14.sp,
+                    fontSize = WidgetType.UnitSmall,
                     fontWeight = FontWeight.Bold
                 ),
                 maxLines = 1
@@ -148,7 +148,7 @@ fun PlanLayout(
                 text = dormantStart,
                 style = TextStyle(
                     color = ColorProvider(palette.muted),
-                    fontSize = 12.sp,
+                    fontSize = WidgetType.Label,
                     fontWeight = FontWeight.Normal
                 ),
                 maxLines = 1
@@ -205,7 +205,7 @@ fun PlanLayout(
                         text = "!",
                         style = TextStyle(
                             color = ColorProvider(palette.danger),
-                            fontSize = 24.sp,
+                            fontSize = WidgetType.Metric,
                             fontWeight = FontWeight.Bold
                         )
                     )
@@ -215,7 +215,7 @@ fun PlanLayout(
                     text = "$percent%",
                     style = TextStyle(
                         color = ColorProvider(if (isExceeded) palette.danger else palette.primary),
-                        fontSize = 24.sp,
+                        fontSize = WidgetType.Metric,
                         fontWeight = FontWeight.Bold
                     )
                 )
@@ -227,7 +227,7 @@ fun PlanLayout(
             text = plan.plan.name,
             style = TextStyle(
                 color = ColorProvider(palette.text),
-                fontSize = 12.sp,
+                fontSize = WidgetType.Label,
                 fontWeight = FontWeight.Bold
             ),
             maxLines = 1
@@ -236,7 +236,7 @@ fun PlanLayout(
             text = remainingCapText,
             style = TextStyle(
                 color = ColorProvider(if (isExceeded) palette.danger else palette.muted),
-                fontSize = 11.sp,
+                fontSize = WidgetType.Caption,
                 fontWeight = if (isExceeded) FontWeight.Bold else FontWeight.Normal
             ),
             maxLines = 1

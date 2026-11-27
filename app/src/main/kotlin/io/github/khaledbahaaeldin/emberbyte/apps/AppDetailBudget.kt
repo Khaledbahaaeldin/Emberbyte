@@ -55,7 +55,10 @@ sealed interface AppDetailEvent {
     data class SetBudgetWarn(val percent: Int) : AppDetailEvent
     data object SaveBudget : AppDetailEvent
     data object RemoveBudget : AppDetailEvent
+    data object UndoRemoveBudget : AppDetailEvent
+    data object DismissBudgetUndo : AppDetailEvent
     data class DismissSpike(val id: Long) : AppDetailEvent
+    data class SetRange(val range: io.github.khaledbahaaeldin.emberbyte.apps.detail.DetailRange) : AppDetailEvent
 }
 
 internal fun budgetUi(status: BudgetStatus, planName: String?, units: ByteUnits): BudgetUi {
@@ -70,7 +73,7 @@ internal fun budgetUi(status: BudgetStatus, planName: String?, units: ByteUnits)
             BudgetState.EXCEEDED -> BudgetStateUi.Exceeded
         },
         percentText = "$percent%",
-        usedText = "${plainBytes(status.usedBytes, units)} of ${plainBytes(b.limitBytes, units)}",
+        usedText = "${plainBytes(status.usedBytes, units)} of ${plainBytes(b.limitBytes, units)} mobile data",
         periodText = when {
             b.period == BudgetPeriod.DAILY -> "today"
             planName != null -> "this cycle ($planName)"

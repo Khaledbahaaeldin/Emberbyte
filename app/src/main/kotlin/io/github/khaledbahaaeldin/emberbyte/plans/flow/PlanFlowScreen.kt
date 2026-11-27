@@ -1,61 +1,28 @@
 package io.github.khaledbahaaeldin.emberbyte.plans.flow
 
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-import androidx.compose.ui.graphics.graphicsLayer
-import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Delete
-import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.DialogAction
-import io.github.khaledbahaaeldin.emberbyte.ui.design.dialog.EmberbyteDialog
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
-import io.github.khaledbahaaeldin.emberbyte.nav.BackTransitions
-import io.github.khaledbahaaeldin.emberbyte.nav.NavDiagnostics
-import kotlin.math.roundToInt
-import kotlinx.coroutines.CancellationException
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalEmberbytePalette
+import io.github.khaledbahaaeldin.emberbyte.data.util.SystemZoneClock
+import io.github.khaledbahaaeldin.emberbyte.nav.GuardedBack
 import io.github.khaledbahaaeldin.emberbyte.ui.design.theme.LocalReduceMotion
+import java.time.Clock
+import kotlin.math.abs
 
 @Composable
 fun PlanFlowScreen(
@@ -63,6 +30,9 @@ fun PlanFlowScreen(
     onPlanCreated: (Long) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    hasPhonePermission: Boolean = true,
+    onRequestPhonePermission: () -> Unit = {},
+    clock: Clock = SystemZoneClock(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -76,212 +46,185 @@ fun PlanFlowScreen(
         state = state,
         onEvent = viewModel::onEvent,
         onBack = onCancel,
+        hasPhonePermission = hasPhonePermission,
+        onRequestPhonePermission = onRequestPhonePermission,
+        clock = clock,
         modifier = modifier,
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun PlanFlowContent(
+internal fun PlanFlowContent(
     state: PlanFlowState,
     onEvent: (PlanFlowEvent) -> Unit,
     onBack: () -> Unit,
+    hasPhonePermission: Boolean = true,
+    onRequestPhonePermission: () -> Unit = {},
+    clock: Clock = SystemZoneClock(),
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalEmberbytePalette.current
     val reduceMotion = LocalReduceMotion.current
-    var showDiscardConfirm by remember { mutableStateOf(false) }
+    val pagerState = rememberPagerState(
+        initialPage = (state.step - 1).coerceIn(0, state.totalSteps - 1),
+        pageCount = { state.totalSteps },
+    )
+    var pagerWidthPx by remember { mutableFloatStateOf(1f) }
 
-    val hasEnteredData = state.name.isNotBlank() || state.capText.isNotBlank() || state.enteredAmount.isNotBlank()
-    val isDirty = state.step > 1 || hasEnteredData
-    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-
-    // Going back a step follows the finger: the step content shrinks and rounds like any other screen being closed,
-    // springs back when the gesture is cancelled, and goes to the previous step when it is committed.
-    var stepBackProgress by remember { mutableFloatStateOf(0f) }
-    var stepBackDragging by remember { mutableStateOf(false) }
-    PredictiveBackHandler(enabled = state.step > 1) { progress ->
-        NavDiagnostics.record("BACK_START", "plan-step")
-        stepBackDragging = true
-        try {
-            progress.collect { event -> stepBackProgress = event.progress.coerceIn(0f, 1f) }
-            NavDiagnostics.record("BACK_COMMIT", "plan-step")
-            stepBackDragging = false
-            stepBackProgress = 0f
-            onEvent(PlanFlowEvent.PreviousStep)
-        } catch (_: CancellationException) {
-            NavDiagnostics.record("BACK_CANCEL", "plan-step")
-            stepBackDragging = false
-            stepBackProgress = 0f
+    LaunchedEffect(state.step, reduceMotion) {
+        val target = (state.step - 1).coerceIn(0, state.totalSteps - 1)
+        if (!reduceMotion && pagerState.currentPage != target) {
+            pagerState.animateScrollToPage(
+                page = target,
+                animationSpec = spring(dampingRatio = 1f, stiffness = 224f),
+            )
         }
     }
-    val shownBackProgress by animateFloatAsState(
-        targetValue = stepBackProgress,
-        animationSpec = if (stepBackDragging || reduceMotion) snap() else BackTransitions.cancelSpring,
-        label = "PlanFlowStepBackProgress",
-    )
-    val layoutDirection = LocalLayoutDirection.current
-    val rtl = layoutDirection == LayoutDirection.Rtl
-    val motion = MaterialTheme.motionScheme
+
+    val position = if (reduceMotion) {
+        (state.step - 1).toFloat()
+    } else {
+        (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+            .coerceIn(0f, (state.totalSteps - 1).toFloat())
+    }
+
+    val hasDirtyInput = state.name.isNotBlank() || state.capText.isNotBlank() || state.enteredAmount.isNotBlank()
+    val isLastStep = state.isReviewStep || state.step >= state.totalSteps
 
     GuardedBack(
-        dirty = state.step == 1 && hasEnteredData,
+        dirty = state.step == 1 && hasDirtyInput,
         onConfirmLeave = onBack,
     ) { shrink ->
-        if (showDiscardConfirm) {
-            EmberbyteDialog(
-                onDismiss = { showDiscardConfirm = false },
-                title = "Discard plan?",
-                icon = Icons.Rounded.Delete,
-                destructive = true,
-                confirm = DialogAction(
-                    label = "Discard",
-                    onClick = {
-                        showDiscardConfirm = false
-                        onBack()
-                    },
-                ),
-                dismiss = DialogAction(
-                    label = "Cancel",
-                    onClick = { showDiscardConfirm = false },
-                ),
-            ) {
-                Text(
-                    text = "You have entered details for this plan. Are you sure you want to exit without creating it?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        Scaffold(
-            modifier = modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = shrink
-                    scaleY = shrink
-                }
-                .imePadding(),
-        bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        if (state.step > 1) {
-                            onEvent(PlanFlowEvent.PreviousStep)
-                        } else if (hasEnteredData) {
-                            showDiscardConfirm = true
-                        } else {
-                            onBack()
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                ) {
-                    Text("Back")
-                }
-
-                if (state.isReviewStep) {
-                    Button(
-                        onClick = { onEvent(PlanFlowEvent.CreatePlan) },
-                        enabled = !state.isSaving && state.createdPlanId == null,
-                        modifier = Modifier
-                            .weight(2f)
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("Create plan")
-                    }
-                } else {
-                    FilledTonalButton(
-                        onClick = { onEvent(PlanFlowEvent.NextStep) },
-                        enabled = state.canContinue(),
-                        modifier = Modifier
-                            .weight(2f)
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    ) {
-                        Text("Continue")
-                    }
-                }
-            }
-        },
-    ) { innerPadding ->
-        Column(
+        PlanFlowScaffoldChrome(
+            position = position,
+            totalSteps = state.totalSteps,
+            step = state.step,
+            isLastStep = isLastStep,
+            isSaving = state.isSaving,
+            hasDirtyInput = hasDirtyInput,
+            onBack = {
+                if (state.step > 1) onEvent(PlanFlowEvent.PreviousStep) else onBack()
+            },
+            onClose = onBack,
+            onPrimary = {
+                if (isLastStep) onEvent(PlanFlowEvent.CreatePlan) else onEvent(PlanFlowEvent.NextStep)
+            },
+            modifier = modifier.graphicsLayer {
+                scaleX = shrink
+                scaleY = shrink
+            },
+        ) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .onSizeChanged { pagerWidthPx = it.width.toFloat().coerceAtLeast(1f) },
         ) {
-            Text(
-                text = "Step ${state.step} of ${state.totalSteps}",
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.muted,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-            )
+            if (reduceMotion) {
+                Crossfade(
+                    targetState = state.step,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "plan_flow_reduced_crossfade",
+                ) { stepNum ->
+                    PlanFlowStepBody(
+                        stepNum = stepNum,
+                        state = state,
+                        hasPhonePermission = hasPhonePermission,
+                        clock = clock,
+                        reveal = { 1f },
+                        onEvent = onEvent,
+                        onRequestPhonePermission = onRequestPhonePermission,
+                    )
+                }
+            } else {
+                HorizontalPager(
+                    state = pagerState,
+                    userScrollEnabled = false,
+                    beyondViewportPageCount = 0,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("plan_flow_pager"),
+                ) { page ->
+                    val d = page - position
+                    val q = (1f - abs(d)).coerceIn(0f, 1f)
+                    val isOutgoing = abs(d) > 0.001f &&
+                        ((d < 0f && position >= page) || (d > 0f && position <= page))
+                    val alpha = flowPageAlpha(d)
+                    val offsetPx = flowParallaxOffset(d, pagerWidthPx, isOutgoing)
+                    val reveal: (Int) -> Float = { idx -> flowRevealFraction(q, idx) }
 
-            LinearProgressIndicator(
-                progress = { (state.step.toFloat() / state.totalSteps.toFloat()).coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .graphicsLayer {
-                        if (!reduceMotion) {
-                            val scale = BackTransitions.shrinkFor(shownBackProgress)
-                            val radius = BackTransitions.cornerRadiusFor(shownBackProgress)
-                            scaleX = scale
-                            scaleY = scale
-                            transformOrigin = BackTransitions.transformOriginFor(layoutDirection)
-                            shape = RoundedCornerShape(radius)
-                            clip = radius > 0.dp
-                        }
-                    },
-            ) {
-                if (reduceMotion) {
-                    when {
-                        state.step == 1 -> Step1NameAndSim(state = state, onEvent = onEvent)
-                        state.step == 2 -> Step2Cap(state = state, onEvent = onEvent)
-                        state.step == 3 -> Step3Cycle(state = state, onEvent = onEvent)
-                        state.isMidCycleApplicable && state.step == 4 -> Step4ThisCycle(state = state, onEvent = onEvent)
-                        state.isReviewStep -> StepReview(state = state, onEvent = onEvent)
-                    }
-                } else {
-                    AnimatedContent(
-                        targetState = state.step,
-                        transitionSpec = {
-                            val direction = stepDirection(initialState, targetState, rtl)
-                            (
-                                slideInHorizontally(motion.defaultSpatialSpec()) {
-                                    (it * STEP_SLIDE_FRACTION * direction).roundToInt()
-                                } + fadeIn(motion.defaultEffectsSpec())
-                                ) togetherWith (
-                                slideOutHorizontally(motion.defaultSpatialSpec()) {
-                                    (-it * STEP_SLIDE_FRACTION * direction).roundToInt()
-                                } + fadeOut(motion.fastEffectsSpec())
-                                ) using SizeTransform(clip = false)
+                    PlanFlowStepBody(
+                        stepNum = page + 1,
+                        state = state,
+                        hasPhonePermission = hasPhonePermission,
+                        clock = clock,
+                        reveal = reveal,
+                        onEvent = onEvent,
+                        onRequestPhonePermission = onRequestPhonePermission,
+                        modifier = Modifier.graphicsLayer {
+                            this.alpha = alpha
+                            translationX = offsetPx
                         },
-                        label = "PlanFlowStepTransition",
-                    ) { step ->
-                        when {
-                            step == 1 -> Step1NameAndSim(state = state, onEvent = onEvent)
-                            step == 2 -> Step2Cap(state = state, onEvent = onEvent)
-                            step == 3 -> Step3Cycle(state = state, onEvent = onEvent)
-                            state.isMidCycleApplicable && step == 4 -> Step4ThisCycle(state = state, onEvent = onEvent)
-                            state.isReviewStep -> StepReview(state = state, onEvent = onEvent)
-                        }
-                    }
+                    )
                 }
             }
         }
     }
+    }
 }
+
+@Composable
+private fun PlanFlowStepBody(
+    stepNum: Int,
+    state: PlanFlowState,
+    hasPhonePermission: Boolean,
+    clock: Clock,
+    reveal: (Int) -> Float,
+    onEvent: (PlanFlowEvent) -> Unit,
+    onRequestPhonePermission: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isReview = (!state.isMidCycleApplicable && stepNum == 4) || (state.isMidCycleApplicable && stepNum == 5)
+    when {
+        stepNum == 1 -> NameStep(
+            state = state,
+            hasPhonePermission = hasPhonePermission,
+            reveal = reveal,
+            onSetName = { onEvent(PlanFlowEvent.SetName(it)) },
+            onSetSim = { onEvent(PlanFlowEvent.SetSim(it)) },
+            onRequestPhonePermission = onRequestPhonePermission,
+            modifier = modifier,
+        )
+        stepNum == 2 -> AmountStep(
+            state = state,
+            reveal = reveal,
+            onSetCap = { onEvent(PlanFlowEvent.SetCap(it)) },
+            onSetCapUnit = { onEvent(PlanFlowEvent.SetCapUnit(it)) },
+            onSetRollover = { onEvent(PlanFlowEvent.SetRollover(it)) },
+            modifier = modifier,
+        )
+        stepNum == 3 -> ResetStep(
+            state = state,
+            clock = clock,
+            reveal = reveal,
+            onSetCycleKind = { onEvent(PlanFlowEvent.SetCycleKind(it)) },
+            onSetDayOfMonth = { onEvent(PlanFlowEvent.SetDayOfMonth(it)) },
+            onSetEveryDaysText = { onEvent(PlanFlowEvent.SetEveryDaysText(it)) },
+            onSetEveryDays = { onEvent(PlanFlowEvent.SetEveryDays(it)) },
+            modifier = modifier,
+        )
+        stepNum == 4 && !isReview -> ThisCycleStep(
+            state = state,
+            clock = clock,
+            reveal = reveal,
+            onSelectChoice = { onEvent(PlanFlowEvent.SetFirstCycleChoice(it)) },
+            onSetEnteredAmount = { onEvent(PlanFlowEvent.SetEnteredAmount(it)) },
+            onSetEnteredUnit = { onEvent(PlanFlowEvent.SetEnteredUnit(it)) },
+            modifier = modifier,
+        )
+        else -> ReviewStep(
+            state = state,
+            reveal = reveal,
+            onToggleAlert = { onEvent(PlanFlowEvent.ToggleAlert(it)) },
+            modifier = modifier,
+        )
+    }
 }

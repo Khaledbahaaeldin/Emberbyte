@@ -24,12 +24,14 @@ class PermissionActions(
     val openUsageAccess: () -> Unit,
     val requestNotifications: () -> Unit,
     val requestPhoneState: () -> Unit = {},
+    val requestBatteryUnrestricted: () -> Unit = {},
 ) {
     fun onPrompt(id: String) {
         when (id) {
             "usage_access" -> openUsageAccess()
             "notifications" -> requestNotifications()
             "phone_state" -> requestPhoneState()
+            "battery" -> requestBatteryUnrestricted()
         }
     }
 }
@@ -76,6 +78,7 @@ fun rememberPermissionActions(graph: AppGraph): PermissionActions {
                     )
                 }
             },
+            requestBatteryUnrestricted = { context.requestIgnoreBatteryOptimizations() },
             requestPhoneState = {
                 val asked = askedTracker.asked(Manifest.permission.READ_PHONE_STATE)
                 val showRationale = activity != null && ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.READ_PHONE_STATE)
@@ -106,5 +109,26 @@ private fun Context.startActivityOrIgnore(intent: Intent) {
         startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     } catch (_: ActivityNotFoundException) {
         // The device has no such settings screen.
+    }
+}
+
+/**
+ * Shows the system prompt "Let the app always run in the background?". The prompt needs the
+ * REQUEST_IGNORE_BATTERY_OPTIMIZATIONS permission in the manifest; when the system has no such dialog the battery
+ * optimisation list opens instead, and as a last resort the app's own settings page.
+ */
+fun Context.requestIgnoreBatteryOptimizations() {
+    val direct = Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+    val list = Intent(AndroidSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    val details = Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(Uri.fromParts("package", packageName, null))
+    for (intent in listOf(direct, list, details)) {
+        try {
+            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        } catch (_: ActivityNotFoundException) {
+            // Try the next, less direct screen.
+        } catch (_: SecurityException) {
+            // The system refused the direct prompt: fall back to the list.
+        }
     }
 }

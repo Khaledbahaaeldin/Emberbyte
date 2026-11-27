@@ -73,6 +73,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Hand-written dependency graph (no DI framework). One instance per process, owned by [EmberbyteApplication].
@@ -85,6 +86,9 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
 
     val settings: SettingsRepository = preferences.settings
     val onboarding: OnboardingRepository = preferences.onboarding
+    val whatsNewPrefs: io.github.khaledbahaaeldin.emberbyte.data.WhatsNewPrefsRepository = preferences.whatsNew
+    val archivedPlansRestore = preferences.archivedPlansRestore
+    val plansSession = io.github.khaledbahaaeldin.emberbyte.plans.PlansSessionCoordinator()
     val permissions: PermissionRepository = AndroidPermissionRepository(appContext)
     val simInfo: SimInfoSource = AndroidSimInfoSource(appContext)
     internal val planStore = PlanStores.create(appContext)
@@ -107,6 +111,16 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     val appIcons: AppIconProvider = AppIconProvider(appContext)
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        appScope.launch {
+            io.github.khaledbahaaeldin.emberbyte.plans.runArchivedPlansRestoreOnce(
+                plans = plans,
+                restoreRepo = archivedPlansRestore,
+                coordinator = plansSession,
+            )
+        }
+    }
 
     /** Hot cache of the onboarding flag. `null` only until the first read; collecting it never restarts the underlying flow. */
     val onboardingCompleted: StateFlow<Boolean?> =
@@ -161,8 +175,6 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 plans = plans,
                 settings = settings,
                 permissions = permissions,
-                spikes = spikes,
-                labelOf = ::appLabel,
                 clock = clock,
                 is24Hour = { DateFormat.is24HourFormat(appContext) },
             )
@@ -170,7 +182,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun appsViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { AppsViewModel(usage, settings, permissions) }
+        initializer { AppsViewModel(usage, settings, permissions, spikes = spikes, labelOf = ::appLabel) }
     }
 
     fun appDetailViewModelFactory(packageName: String): ViewModelProvider.Factory = viewModelFactory {
@@ -189,19 +201,53 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun historyViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { HistoryViewModel(usage, settings, permissions) }
+        initializer { HistoryViewModel(usage, settings, permissions, plans = plans) }
     }
 
     fun settingsViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { SettingsViewModel(settings) }
+        initializer {
+            val db = io.github.khaledbahaaeldin.emberbyte.data.db.EmberbyteDatabases.get(appContext)
+            SettingsViewModel(
+                settings = settings,
+                usage = usage,
+                batteryUnrestricted = {
+                    val pm = appContext.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                    pm?.isIgnoringBatteryOptimizations(appContext.packageName) ?: true
+                },
+                usageAccess = {
+                    val appOps = appContext.getSystemService(Context.APP_OPS_SERVICE) as? android.app.AppOpsManager
+                    val mode = if (appOps != null) {
+                        @Suppress("DEPRECATION")
+                        appOps.checkOpNoThrow(
+                            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                            android.os.Process.myUid(),
+                            appContext.packageName,
+                        )
+                    } else {
+                        android.app.AppOpsManager.MODE_ALLOWED
+                    }
+                    mode == android.app.AppOpsManager.MODE_ALLOWED
+                },
+                storageStats = io.github.khaledbahaaeldin.emberbyte.data.StorageStats.create(appContext, db),
+                clock = clock,
+            )
+        }
     }
 
     fun appearanceViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { AppearanceViewModel(settings) }
+        initializer {
+            AppearanceViewModel(
+                settings = settings,
+                isSystemDark = {
+                    val mode = appContext.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                    mode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                },
+            )
+        }
     }
 
     fun dataViewModelFactory(opener: StreamOpener): ViewModelProvider.Factory = viewModelFactory {
-        initializer { DataViewModel(exportService, backupService, opener, clock) }
+        initializer { DataViewModel(exportService, backupService, opener, clock, settings = settings) }
     }
 
     fun onboardingViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
@@ -209,7 +255,7 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
     }
 
     fun plansViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
-        initializer { PlansViewModel(plans, settings, simInfo, clock) }
+        initializer { PlansViewModel(plans, settings, simInfo, clock, session = plansSession) }
     }
 
     fun planEditorViewModelFactory(planId: Long): ViewModelProvider.Factory = viewModelFactory {
@@ -223,6 +269,9 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 sims = simInfo,
                 clock = clock,
                 savedStateHandle = createSavedStateHandle(),
+                usage = usage,
+                labelOf = ::appLabel,
+                session = plansSession,
             )
         }
     }
@@ -234,6 +283,21 @@ class AppGraph(context: Context, val clock: Clock = AppClock) {
                 settings = settings,
                 sims = simInfo,
                 clock = clock,
+            )
+        }
+    }
+
+    fun whatsNewViewModelFactory(): ViewModelProvider.Factory = viewModelFactory {
+        initializer {
+            val code = runCatching {
+                appContext.packageManager.getPackageInfo(appContext.packageName, 0).longVersionCode.toInt()
+            }.getOrDefault(0)
+            io.github.khaledbahaaeldin.emberbyte.whatsnew.WhatsNewViewModel(
+                repository = io.github.khaledbahaaeldin.emberbyte.whatsnew.AssetWhatsNewRepository(
+                    context = appContext,
+                    prefs = whatsNewPrefs,
+                ),
+                currentVersionCode = code,
             )
         }
     }

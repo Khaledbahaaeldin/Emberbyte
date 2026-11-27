@@ -1,6 +1,7 @@
 package io.github.khaledbahaaeldin.emberbyte.data.plan
 
 import android.content.Context
+import io.github.khaledbahaaeldin.emberbyte.data.PlanSnapshot
 import io.github.khaledbahaaeldin.emberbyte.data.db.EmberbyteDatabases
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AddOn
 import io.github.khaledbahaaeldin.emberbyte.engine.model.AlertRule
@@ -15,6 +16,9 @@ interface PlanStore {
     suspend fun plan(id: Long): Plan?
     suspend fun upsertPlan(plan: Plan): Long
     suspend fun setArchived(id: Long, archived: Boolean): Boolean
+    suspend fun restoreArchivedPlans(): Int
+    suspend fun deletePlanWithSnapshot(id: Long): PlanSnapshot?
+    suspend fun restorePlanFromSnapshot(snapshot: PlanSnapshot)
     suspend fun setPinned(id: Long, pinned: Boolean): Boolean
     fun observeAddOns(planId: Long): Flow<List<AddOn>>
     suspend fun upsertAddOn(addOn: AddOn): Long

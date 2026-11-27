@@ -58,9 +58,9 @@ class FakeContractBehaviourTest {
         assertTrue(repo.observeFreeRules(1L).first().isEmpty())
     }
 
-    @Test fun missing_plan_yields_not_found_for_archive_and_what_if() = runTest {
+    @Test fun missing_plan_yields_not_found_for_delete_and_what_if() = runTest {
         val repo = FakePlanRepository(clock)
-        assertEquals(Outcome.Failure(EmberbyteError.NotFound), repo.archivePlan(999L))
+        assertEquals(Outcome.Failure(EmberbyteError.NotFound), repo.deletePlan(999L))
         assertEquals(Outcome.Failure(EmberbyteError.NotFound), repo.whatIf(999L, 1L, clock.instant()))
         assertTrue(repo.whatIf(1L, 1L, clock.instant()) is Outcome.Success)
     }
