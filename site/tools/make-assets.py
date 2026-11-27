@@ -41,7 +41,7 @@ def font():
 
 def screens():
     from PIL import Image
-    for name in ["1_home", "2_apps", "3_plans", "4_plan_flow", "5_themes", "6_history", "7_app_detail"]:
+    for name in ["1_home", "2_apps", "3_plans", "4_what_if", "5_plan_flow", "6_app_detail", "7_themes", "8_light"]:
         img = Image.open(SHOTS / f"{name}.png").convert("RGB")
         w = 640
         img = img.resize((w, round(img.height * w / img.width)), Image.LANCZOS)
