@@ -14,15 +14,15 @@ encrypted local backups.
 
 ## Screenshots
 
-| Home | Apps | Plans | New plan |
+| Home | Apps | Plans | What if |
 |:---:|:---:|:---:|:---:|
-| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" width="200" alt="Home: today and the plan" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_apps.png" width="200" alt="Apps ranked by usage" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_plans.png" width="200" alt="Plans as a bento" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_plan_flow.png" width="200" alt="Starting a plan mid-cycle" /> |
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" width="200" alt="Home: today, the plan bar, live speed and the split by network" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_apps.png" width="200" alt="Apps ranked by usage" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_plans.png" width="200" alt="Plans: a front plan and tiles" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_what_if.png" width="200" alt="A what-if that adds 10 GB to a plan" /> |
 
-| Themes | History | App detail |
-|:---:|:---:|:---:|
-| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_themes.png" width="200" alt="Twelve themes" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_history.png" width="200" alt="History" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7_app_detail.png" width="200" alt="One app in detail" /> |
+| New plan | App detail | Themes | Light mode |
+|:---:|:---:|:---:|:---:|
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_plan_flow.png" width="200" alt="The new-plan flow in five steps" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_app_detail.png" width="200" alt="One app in detail" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7_themes.png" width="200" alt="Twelve themes" /> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8_light.png" width="200" alt="Home in a light theme" /> |
 
-These are real captures of the 1.0.0 release build (Dusk dark theme, demo data). The same images are used for the F-Droid listing.
+These are real captures of the 1.0.3 release build (Dusk theme, demo data on an emulator). The same images are used for the F-Droid listing.
 
 ---
 
