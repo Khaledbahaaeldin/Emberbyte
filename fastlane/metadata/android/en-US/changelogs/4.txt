@@ -1,0 +1,7 @@
+• New look for Home, Apps, History, Plans and Settings
+• Three-step onboarding and a five-step new-plan flow
+• Plan editor with a live preview, plus a what-if for +1, +5 or +10 GB
+• Plans: pace insight, renewal timeline, tap to bring a plan to the front
+• Values on every chart bar, readable text in all 12 themes
+• What's new sheet, offline
+• Archived plans are restored; deleting a plan has Undo

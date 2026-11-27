@@ -1,6 +1,37 @@
 {
   "entries": [
     {
+      "versionCode": 4,
+      "versionName": "1.0.3",
+      "date": "2026-11-27",
+      "highlights": [
+        {
+          "kind": "changed",
+          "text": "New look for Home, Apps, History, Plans and Settings, with clearer cards and charts."
+        },
+        {
+          "kind": "added",
+          "text": "Try a what-if on a plan, see which plan runs ahead of its pace, and tap a plan to bring it to the front."
+        },
+        {
+          "kind": "changed",
+          "text": "Setting up a plan takes five calm steps, and onboarding takes three."
+        },
+        {
+          "kind": "added",
+          "text": "Every chart bar shows its value, and this What's new sheet works offline."
+        },
+        {
+          "kind": "changed",
+          "text": "Archived plans are restored, and deleting a plan can be undone."
+        },
+        {
+          "kind": "fixed",
+          "text": "Text is readable in every theme, and no empty screen flashes while data loads."
+        }
+      ]
+    },
+    {
       "versionCode": 3,
       "versionName": "1.0.2",
       "date": "2026-11-12",

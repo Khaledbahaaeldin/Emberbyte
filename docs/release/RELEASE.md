@@ -41,8 +41,8 @@ The release build configuration is defined in [`app/build.gradle.kts`](../../app
   ./gradlew :app:dependencies --configuration releaseRuntimeClasspath
   ```
 - **Version Metadata**:
-  - `versionCode = 1`
-  - `versionName = "1.0.1"`
+  - `versionCode = 4`
+  - `versionName = "1.0.3"`
 
 ---
 
